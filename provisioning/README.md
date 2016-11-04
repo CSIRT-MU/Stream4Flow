@@ -36,7 +36,8 @@ Templates of configuration files are stored in ansible/roles/<name_of_role>/temp
 - script_path - path to the location of ipfixcol scripts
 - script_filename - filename of ipfixcol script to run. Allowed values are: startup.xml.tcp and startup.xml.udp. If you want to change the script later after deployment, set the IPFIXCOL_SCRIPT environment variable accordingly in /etc/default/ipfixcol
 
-## IPfixcol vars - packages.apt.yml: List of required apt packages to download.
+## IPfixcol vars 
+- packages.apt.yml: List of required apt packages to download.
 
 ## IPfixcol templates:
 - ipfixcol.conf.j2: Ubuntu upstart file for ipfixcol service
