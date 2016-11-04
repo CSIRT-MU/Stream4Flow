@@ -38,16 +38,6 @@ The minimum hardware requirements for standalone Stream4Flow cluster
 - 14GB of RAM 
 - 80GB hard drive space 
 
-Default machine configuration
-- producer IP address - 192.168.0.2
-- consumer IP address - 192.168.0.3
-- Spark Master IP address - 192.168.0.100
-- Spark Slave IP address - 192.168.0.101
-
-Default login credentials
-- user: **spark**
-- login: **Stream4Flow**
-
 ### Cluster deployment
 1. clone repository
 2. go to folder **provisioning/ansible**
