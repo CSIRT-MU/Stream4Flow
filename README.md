@@ -18,10 +18,10 @@ We support two types of deployment:
 #### Standalone deployment
 1. clone repository
 2. go to folder **provision/**
-3. run vagrant provision: @vagrant up@
+3. run vagrant provision: `vagrant up`
 
 #### Cluster deployment
 1. clone repository
 2. go to folder **provision/ansible**
 3. supply your inventory file with you cluster deployment according to file inventory.ini.example
-4. run ansible @ansible-playbook -i <your inventory file> site.yml@
+4. run ansible `ansible-playbook -i <your inventory file> site.yml`
