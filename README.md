@@ -18,6 +18,16 @@ We support two types of deployment:
 - latest version of [ansible](https://www.ansible.com/)
 - Internet connection
 
+#### Default machine configuration
+- producer IP address - 192.168.0.2
+- consumer IP address - 192.168.0.3
+- Spark Master IP address - 192.168.0.100
+- Spark Slave IP address - 192.168.0.101
+
+#### Default login credentials
+- user: **spark**
+- login: **Stream4Flow**
+
 ### Standalone deployment
 
 1. clone repository
