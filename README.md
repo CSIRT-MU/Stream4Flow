@@ -18,7 +18,7 @@ We support two types of deployment:
 - latest version of [ansible](https://www.ansible.com/)
 - Internet connection
 
-#### Standalone deployment
+### Standalone deployment
 
 1. clone repository
 2. go to folder **provisioning/**
@@ -38,7 +38,7 @@ Default login credentials
 - user: **spark**
 - login: **Stream4Flow**
 
-#### Cluster deployment
+### Cluster deployment
 1. clone repository
 2. go to folder **provisioning/ansible**
 3. supply your inventory file with you cluster deployment according to file inventory.ini.example
