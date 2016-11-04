@@ -1,0 +1,22 @@
+packages:
+  base: [
+    autoconf,
+    bison,
+    build-essential,
+    docbook-xsl,
+    doxygen,
+    flex,
+    git,
+    liblzo2-dev,
+    libtool,
+    libsctp-dev,
+    libssl-dev,
+    libxml2,
+    libxml2-dev,
+    pkg-config,
+    xsltproc
+  ]
+  geoip: [libgeoip-dev]
+  stats: [librrd-dev]
+  uid: [libsqlite3-dev]
+  postgres: [libpq-dev]

@@ -1,0 +1,34 @@
+---
+# Install Apache Kafka
+
+# Install zookeperd
+- name: Install zookeper
+  apt: name=zookeeperd state=latest update_cache=yes
+
+- name: Download Apache Kafka
+  unarchive: src={{ kafka_download_url }} dest=/tmp/ copy=no creates=/tmp/{{ kafka_filename }} 
+
+- name: Create kafka group
+  group: name=kafka state=present
+
+- name: Create kafka user
+  user: name=kafka comment="Apache Kafka" group=kafka shell=/usr/sbin/nologin home=/home/kafka
+
+- name: Create /opt/kafka directory
+  file: path=/opt/kafka state=directory mode=0755
+
+- name: Move Kafka files to /opt/kafka
+  shell: if ! [ "$(ls -A /opt/kafka)" ]; then (mv /tmp/{{ kafka_filename }}/* /opt/kafka) fi
+
+- name: Set appropriate permissions on /opt/kafka
+  file: dest=/opt/kafka owner=kafka group=kafka recurse=yes
+
+- name: Copy Kafka configuration files (1/2)
+  template: src=templates/kafka-broker.j2 dest=/etc/default/kafka-broker mode=0644 owner=kafka group=kafka
+
+- name: Copy Kafka configuration files (2/2)
+  template: src=templates/kafka-broker.conf.j2 dest=/etc/init/kafka-broker.conf mode=0644 owner=kafka group=kafka
+
+- name: Copy modified Kafka server start script
+  template: src=templates/kafka-server-start.sh.j2 dest=/opt/kafka/bin/kafka-server-start.sh mode=0755 owner=kafka group=kafka
+

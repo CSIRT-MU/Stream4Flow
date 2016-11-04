@@ -1,0 +1,9 @@
+- name: Install Examples application dependencies
+  include: install.yml
+  become: yes
+
+- name: Run Example application
+  include: run.yml
+  become: yes
+  become_user: "{{ user }}"
+  when: "'sparkMaster' in group_names"

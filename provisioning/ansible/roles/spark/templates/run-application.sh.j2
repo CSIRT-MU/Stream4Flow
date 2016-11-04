@@ -1,0 +1,15 @@
+#!/bin/bash
+
+if [ -z "$1" ] 
+then
+    echo "You must specify the application with arguments"
+    exit 1;
+fi
+APPLICATION=$@
+
+
+echo "[info] Running application $APPLICATION..."
+
+export SPARK_MASTER_IP={{ masterIP }}
+export SPARK_LOCAL_IP={{ masterIP }}
+{{ dir_spark }}/spark-bin/bin/spark-submit --master {{ spark_masterurl }} --conf spark.eventLog.enabled=true --conf spark.eventLog.dir="{{ dir_spark }}/spark-bin/logs/" --conf spark.executor.logs.rolling.maxRetainedFiles=3 --conf spark.executor.logs.rolling.maxSize=1G --conf spark.executor.logs.rolling.strategy=size --total-executor-cores {{ spark_worker_cores }} --executor-memory {{ (spark_worker_memory * 0.8)|int }}M --jars "./spark-streaming-kafka-assembly.jar" {{ dir_applications }}$APPLICATION

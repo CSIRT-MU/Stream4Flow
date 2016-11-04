@@ -1,0 +1,16 @@
+---
+# Install Oracle Java
+- name: install add-apt-repository
+  apt: name=software-properties-common state=latest
+- name: Add Oracle Java Repository
+  apt_repository: repo='deb http://ppa.launchpad.net/webupd8team/java/ubuntu xenial main'
+- name: Accept Java 8 License debconf
+  debconf: name='oracle-java8-installer' question='shared/accepted-oracle-license-v1-1' value='true' vtype='select'
+- name: Accept Java 8 License apt
+  apt_key: keyserver=hkp://keyserver.ubuntu.com:80 id=EEA14886
+- name: Install Oracle Java 8
+  apt: name={{item}} state=latest update_cache=yes
+  with_items:
+  - oracle-java8-installer
+  - ca-certificates
+  - oracle-java8-set-default

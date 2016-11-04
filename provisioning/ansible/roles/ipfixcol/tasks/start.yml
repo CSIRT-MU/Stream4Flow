@@ -1,0 +1,16 @@
+# Configure and start IPFIXcol
+
+- name: Copy TCP config file for IPFIXcol
+  template: src=templates/startup.xml.tcp.j2 dest={{ script_path }}startup.xml.tcp mode=0644
+
+- name: Copy UDP config file for IPFIXcol
+  template: src=templates/startup.xml.udp.j2 dest={{ script_path }}startup.xml.udp mode=0644
+
+- name: Copy upstart files for IPFIXcol (1/2)
+  template: src=templates/ipfixcol.j2 dest=/etc/default/ipfixcol mode=0644 owner=vagrant group=root
+
+- name: Copy upstart files for IPFIXcol (2/2)
+  template: src=templates/ipfixcol.conf.j2 dest=/etc/init/ipfixcol.conf mode=0644 owner=vagrant group=root
+
+- name: Start IPFIXcol
+  service: name=ipfixcol state=started enabled=yes

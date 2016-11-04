@@ -1,0 +1,6 @@
+---
+# Add users
+
+# Create user for running Stream4Flow
+- name: Create Spark user.
+  user: name={{ user }} comment="Stream4Flow user" shell=/bin/bash groups=sudo generate_ssh_key=yes ssh_key_bits=4096 ssh_key_file=.ssh/id_rsa password={{ user_passwd }}

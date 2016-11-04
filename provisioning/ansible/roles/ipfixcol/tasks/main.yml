@@ -1,0 +1,16 @@
+- name: Include dependency tasks
+  include: dependencies.yml
+  become: yes
+
+- name: IPFIXcol base build
+  include: base.yml
+  tags: base
+  become: yes
+
+- name: IPFIXcol storage plugins
+  include: storage-plugins.yml
+  become: yes
+
+- name: Start IPFIXcol
+  include: start.yml
+  become: yes

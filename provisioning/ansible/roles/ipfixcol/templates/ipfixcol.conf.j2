@@ -1,0 +1,29 @@
+# Ubuntu upstart file at /etc/init/ipfixcol.conf
+
+description "ipfixcol"
+
+start on runlevel [2345]
+stop on runlevel [!12345]
+
+respawn
+respawn limit 2 5
+
+umask 007
+
+kill timeout 30
+
+setuid vagrant
+setgid root
+
+script
+
+[ -f /etc/default/ipfixcol ] && . /etc/default/ipfixcol
+if [ -z "$IPFIXCOL_SCRIPT" ] ;  then
+  echo "IPFIXCOL_SCRIPT is not set, please set it in /etc/default/ipfixcol" >&2
+  exit 1
+fi
+
+/usr/local/bin/ipfixcol -c $IPFIXCOL_SCRIPT -v 2
+
+end script
+

@@ -1,0 +1,5 @@
+- name: Copy routes.py to /var/www/web2py
+  copy: src=routes.py dest=/var/www/web2py/routes.py owner=www-data group=www-data
+
+- name: Copy Stream4Flow web2py application
+  unarchive: src=Stream4Flow.tgz dest=/var/www/web2py/applications/ owner=www-data group=www-data creates=/var/www/web2py/applications/Stream4Flow

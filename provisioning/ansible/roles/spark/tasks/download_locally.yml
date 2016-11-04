@@ -1,0 +1,11 @@
+# Download installation files to localhost
+
+# Apache Spark
+- name: Download Apache Spark
+  get_url: url={{ url_spark }} dest=/tmp/spark.tgz
+  delegate_to: 127.0.0.1
+
+# Spark Kafka
+- name: Download Spark Kafka
+  get_url: url={{ url_kafka_assembly }} dest=/tmp/spark-streaming-kafka-assembly.jar
+  delegate_to: 127.0.0.1

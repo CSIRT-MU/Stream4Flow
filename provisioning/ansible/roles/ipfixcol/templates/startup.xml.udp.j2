@@ -1,0 +1,115 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ipfix xmlns="urn:ietf:params:xml:ns:yang:ietf-ipfix-psamp">
+
+<!--	<collectingProcess>
+		<name>TCP collector</name>
+		<tcpCollector>
+			<name>Listening port 4739</name>
+			<localPort>4739</localPort>
+			<localIPAddress>{{ ansible_host }}</localIPAddress>
+		</tcpCollector>
+		<exportingProcess>json writer</exportingProcess>
+	</collectingProcess>
+-->
+
+	<collectingProcess>
+                <name>UDP collector</name>
+                <udpCollector>
+                        <name>Listening port 4739</name>
+                        <localPort>4739</localPort>
+                        <templateLifeTime>1800</templateLifeTime>
+                        <optionsTemplateLifeTime>1800</optionsTemplateLifeTime>
+                        <localIPAddress>{{ ansible_host }}</localIPAddress>
+                </udpCollector>
+                <exportingProcess>json writer</exportingProcess>
+        </collectingProcess>
+
+	<!--## Exporting process configuration -->
+	<exportingProcess>
+		<!--## Name of the exporting process, must match <exportingProcess> element
+		   in <collectingProcess> -->
+		<name>json writer</name>
+
+<!--
+                 <destination>
+                     <name>store data records in FastBit database</name>
+                     <fileWriter>
+                          <fileFormat>fastbit</fileFormat>
+                          <path>/data/ipfix/%o/%Y/%m/%d/</path>
+                          <dumpInterval>
+                               <timeWindow>300</timeWindow>
+                               <timeAlignment>yes</timeAlignment>
+                               <recordLimit>no</recordLimit>
+                               <bufferSize>75000</bufferSize>
+                          </dumpInterval>
+                          <namingStrategy>
+                               <type>time</type>
+                               <prefix>ic</prefix>
+                          </namingStrategy>
+                          <reorder>no</reorder>
+                          <onTheFlyIndexes>no</onTheFlyIndexes>
+                     </fileWriter>
+                </destination>
+
+-->		
+
+		<!-- JSON data writer configuration -->
+		<destination>
+			<name>JSON storage plugin</name>
+			<fileWriter>
+				<fileFormat>json</fileFormat>
+				<metadata>no</metadata>
+				<tcpFlags>raw</tcpFlags>
+				<timestamp>unix</timestamp>
+				<protocol>raw</protocol>
+				<ignoreUnknown>yes</ignoreUnknown>
+				<nonPrintableChar>no</nonPrintableChar>
+				<output>
+                                        <type>server</type>
+                                        <port>20001</port>
+                                        <blocking>yes</blocking>
+		                </output>
+
+<!--		                <output>
+                	               <type>send</type>
+                        	       <ip>{{ ansible_host }}</ip>
+               			       <port>20002</port>
+                               	       <protocol>tcp</protocol>
+				</output>
+-->
+				<output>
+		                       <type>send</type>
+                		       <ip>127.0.0.1</ip>
+                    		       <port>56789</port>
+                    		       <protocol>tcp</protocol>
+                		</output>
+
+			</fileWriter>
+		</destination>
+
+<!-- Write data to file, specify path in <file> -->
+<!--
+             <destination>
+                        <name>Write to folder</name>
+                        <fileWriter>
+                                <fileFormat>ipfix</fileFormat>
+                                <file>file://data/test_data-short.ipfix</file>
+                        </fileWriter>
+                </destination>
+-->
+	<singleManager>yes</singleManager>
+	</exportingProcess>
+
+<!-- List of active Intermediate Plugins -->
+	<intermediatePlugins>
+	<!-- Anonymize IP addresses -->
+	<!--
+		<anonymization_ip>
+			<type>cryptopan</type>
+		</anonymization_ip>
+	-->
+
+	</intermediatePlugins>
+
+</ipfix>
+

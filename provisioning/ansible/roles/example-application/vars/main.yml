@@ -1,0 +1,9 @@
+---
+# file: roles/example-application/vars/main.yml
+
+# login
+user: spark
+
+#work directories
+dir_applications: /home/{{ user }}/applications/
+

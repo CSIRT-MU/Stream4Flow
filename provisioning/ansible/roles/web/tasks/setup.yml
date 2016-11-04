@@ -1,0 +1,52 @@
+---
+# Setup SSH, iptables, Apache, SSL and web2py
+
+- name: Edit sshd_conf (1/2)
+  lineinfile: "dest=/etc/ssh/sshd_config state=present regexp='#AuthorizedKeysFile.*' line='AuthorizedKeysFile    %h/.ssh/authorized_keys'"
+
+- name: Edit sshd_conf (2/2)
+  lineinfile: "dest=/etc/ssh/sshd_config state=present regexp='PasswordAuthentication.*' line='PasswordAuthentication  no'"
+
+- name: Generate Certificate Signing Request (CSR)
+  shell: openssl req -nodes -newkey rsa:2048 -keyout /etc/ssl/private/private.key -out /tmp/server.csr -subj "{{ cert_subj }}" creates=/etc/ssl/private/private.key
+
+- name: Generate a self-signed SSL certificate
+  shell: openssl x509 -req -days 365 -in /tmp/server.csr -signkey /etc/ssl/private/private.key -out /etc/ssl/certs/server.crt creates=/etc/ssl/certs/server.crt
+
+- name: Change access rights to private key
+  file: path=/etc/ssl/private/private.key mode=0640
+
+- name: Change access rights to cert
+  file: path=/etc/ssl/certs/server.crt mode=0640
+
+- name: Get web2py
+  unarchive: src=http://web2py.com/examples/static/web2py_src.zip dest=/var/www copy=no
+
+- name: Change ownership on web2py folder
+  file: path=/var/www/web2py owner=www-data group=www-data recurse=yes
+
+- name: Modify web2py directory structure
+  shell: mv /var/www/web2py/handlers/wsgihandler.py /var/www/web2py/wsgihandler.py
+
+- name: Copy web2py Apache site
+  template: src=templates/web2py.conf.j2 dest=/etc/apache2/sites-available/web2py.conf
+
+- name: Remove default page from Apache
+  file: path=/etc/apache2/sites-enabled/000-default.conf state=absent
+
+- name: Enable Apache modules
+  shell: a2enmod ssl proxy proxy_http headers expires wsgi rewrite
+
+- name: Enable web2py site in Apache
+  shell: a2ensite web2py.conf
+
+- name: Restart Apache
+  service: name=apache2 state=restarted enabled=yes
+
+- name: Copy script to set web2py password
+  template: src=templates/chgpasswd.py.j2 dest=/var/www/web2py/chgpasswd.py mode=0740 owner=www-data group=www-data
+
+- name: Run script to set web2py password
+  shell: ./chgpasswd.py chdir=/var/www/web2py/
+  become: True
+  become_user: www-data

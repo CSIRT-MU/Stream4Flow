@@ -1,0 +1,35 @@
+---
+# Copy ELK config files
+
+# Elasticsearch files
+- name: Copy elasticsearch.yml (elasticsearch)
+  template: src=templates/elasticsearch_elasticsearch.yml.j2 dest=/etc/elasticsearch/elasticsearch.yml mode=0750
+
+- name: Copy logging.yml (elasticsearch)
+  template: src=templates/elasticsearch_logging.yml.j2 dest=/etc/elasticsearch/logging.yml mode=0750
+
+- name: Create data directory.
+  file: path=/data/elasticsearch state=directory recurse=yes owner=elasticsearch group=elasticsearch mode=0775
+
+- name: Restart Elasticsearch
+  service: name=elasticsearch state=restarted enabled=yes
+
+# Kibana files
+- name: Copy kibana.yml (kibana)
+  template: src=templates/kibana.yml.j2 dest=/opt/kibana/config/kibana.yml mode=0664
+
+- name: Restart Kibana
+  service: name=kibana state=restarted enabled=yes
+
+# Logstash files
+- name: Copy spark-to-elastic.conf (logstash)
+  template: src=templates/logstash_spark-to-elastic.conf.j2 dest=/etc/logstash/conf.d/spark-to-elastic.conf mode=0664 owner=logstash group=logstash
+
+- name: Create 'templates' directory
+  file: path=/etc/logstash/conf.d/templates state=directory owner=logstash group=logstash mode=0755
+
+- name: Copy templates_spark-elasticsearch-template.json (logstash)
+  template: src=templates/logstash_templates_spark-elasticsearch-template.json.j2 dest=/etc/logstash/conf.d/templates/spark-elasticsearch-template.json mode=0764 owner=logstash group=logstash
+
+- name: Restart Logstash
+  service: name=logstash state=restarted enabled=yes

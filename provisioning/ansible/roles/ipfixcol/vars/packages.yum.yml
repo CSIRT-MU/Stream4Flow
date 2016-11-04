@@ -1,0 +1,24 @@
+packages:
+  base: [
+    autoconf,
+    bison,
+    docbook-style-xsl,
+    doxygen,
+    flex,
+    gcc ,
+    gcc-c++ ,
+    git,
+    libtool,
+    libxml2,
+    libxml2-devel,
+    libxslt,
+    lksctp-tools-devel,
+    lzo-devel,
+    make,
+    openssl-devel,
+    pkgconfig
+  ]
+  geoip: [GeoIP-devel]
+  stats: [rrdtool-devel]
+  uid: [sqlite-devel]
+  postgres: [postgresql-devel]

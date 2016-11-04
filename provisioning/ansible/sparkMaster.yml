@@ -1,0 +1,5 @@
+---
+- hosts: sparkMaster
+  roles: 
+    - spark
+    - example-application

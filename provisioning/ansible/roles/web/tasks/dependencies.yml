@@ -1,0 +1,28 @@
+---
+# Install dependencies for running web.
+
+# Install required apt packages
+- name: Install required apt packages
+  apt: name={{ item }} state=latest update_cache=yes
+  with_items:
+    - apache2
+    - apache2-utils
+    - libapache2-mod-proxy-html
+    - libxml2-dev
+    - python-dev
+    - libapache2-mod-wsgi
+    - xvfb
+    - python-pip
+    - build-essential 
+    - chrpath
+    - libssl-dev
+    - libxft-dev
+    - unzip
+    - python-pip
+
+# Install python modules
+- name: Install python modules
+  pip: name={{item}} executable=pip
+  with_items:
+  - elasticsearch
+  - elasticsearch-dsl

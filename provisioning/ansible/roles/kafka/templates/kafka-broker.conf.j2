@@ -1,0 +1,28 @@
+# Ubuntu upstart file at /etc/init/kafka-broker.conf
+
+description "Kafka Broker"
+
+limit nofile 32768 32768
+
+start on runlevel [2345]
+stop on runlevel [!12345]
+
+respawn
+respawn limit 2 5
+
+env CONFIG_HOME=/opt/kafka/config
+env KAFKA_HOME=/opt/kafka
+umask 007
+
+kill timeout 300
+
+setuid kafka
+setgid kafka
+
+script
+  . /etc/default/kafka-broker
+
+  if [ "x$ENABLE" = "xyes" ]; then
+    exec $KAFKA_HOME/bin/kafka-server-start.sh $CONFIG_HOME/server.properties
+  fi
+end script

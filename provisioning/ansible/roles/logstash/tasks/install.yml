@@ -1,0 +1,15 @@
+---
+# Install Logstash
+- name: add key for ELK
+  apt_key: url=https://packages.elastic.co/GPG-KEY-elasticsearch
+- name: add repository logstash
+  apt_repository: repo='deb http://packages.elastic.co/logstash/2.2/debian stable main'
+- name: install logstash
+  apt: name=logstash state=installed
+
+# Copy Logstash config file
+- name: Copy Logstash config file.
+  template: src=templates/10-ipfix-kafka.conf.j2 dest=/etc/logstash/conf.d/10-ipfix-kafka.conf mode=0664 owner=logstash group=logstash
+
+- name: Restart Logstash
+  service: name=logstash state=restarted enabled=yes

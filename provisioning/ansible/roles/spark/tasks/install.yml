@@ -1,0 +1,25 @@
+---
+# install spark on each machine into dir_spark directory
+- name: Create directory structure for Spark
+  file: path={{ dir_spark }}/spark-bin state=directory recurse=yes owner={{ user }} group={{ user }}
+
+# --strip option cannot be used with Ansible 2.1.0 due to a bug: https://github.com/ansible/ansible-modules-core/issues/2480
+- name: Copy and untar Spark package to host
+  unarchive: src=/tmp/spark.tgz dest=/tmp/ owner={{ user }} group={{ user }} creates=/tmp/{{ spark_inflated_dir_name }}
+
+- name: Fix directory structure 1/2.
+  shell: /bin/mv /tmp/{{ spark_inflated_dir_name }}/* {{ dir_spark }}/spark-bin/ creates={{ dir_spark }}/spark-bin/RELEASE
+
+- name: Fix directory structure 2/2.
+  file: path=/tmp/{{ spark_inflated_dir_name }} state=absent
+
+- name: Prepare log4j.properties config file
+  copy: remote_src=True src={{ dir_spark }}/spark-bin/conf/log4j.properties.template
+        dest={{ dir_spark }}/spark-bin/conf/log4j.properties
+
+- name: Edit log4j.properties config file
+  replace: dest={{ dir_spark }}/spark-bin/conf/log4j.properties regexp='log4j\.rootCategory=INFO, console' replace='log4j.rootCategory=WARN, console'
+
+- include: prepareMaster.yml
+  when: "'sparkMaster' in group_names"
+  become: yes

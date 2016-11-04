@@ -1,0 +1,11 @@
+# Storage plugins
+
+# json
+- name: Build json storage plugin
+  command: >
+    {{ item }}
+    chdir={{ build.dir }}/plugins/storage/json
+    creates=/usr/local/share/ipfixcol/plugins/ipfixcol-json-output.so
+  with_items: "{{ build.cmds }}"
+  tags: json
+

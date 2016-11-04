@@ -1,0 +1,6 @@
+---
+- hosts: producer
+  roles:
+    - logstash
+    - kafka
+    - ipfixcol

@@ -1,0 +1,22 @@
+build:
+  dir: /tmp/ipfixcol
+  git: https://github.com/CESNET/ipfixcol.git
+  branch: devel
+  cmds: [
+    autoreconf -i,
+    ./configure,
+    make,
+    make install
+  ]
+  fastbit:
+    archive: libfastbit.tar.gz
+    url: http://liberouter.org/~thorgrin/
+    git: https://github.com/CESNET/libfastbit.git
+    dir: /tmp/libfastbit
+
+# this can be easily changed from command line
+build_fastbit_compile: false
+
+# Set the configuration file path for ipfixcol to load here:
+script_path: /usr/local/etc/ipfixcol/
+script_filename: startup.xml.udp

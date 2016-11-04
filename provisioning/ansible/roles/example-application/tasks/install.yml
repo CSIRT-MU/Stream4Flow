@@ -1,0 +1,30 @@
+---
+# Install pip
+- name: Install pip
+  apt: name={{ item }} state=latest update_cache=yes
+  with_items:
+  - python-pip
+
+# Install dependencies needed for installation of ujson module
+- name: Install ujson dependencies
+  apt: name={{item}} state=latest update_cache=yes
+  with_items:
+  - cpp-4.6
+  - gcc-4.6-base
+  - python-dev
+
+- name: Install python modules
+  pip: name={{item}} executable=pip
+  with_items:
+  - ujson
+  - termcolor
+
+# Create directory for example application
+- name: Create directory for example application
+  file: path={{ dir_applications }}/protocols-statistics state=directory recurse=yes owner={{ user }} group={{ user }}
+  when: "'sparkMaster' in group_names"
+
+# Copy example application
+- name: Copy application
+  copy: src=protocols_statistics.py dest={{ dir_applications }}/protocols-statistics owner={{ user }} group={{ user }} mode=0755
+  when: "'sparkMaster' in group_names"

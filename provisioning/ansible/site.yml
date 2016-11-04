@@ -1,0 +1,7 @@
+---
+# file: site.yml
+- include: all.yml
+- include: producer.yml
+- include: sparkMaster.yml
+- include: sparkSlave.yml
+- include: consumer.yml

@@ -1,0 +1,4 @@
+- name: Install dependencies
+  include: dependencies.yml
+  become: yes
+

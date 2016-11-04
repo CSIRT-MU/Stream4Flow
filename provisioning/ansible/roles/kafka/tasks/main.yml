@@ -1,0 +1,7 @@
+- name: Install Apache Kafka
+  include: install.yml
+  become: yes
+
+- name: Start Apache Kafka
+  include: start.yml
+  become: yes

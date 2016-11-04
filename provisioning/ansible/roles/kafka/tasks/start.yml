@@ -1,0 +1,23 @@
+---
+# Start and configure Apache Kafka
+- name: Ensure zookeper is running
+  service: name=zookeeper state=started enabled=yes
+
+- name: Start Kafka server
+  service: name=kafka-broker state=started enabled=yes
+
+- name: Wait untill Kafka server starts
+  pause: seconds=5
+
+- name: Check if topic was already added
+  shell: /opt/kafka/bin/kafka-topics.sh --list --zookeeper localhost:2181 | grep ipfix.entry
+  register: result
+  failed_when: result.rc not in [0,1]
+
+- name: Add Kafka topic "ipfix.entry"
+  shell: /opt/kafka/bin/kafka-topics.sh --zookeeper localhost:2181 --create --topic ipfix.entry --partitions 1 --replication-factor 1
+  when: result|failed
+
+- name: Set retention on the topic
+  shell: /opt/kafka/bin/kafka-topics.sh --zookeeper localhost:2181 --alter --topic ipfix.entry --config retention.ms={{ retention }}
+  when: result|failed

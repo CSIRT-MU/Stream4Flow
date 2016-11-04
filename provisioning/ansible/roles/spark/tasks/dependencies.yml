@@ -1,0 +1,19 @@
+---
+# Install dependencies for Spark
+
+# Install Scala
+- name: Install Scala
+  apt: name=scala state=latest update_cache=yes
+
+# Install Python 
+- name: Install Python 2.7
+  apt: name=python2.7 state=latest update_cache=yes
+
+- name: Download master's public key
+  fetch: src=/home/{{ user }}/.ssh/id_rsa.pub dest=tmp/sparkMaster.pub flat=yes
+  when: "'sparkMaster' in group_names"
+
+- name: Add Spark master's public SSH key to authorized_keys
+  authorized_key: user={{ user }} key="{{ item }}"
+  with_file:
+    - tmp/sparkMaster.pub

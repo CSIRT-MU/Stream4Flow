@@ -1,0 +1,5 @@
+---
+- hosts: sparkSlave
+  roles:
+    - spark
+    - example-application

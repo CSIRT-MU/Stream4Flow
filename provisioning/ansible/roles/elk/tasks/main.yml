@@ -1,0 +1,7 @@
+- name: Install ELK Stack with dependencies
+  include: install.yml 
+  become: yes
+
+- name: Copy ELK config files to host
+  include: config.yml
+  become: yes

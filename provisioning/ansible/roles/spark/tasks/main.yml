@@ -1,0 +1,15 @@
+- name: Download required Spark packages locally
+  include: download_locally.yml
+
+- name: Install dependencies
+  include: dependencies.yml
+  become: yes
+
+- name: Install Apache Spark and Kafka
+  include: install.yml 
+  become: yes
+
+- name: Run Spark master and slaves
+  include: run.yml
+  become: yes
+  become_user: "{{ user }}"

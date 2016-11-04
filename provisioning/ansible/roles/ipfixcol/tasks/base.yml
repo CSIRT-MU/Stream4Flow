@@ -1,0 +1,13 @@
+# IPFIXcol build
+- name: Clone IPFIXcol git
+  git: repo={{ build.git }} dest={{ build.dir }} version={{ build.branch }}
+
+- name: Build IPFIXcol base
+  command: >
+    {{ item }}
+    chdir={{ build.dir }}/base/
+    creates=/tmp/ipfixcol-base.installed
+  with_items:
+    - "{{ build.cmds }}"
+    - ldconfig
+    - "touch /tmp/ipfixcol-base.installed"

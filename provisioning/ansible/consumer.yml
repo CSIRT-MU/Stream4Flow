@@ -1,0 +1,5 @@
+---
+- hosts: consumer
+  roles:
+    - elk
+    - web

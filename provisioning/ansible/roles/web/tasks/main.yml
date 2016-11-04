@@ -1,0 +1,11 @@
+- name: Download and install dependencies.
+  include: dependencies.yml
+  become: yes 
+
+- name: Setup the environment.
+  include: setup.yml
+  become: yes
+
+- name: Add Stream4Flow application to web2py
+  include: install_webapp.yml
+  become: yes

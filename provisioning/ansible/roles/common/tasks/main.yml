@@ -1,0 +1,12 @@
+- name: Add all hosts to /etc/hosts
+  include: hosts.yml
+  become: yes
+  gather_facts: True
+
+- name: Install Oracle Java 8
+  include: java-oracle.yml
+  become: yes
+
+- name: Add users
+  include: users.yml
+  become: yes

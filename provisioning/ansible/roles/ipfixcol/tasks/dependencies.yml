@@ -1,0 +1,25 @@
+# Dependencies for IPFIXcol base
+- name: Check for yum packaging system
+  set_fact:
+    pkg_type: yum
+  when: ansible_pkg_mgr == 'yum' or ansible_pkg_mgr == 'dnf'
+  tags: always
+- name: Check for apt packaging system
+  set_fact:
+    pkg_type: apt
+  when: ansible_pkg_mgr == 'apt'
+  tags: always
+
+- name: Include dependency package variables
+  include_vars: "packages.{{ pkg_type }}.yml"
+  tags: always
+  
+- name: Install dnf support for Fedora
+  command: dnf -y install python2-dnf
+  when: ansible_pkg_mgr == 'dnf'
+  tags: dependencies
+
+- name: Install dependencies for IPFIXcol
+  action: "{{ ansible_pkg_mgr }} name={{ item }} state=latest"
+  with_items: "{{ packages.base }}"
+  tags: dependencies
