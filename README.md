@@ -46,23 +46,11 @@ Default login credentials
 
 ### Usage
 
-#### Input Data
-
-Stream4Flow listens on: 
-- **producer IP addres** (default IP is 192.168.0.2) 
-- port **UDP/4739** 
-
-Data can be sent in **IPFIX/Netflow** format.
-
-#### Stream4Flow Web Interface
-
-Stream4FLow web interface is on
-- **producer IP address** (default IP address is http://192.168.0.3/)
- 
-#### Spark Web Interface
- 
-Spark web interface is on
-- **Spark Master IP address** (default IP address is http://192.168.0.100:8080) 
+| Usage |  Description | Usage information |
+|---|---|---|
+| Input data  | Input point for network monitoring data in **IPFIX/Netflow**  format | <ul><li> producer IP addres (default IP is 192.168.0.2)</li> <li> port **UDP/4739** </li></ul>  |
+| Stream4Flow Web Interface | Web interface for application for viewing data |<ul><li> consumer IP address</li> <li>default IP address is http://192.168.0.3/ </li></ul>|
+| Spark Web Interface | Apache Spark streaming interface for application control | <ul><li> consumer IP address:8080</li> <li>default IP address is http://192.168.0.100:8080/ </li></ul>| 
 
 #### Run an expample application protocols_statistics
 
