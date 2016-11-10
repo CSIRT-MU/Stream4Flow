@@ -1,0 +1,12 @@
+<div class="logo">
+    <a href="/">
+        <ul>
+            <li>
+                <img {{if 'hide_sidebar' in globals():}}src="{{=URL('static','images/logo_small_lines.png')}}{{else:}}src="{{=URL('static','images/logo_small.png')}}{{pass}}">
+            </li>
+            <li>
+                <h1 {{if 'hide_sidebar' in globals():}}style="color: rgba(55,63,71,0.3);"{{pass}}>Stream<span {{if 'hide_sidebar' in globals():}}style="color: rgba(55,63,71,0.3);"{{pass}}>4</span>Flow</h1>
+            </li>
+        </ul>
+    </a>
+</div>

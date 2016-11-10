@@ -1,0 +1,13 @@
+{{extend 'layout.html'}}
+
+{{if ('alert_type' in globals()) and alert_type != "":}}
+<div class="alert alert-{{=alert_type}}" role="alert">
+    <strong>
+        {{if alert_type == "danger":}}Error:
+        {{elif alert_type == "success":}}Success:
+        {{elif alert_type == "info":}}Info:
+        {{elif alert_type == "warning":}}Warning:
+        {{pass}}
+    </strong>{{=alert_message}}
+</div>
+{{pass}}

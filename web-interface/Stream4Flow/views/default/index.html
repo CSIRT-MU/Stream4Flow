@@ -1,0 +1,148 @@
+{{extend 'layout.html'}}
+
+<script>
+    // Set correct menu view.
+    $('#menu-dashboard').addClass('active');
+</script>
+
+{{if ('alert_type' in globals()) and alert_type != "":}}
+<div class="alert alert-{{=alert_type}}" role="alert">
+    <strong>
+        {{if alert_type == "danger":}}Error:
+        {{elif alert_type == "success":}}Success:
+        {{elif alert_type == "info":}}Info:
+        {{elif alert_type == "warning":}}Warning:
+        {{pass}}
+    </strong>{{=alert_message}}
+</div>
+{{pass}}
+
+<div class="row dashboard">
+    <!-- Network Statistics -->
+    <div class="col-md-4">
+        <div class="widget-shadow" id="network-statistics">
+            <h4 class="title">Current Network Statistics</h4>
+            <!-- Status -->
+            <div class="chart-status" id="chart-sum-status"></div>
+            <!-- Main Chart -->
+            <div id="chart-sum" class="highchart" style="display: none; width: 100%; "></div>
+        </div>
+    </div>
+
+    <!-- Framework Architecture -->
+    <div class="col-md-8">
+        <div class="widget-shadow" id="framework-architecture">
+            <h4 class="title">Framework Architecture</h4>
+            <!-- Architecture image -->
+            <img src="{{=URL('static','images/architecture.png')}}">
+            <!-- Architecture description -->
+            <p>
+                The basis of the Stream4Flow framework is formed by the
+                <a href="https://github.com/CESNET/ipfixcol/tree/devel" target="_blank">IPFIXCol</a> collector, which
+                enables incoming IP flow records to be transformed into the JSON format provided to the
+                <a href="http://kafka.apache.org/" target="_blank">Kafka</a> messaging system. The selection of Kafka
+                was based on its scalability and partitioning possibilities, which provide sufficient data throughput.
+                <a href="http://spark.apache.org/streaming/" target="_blank">Apache Spark</a> was selected as the data
+                stream processing framework for its quick IP flow data throughput, available programming languages
+                (Scala, Java, or Python) and MapReduce programming model. The analysis results are stored in
+                <a href="https://www.elastic.co/v5" target="_blank">Elastic Stack</a> containing Kibana, which enables
+                browsing and visualizing the results. The Stream4Flow framework also contains an additional web
+                interface in order to make administration easier and visualize complex results of the analysis.
+            </p>
+        </div>
+    </div>
+</div>
+
+
+<!-- Highcharts Scripts -->
+<script>
+function generateSumChart(data_csv) {
+    // Elements ID
+    var chartId = '#chart-sum';
+    var chartIdStatus = chartId + '-status';
+
+    // Hide status element
+    $(chartIdStatus).hide();
+    // Show chart element
+    $(chartId).show();
+
+    // Replace null value by zero
+    data_csv = data_csv.replace(/null/g,'0')
+
+    // Generate a chart
+    $(chartId).highcharts({
+        chart: {
+            type: 'column',
+            marginLeft: 0,
+            marginRight: 0
+        },
+        title: {
+            text: ''
+        },
+        yAxis: {
+            type: 'logarithmic',
+            labels: {
+                enabled: false
+            },
+            title: {
+                text: null
+            }
+        },
+        data: {
+            csv: data_csv
+        },
+        plotOptions: {
+            column: {
+                dataLabels: {
+                    enabled: true
+                },
+                enableMouseTracking: false
+            }
+        },
+        exporting: {
+            enabled: false
+        }
+    });
+};
+
+function loadSumChart() {
+    // Elements ID
+    var chartId = '#chart-sum';
+    var chartIdStatus = chartId + '-status';
+
+    // Hide chart element
+    $(chartId).hide();
+    // Show status element
+    $(chartIdStatus).show();
+
+    // Set loading status
+    $(chartIdStatus).html(
+        '<i class="fa fa-refresh fa-spin fa-2x fa-fw"></i>\
+         <span>Loading...</span>'
+    )
+
+    // Get Elasticsearch data
+    $.ajax({
+        async: true,
+        type: 'GET',
+        url: '{{=URL('get_summary_statistics')}}',
+        success: function(raw) {
+            var response = jQuery.parseJSON(raw);
+            if (response.status == "Ok") {
+                // Replace separator ';' to new line to create a CSV string and generate a chart
+                generateSumChart(response.data.replace(/;/g,'\n') );
+            } else {
+                // Show error message
+                $(chartIdStatus).html(
+                    '<i class="fa fa-exclamation-circle fa-2x"></i>\
+                     <span>' + response.status + ': ' + response.data + '</span>'
+                )
+            }
+        }
+    });
+};
+
+// Load all charts when page loaded
+$(window).load(loadSumChart());
+</script>
+<!-- //Highcharts Scripts -->

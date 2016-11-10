@@ -1,0 +1,275 @@
+{{extend 'layout.html'}}
+
+<script>
+    // Set correct menu view.
+    $('#menu-system').addClass('active');
+    $('#menu-usersManagement').addClass('active');
+</script>
+
+<h3 class="title1">Users Management</h3>
+
+{{if not session.logged:}}
+<div class="alert alert-danger" role="alert">
+   <strong>Error: </strong>You must be logged to view this page!
+</div>
+{{else:}}
+
+{{if 'alert_type' in globals():}}
+<div class="alert alert-{{=alert_type}}" role="alert">
+    <strong>
+        {{if alert_type == "danger":}}Error:
+        {{elif alert_type == "success":}}Success:
+        {{elif alert_type == "info":}}Info:
+        {{elif alert_type == "warning":}}Warning:
+        {{pass}}
+    </strong>{{=alert_message}}
+</div>
+{{pass}}
+
+<div class="tables">
+    <div class="bs-example widget-shadow">
+        <h4 style="margin-bottom: -15px;">System Users</h4>
+        <table data-toggle="table" data-striped="true" data-pagination="true" data-search="true" data-page-size="10" data-page-list="[10, 20, 30]">
+            <thead>
+                <tr>
+                    <th data-sortable="true">Username</th>
+                    <th data-sortable="true">Name</th>
+                    <th data-sortable="true">Organization</th>
+                    <th data-sortable="true">E-mail</th>
+                    <th data-sortable="true">Role</th>
+                    <th data-sortable="true">Last Login</th>
+                    <th data-halign="left" data-align="left">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {{rows = 0}}
+                {{for user in users:}}
+                    {{rows += 1}}
+                    <!--<tr {{if rows % 2:}}class="active"{{pass}}>-->
+                    <tr>
+                        <td>{{=user.users.username}}</td>
+                        <td>{{=user.users.name}}</td>
+                        <td>{{=user.users.organization}}</td>
+                        <td>{{=user.users.email}}</td>
+                        <td>{{=user.users.role}}</td>
+                        <td>{{=user.users_logins.last_login}}</td>
+                        <td class="actions">
+                            {{if (session.role == "administrator") or (session.username == user.users.username):}}
+                            <a href="#" data-toggle="modal" data-target="#modalEditUser{{=user.users.username}}" data-whatever="EditUser" title=""><i class="fa fa-pencil" aria-hidden="true" data-toggle="tooltip" data-placement="top" data-original-title="Edit User"></i></a>
+                            <!-- Modal Edit User -->
+                            <div class="modal fade modal-grids" id="modalEditUser{{=user.users.username}}" tabindex="-1" aria-labelledby="modalEditUserLabel" style="display: none;" aria-hidden="true">
+                                <div class="modal-dialog" style="width: 40%;">
+                                    <div class="modal-content">
+                                        <div class="modal-header">
+                                            <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">×</span></button>
+                                            <h4 class="modal-title" id="modalEditUserLabel">Edit User</h4>
+                                        </div>
+                                        <form class="form-horizontal" id="formEditUser" data-toggle="validator" action="/system/edit-user" method="post">
+                                            <div class="modal-body">
+                                                <div class="form-group">
+                                                    <label class="col-md-3 control-label">Username</label>
+                                                    <div class="col-md-8">
+                                                        <input type="text" class="form-control" placeholder="Username" name="username" value="{{=user.users.username}}" readonly required>
+                                                    </div>
+                                                </div>
+                                                <div class="form-group">
+                                                    <label class="col-md-3 control-label">Name</label>
+                                                    <div class="col-md-8">
+                                                        <input type="text" class="form-control" placeholder="Name" name="name" value="{{=user.users.name}}" required>
+                                                    </div>
+                                                </div>
+                                                <div class="form-group">
+                                                    <label class="col-md-3 control-label">Organization</label>
+                                                    <div class="col-md-8">
+                                                        <input type="text" class="form-control" placeholder="Organization" name="organization" value="{{=user.users.organization}}" required>
+                                                    </div>
+                                                </div>
+                                                <div class="form-group">
+                                                    <label class="col-md-3 control-label">E-mail</label>
+                                                    <div class="col-md-8">
+                                                        <input type="email" class="form-control" placeholder="Email" data-error="E-mail address is invalid" name="email" value="{{=user.users.email}}" required>
+                                                        <span class="glyphicon form-control-feedback" aria-hidden="true" style="right: 15px;"></span>
+                                                        <span class="help-block with-errors">Please enter a valid e-mail address</span>
+                                                    </div>
+                                                </div>
+                                                {{if session.role == "administrator":}}
+                                                <div class="form-group" style="margin-top: -15px;">
+                                                    <label class="col-md-3 control-label">Role</label>
+                                                    <div class="col-md-8">
+                                                        <div class="radio" style="display: inline-block;">
+                                                            <label style="margin-right: 8px;"><input type="radio" name="role" value="user" style="margin: 4px 0 0 -20px !important;" {{if user.users.role == 'user':}}checked{{pass}} required>User</label>
+                                                        </div>
+                                                        <div class="radio" style="display: inline-block;">
+                                                            <label><input type="radio" name="role" value="administrator" style="margin: 4px 0 0 -20px !important;" {{if user.users.role == 'administrator':}}checked{{pass}} required>Administrator</label>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                {{else:}}
+                                                <input type="hidden" name="role" value="{{=session.role}}" required>
+                                                {{pass}}
+                                            </div>
+                                            <div class="modal-footer">
+                                                <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+                                                <button type="submit" class="btn btn-primary">Edit</button>
+                                            </div>
+                                        </form>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <a href="#" title="Change Password" data-toggle="modal" data-target="#modalChangePassword{{=user.users.username}}" data-whatever="ChangePassword"><i class="fa fa-key" aria-hidden="true" data-toggle="tooltip" data-placement="top" data-original-title="Change Password"></i></a>
+                            <!-- Modal Change Password -->
+                            <div class="modal fade modal-grids" id="modalChangePassword{{=user.users.username}}" tabindex="-1" aria-labelledby="modalChangePasswordLabel" style="display: none;" aria-hidden="true">
+                                <div class="modal-dialog" style="width: 40%;">
+                                    <div class="modal-content">
+                                        <div class="modal-header">
+                                            <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">×</span></button>
+                                            <h4 class="modal-title" id="modalChangePasswordLabel">Change Password</h4>
+                                        </div>
+                                        <form class="form-horizontal" id="formChangePasswordUser" data-toggle="validator" action="/system/change-password" method="post">
+                                            <div class="modal-body">
+                                                <div class="form-group">
+                                                    <label class="col-md-3 control-label">Username</label>
+                                                    <div class="col-md-8">
+                                                        <input type="text" class="form-control" placeholder="Username" name="username" value="{{=user.users.username}}" readonly required>
+                                                    </div>
+                                                </div>
+                                                <div class="form-group">
+                                                    <label class="col-md-3 control-label">New Password</label>
+                                                    <div class="col-md-8">
+                                                        <input type="password" data-toggle="validator" data-minlength="6" class="form-control" id="changePasswordNew{{=user.users.username}}" placeholder="Password" name="password_new" required>
+                                                        <span class="help-block">Minimum of 6 characters</span>
+                                                    </div>
+                                                </div>
+                                                <div class="form-group" style="margin-top: -15px;">
+                                                    <label class="col-md-3 control-label">Confirm password</label>
+                                                    <div class="col-md-8">
+                                                        <input type="password" class="form-control" id="changePasswordConfirm" data-match="#changePasswordNew{{=user.users.username}}" data-match-error="Passwords don't match" placeholder="Confirm password" name="password_confirm" required>
+                                                        <div class="help-block with-errors"></div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div class="modal-footer">
+                                                <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+                                                <button type="submit" class="btn btn-primary">Change</button>
+                                            </div>
+                                        </form>
+                                    </div>
+                                </div>
+                            </div>
+                            {{pass}}
+
+                            {{if session.role == "administrator":}}
+                            <a href="#" title="Delete" data-toggle="modal" data-target="#modalDeleteUser{{=user.users.username}}" data-whatever="deleteUser"><i class="fa fa-trash" aria-hidden="true"  data-toggle="tooltip" data-placement="top" data-original-title="Delete User"></i></a>
+                            <!-- Modal Delete User -->
+                            <div class="modal fade modal-grids" id="modalDeleteUser{{=user.users.username}}" tabindex="-1" aria-labelledby="modalDeleteUserLabel" style="display: none;" aria-hidden="true">
+                                <div class="modal-dialog" style="width: 30%;">
+                                    <div class="modal-content">
+                                        <div class="modal-body" style="margin: 4%;">
+                                            <span class="message">Do you really want to delete user &quot;{{=user.users.name}}&quot;?</span>
+                                        </div>
+                                        <div class="modal-footer">
+                                            <form action="/system/delete-user" method="post">
+                                                <input type="hidden" name="username" value="{{=user.users.username}}">
+                                                <button type="button" class="btn btn-default" data-dismiss="modal">No</button>
+                                                <button type="submit" class="btn btn-primary">Yes</button>
+                                            </form>
+                                        </div>
+                                    </div>
+                                 </div>
+                            </div>
+                            {{pass}}
+                        </td>
+                    </tr>
+                {{pass}}
+            </tbody>
+        </table>
+        <script>
+        </script>
+
+        {{if session.role == "administrator":}}
+        <div class="modal-grids">
+            <button type="button" class="btn btn-primary btn-lg col-md-2" data-toggle="modal" data-target="#modalAddUser" data-whatever="addUser">Add New User</button>
+            <div class="modal fade" id="modalAddUser" tabindex="-1" aria-labelledby="modalAddUserLabel" style="display: none;" aria-hidden="true">
+                <div class="modal-dialog" style="width: 40%;">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">×</span></button>
+                            <h4 class="modal-title" id="modalAddUserLabel">Add New User</h4>
+                        </div>
+                        <form class="form-horizontal" id="formAddUser" data-toggle="validator" action="/system/add-user" method="post">
+                            <div class="modal-body">
+                                <div class="form-group">
+                                    <label class="col-md-3 control-label">Username</label>
+                                    <div class="col-md-8">
+                                        <input type="text" class="form-control" placeholder="Username" name="username" required>
+                                    </div>
+                                </div>
+                                <div class="form-group">
+                                    <label class="col-md-3 control-label">Name</label>
+                                    <div class="col-md-8">
+                                        <input type="text" class="form-control" placeholder="Name" name="name" required>
+                                    </div>
+                                </div>
+                                <div class="form-group">
+                                    <label class="col-md-3 control-label">Organization</label>
+                                    <div class="col-md-8">
+                                        <input type="text" class="form-control" placeholder="Organization" name="organization" required>
+                                    </div>
+                                </div>
+                                <div class="form-group">
+                                    <label class="col-md-3 control-label">E-mail</label>
+                                    <div class="col-md-8">
+                                        <input type="email" class="form-control" placeholder="Email" data-error="E-mail address is invalid" name="email" required>
+                                        <span class="glyphicon form-control-feedback" aria-hidden="true" style="right: 15px;"></span>
+                                        <span class="help-block with-errors">Please enter a valid e-mail address</span>
+                                    </div>
+                                </div>
+                                <div class="form-group" style="margin-top: -15px;">
+                                    <label class="col-md-3 control-label">Role</label>
+                                    <div class="col-md-8">
+                                        <div class="radio" style="display: inline-block;">
+                                            <label style="margin-right: 8px;"><input type="radio" name="role" value="user" checked required>User</label>
+                                        </div>
+                                        <div class="radio" style="display: inline-block;">
+                                            <label><input type="radio" name="role" value="administrator" required>Administrator</label>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="form-group">
+                                    <label class="col-md-3 control-label">Password</label>
+                                    <div class="col-md-8">
+                                        <input type="password" data-toggle="validator" data-minlength="6" class="form-control" id="addPassword" placeholder="Password" name="password" required>
+                                        <span class="help-block">Minimum of 6 characters</span>
+                                    </div>
+                                </div>
+                                <div class="form-group" style="margin-top: -15px;">
+                                    <label class="col-md-3 control-label">Confirm password</label>
+                                    <div class="col-md-8">
+                                        <input type="password" class="form-control" id="addPasswordConfirm" data-match="#addPassword" data-match-error="Passwords don't match" placeholder="Confirm password" name="password_confirm" required>
+                                        <div class="help-block with-errors"></div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+                                <button type="submit" class="btn btn-primary">Register</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {{pass}}
+        <div class="clearfix"> </div>
+    </div>
+</div>
+
+<script>
+// Enable tooltips.
+window.onload = function () {
+    $('[data-toggle="tooltip"]').tooltip();
+}
+</script>
+
+{{pass}}

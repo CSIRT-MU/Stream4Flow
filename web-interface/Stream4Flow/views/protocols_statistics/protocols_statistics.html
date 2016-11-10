@@ -1,0 +1,254 @@
+{{extend 'layout.html'}}
+
+<script>
+    // Set correct menu view.
+    $('#menu-protocols-statistics').addClass('active');
+</script>
+
+<h3 class="title1">Protocols Statistics</h3>
+
+{{if not session.logged:}}
+<div class="alert alert-danger" role="alert">
+   <strong>Error: </strong>You must be logged to view this page!
+</div>
+{{else:}}
+
+{{if ('alert_type' in globals()) and alert_type != "":}}
+<div class="alert alert-{{=alert_type}}" role="alert">
+    <strong>
+        {{if alert_type == "danger":}}Error:
+        {{elif alert_type == "success":}}Success:
+        {{elif alert_type == "info":}}Info:
+        {{elif alert_type == "warning":}}Warning:
+        {{pass}}
+    </strong>{{=alert_message}}
+</div>
+{{pass}}
+
+<!-- Time Range Form -->
+<div class="forms inline-form widget-shadow">
+    <div class="form-title">
+	    <h4>Statistics Interval</h4>
+    </div>
+    <div class="form-body">
+        <div data-example-id="simple-form-inline">
+            <form class="form-inline">
+                <div class="form-group">
+                    <label for="interval">Interval:</label>
+                    <select name="interval" id="interval" class="form-control" placeholder="interval" onchange="setInterval(this.value)">
+                        <option value="2" selected>Last 2 hours</option>
+                        <option value="6">Last 6 hours</option>
+                        <option value="12">Last 12 hours</option>
+                        <option value="24">Last 24 hours</option>
+                        <option value="48">Last 2 days</option>
+                        <option value="custom">Custom</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="beginning">From:</label>
+                    <input type="text" name="beginning" id="beginning" class="datetimepicker form-control">
+                </div>
+                <div class="form-group">
+                    <label for="end">To:</label>
+                    <input type="text" name="end" id="end" class="datetimepicker form-control">
+                </div>
+                <div class="form-group">
+                    <label for="aggregation">Aggregation:</label>
+                    <select name="aggregation" id="aggregation" class="form-control" placeholder="aggregation" onchange="setInterval(this.value)">
+                        <option value="10s" selected>10 seconds</option>
+                        <option value="30s">30 seconds</option>
+                        <option value="1m">1 minute</option>
+                        <option value="5m">5 minutes</option>
+                    </select>
+                </div>
+                <button type="button" class="btn btn-default" onclick="loadAllCharts();false;">Set interval</button>
+            </form>
+        </div>
+	</div>
+</div>
+<!-- //Time Range Form -->
+
+<!-- Statistics Chart -->
+<div class="panel-info widget-shadow general chart-protocols-statistics">
+    <h4 class="title2">Statistics Charts</h4>
+
+    <ul id="chart-type-selector" class="nav nav-tabs" role="tablist">
+		<li role="presentation" class="active">
+			<a href="#chart-flows-panel" id="chart-flows-tab" role="tab" data-toggle="tab" aria-controls="chart-flows-panel" aria-expanded="true">Flows</a>
+		</li>
+        <li role="presentation" class="">
+			<a href="#chart-packets-panel" id="chart-packets-tab" role="tab" data-toggle="tab" aria-controls="chart-packets-panel" aria-expanded="false">Packets</a>
+		</li>
+        <li role="presentation" class="">
+			<a href="#chart-bytes-panel" id="chart-bytes-tab" role="tab" data-toggle="tab" aria-controls="chart-bytes-panel" aria-expanded="false">Bytes</a>
+		</li>
+	</ul>
+
+    <div id="chart-panels" class="tab-content scrollbar1" tabindex="5001" style="overflow: hidden; outline: none;">
+        <!-- Flows -->
+		<div role="tabpanel" class="tab-pane fade active in" id="chart-flows-panel" aria-labelledby="chart-flows-tab">
+            <!-- Status -->
+            <div class="chart-status" id="chart-flows-status"></div>
+            <!-- Main Chart -->
+            <div id="chart-flows" class="highchart col-md-12" style="display: none; height:540px;"></div>
+        </div>
+        <!-- Packets -->
+        <div role="tabpanel" class="tab-pane fade" id="chart-packets-panel" aria-labelledby="chart-packets-tab">
+            <!-- Status -->
+            <div class="chart-status" id="chart-packets-status"></div>
+            <!-- Main Chart -->
+            <div id="chart-packets" class="highchart col-md-12" style="display: none; height:540px;"></div>
+        </div>
+        <!-- Bytes -->
+        <div role="tabpanel" class="tab-pane fade" id="chart-bytes-panel" aria-labelledby="chart-bytes-tab">
+            <!-- Status -->
+            <div class="chart-status" id="chart-bytes-status"></div>
+            <!-- Main Chart -->
+            <div id="chart-bytes" class="highchart col-md-12" style="display: none; height:540px;"></div>
+        </div>
+    </div>
+
+    <div class="clearfix"> </div>
+</div>
+<!-- //Statistics Chart -->
+
+
+<!-- Datatime Scripts -->
+<script>
+// Set interval on select interval change
+function setInterval(value) {
+    // On "custom" value show datetimepicker for "#beginning"
+    if (value == "custom") {
+        $('#beginning').datetimepicker('toggle');
+        return;
+    };
+
+    // Check NaN
+    if ( isNaN(value) ) return;
+
+    // Get current datetime with seconds rounded to tens
+    var datetime = new Date(new Date().getTime() - new Date().getTimezoneOffset()*60*1000);
+    var secondsRounded = parseInt(datetime.getSeconds() / 10) * 10;
+    datetime.setSeconds(secondsRounded);
+
+    // Set '#beginning' to current time
+    $('#end').val( datetime.toISOString().substr(0, 19).replace('T', ' ') )
+
+    // Set '#end' to current time subtract given value
+    datetime.setHours(datetime.getHours() - parseInt(value));
+    $('#beginning').val( datetime.toISOString().substr(0, 19).replace('T', ' ') );
+}
+
+// Set default interval to 2 hours
+$(window).load(setInterval(2));
+</script>
+<!-- //Datetime Scripts -->
+
+<!-- Highcharts Scripts -->
+<script>
+function generateChart(data_type, data_csv) {
+    // Elements ID
+    var chartId = '#chart-' + data_type;
+    var chartIdStatus = chartId + '-status';
+
+    // Hide status element
+    $(chartIdStatus).hide();
+    // Show chart element
+    $(chartId).show();
+
+    // Replace null value by zero
+    data_csv = data_csv.replace(/null/g,'0')
+
+    // Generate capitalized data type name
+    var type_name = data_type.charAt(0).toUpperCase() + data_type.slice(1);
+
+    // Generate a Chart
+    $(chartId).highcharts({
+        chart: {
+            type: 'line',
+            zoomType: 'x',
+            events: {
+                hide: function() {
+                    alert(1);
+                }
+            }
+        },
+        title: {
+            text: 'Number of ' + type_name + ' per Protocol'
+        },
+        yAxis: {
+            title: {
+                text: 'Number of ' + type_name
+            },
+            min: 0
+        },
+        xAxis: {
+            type: 'datetime'
+        },
+        data: {
+            csv: data_csv
+        }
+    });
+};
+
+function loadChart(data_type) {
+    // Elements ID
+    var chartId = '#chart-' + data_type;
+    var chartIdStatus = chartId + '-status';
+
+    // Hide chart element
+    $(chartId).hide();
+    // Show status element
+    $(chartIdStatus).show();
+
+    // Set loading status
+    $(chartIdStatus).html(
+        '<i class="fa fa-refresh fa-spin fa-2x fa-fw"></i>\
+         <span>Loading...</span>'
+    )
+
+    // Convert times to UTC in ISO format
+    var beginning = new Date( $('#beginning').val().replace("-", " ", "g") ).toISOString();
+    var end = new Date( $('#end').val().replace("-", " ", "g") ).toISOString();
+
+    // Set data request
+    var data_request = encodeURI( '{{=URL('get-statistics')}}' + '?beginning=' + beginning + '&end=' + end + '&aggregation=' + $('#aggregation').val()) + '&type=' + data_type;
+    // Get Elasticsearch data
+    $.ajax({
+        async: true,
+        type: 'GET',
+        url: data_request,
+        success: function(raw) {
+            var response = jQuery.parseJSON(raw);
+            if (response.status == "Ok") {
+                // Replace separator ';' to new line to create a CSV string and generate a chart
+                generateChart(data_type, response.data.replace(/;/g,'\n') );
+            } else {
+                // Show error message
+                $(chartIdStatus).html(
+                    '<i class="fa fa-exclamation-circle fa-2x"></i>\
+                     <span>' + response.status + ': ' + response.data + '</span>'
+                )
+            }
+        }
+    });
+};
+
+function loadAllCharts() {
+    loadChart("flows");
+    loadChart("packets");
+    loadChart("bytes");
+};
+
+// Load all charts when page loaded
+$(window).load(loadAllCharts());
+
+// Reflow highchart after the panel is selected
+$('a[data-toggle="tab"]').on('shown.bs.tab', function (e) {
+    var target = $(e.target).attr("href") + " .highchart";
+    $(target).highcharts().reflow();
+});
+</script>
+<!-- //Highcharts Scripts -->
+
+{{pass}}
