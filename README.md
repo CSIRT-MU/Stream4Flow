@@ -19,11 +19,11 @@ We have it all preparied for you. Everything is preconfigured. You have to only 
 ### Deployment
 
 #### Default machine configuration
-- **Producer** - machine for receiving data from network probes providing data for Spark Cluster via Apache Kafka
+- **Producer** - machine for receiving data from network, and probes providing data for Spark Cluster via Apache Kafka.
     - producer default IP address - 192.168.0.2
-- **Consumer** - machine receives results from Spark Cluster, stores the results and runs web server with framework frontend
+- **Consumer** - machine receives results from Spark Cluster, stores the results, and runs web server with framework frontend.
     - consumer default IP address - 192.168.0.3
-- **Spark Cluster**- cluster of machines for data stream processing. **Spark Master** machine manages the Spark Cluster and provides control interface for the cluster. **Spark Slaves** serves mainly for data processing. The nubmer of Spark Slaves can be changed in configuration files
+- **Spark Cluster**- cluster of machines for data stream processing. **Spark Master** machine manages the Spark Cluster and provides control interface for the cluster. **Spark Slaves** serves mainly for data processing. The nubmer of Spark Slaves can be changed in configuration files.
     - Spark Master default IP address - 192.168.0.100
     - Spark Slave default IP address - 192.168.0.101
 
