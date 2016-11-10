@@ -3,30 +3,43 @@ A framework for the real-time IP flow data analysis built on Apache Spark Stream
 
 ## About Stream4Flow
 
+The basis of the Stream4Flow framework is formed by the IPFIXCol collector, Kafka messaging system, Apache Spark, and Elastic Stack. IPFIXCol enables incoming IP flow records to be transformed into the JSON format provided to the Kafka messaging system. The selection of Kafka was based on its scalability and partitioning possibilities, which provide sufficient data throughput. Apache Spark was selected as the data stream processing framework for its quick IP flow data throughput, available programming languages (Scala, Java, or Python) and MapReduce programming model. The analysis results are stored in Elastic Stack containing Logstash, Elasticsearch, and Kibana, which enable storage, querying, and visualizing the results. The Stream4Flow framework also contains the additional web interface in order to make administration easier and visualize complex results of the analysis.
 
+![architecture](https://stream4flow.ics.muni.cz/images/architecture.png)
+
+### Use-cases
+- **Stream-Based Network Monitoring**: Thanks to the scalability of the framework, it is fitted for deployment in a wide range of networks from small company network to large-scale, high-speed networks of ISPs. It is compatible with common network probes for IP flow monitoring and export.
+- **Real-time Attack Detection**: The stream-based approach enables to detect attacks with only a few seconds delay. An instant attack detection provides time to set up a defense and lowers harms caused by an attack. A sample detections are provided, and you can easily create custom detection method.
+- **Host Profiling**: Apart from monitoring of the whole network, the monitoring can be focused on individual hosts. No host agents are needed, and the monitoring is transparent. You can get a long-term profile for each host connected to your network and explore it's behavior.
+- **Situational Awareness**: Data from network monitoring, attack detection, and host profiling can be gathered together to provide complex situational awareness over your network. The advanced analysis of the collected data can reveal information important both from security and business perspective.
 
 ## Getting started
 We have it all preparied for you. Everything is preconfigured. You have to only choose the deployment variant.
 
 ### Deployment
-We support two types of deployment:
-- **Standalone deployment:** Stream4Flow will be deployed into virtual maniches on your physical machine using [Vagrant](https://www.vagrantup.com/)
-- **Cluster deployment:** you can deploy Stream4Flow on your own cluster using [ansible](https://www.ansible.com/)
+
+#### Default machine configuration
+- **Producer** - machine for receiving data from network probes providing data for Spark Cluster via Apache Kafka
+    - producer default IP address - 192.168.0.2
+- **Consumer** - machine receives results from Spark Cluster, stores the results and runs web server with framework frontend
+    - consumer default IP address - 192.168.0.3
+- **Spark Cluster**- cluster of machines for data stream processing. **Spark Master** machine manages the Spark Cluster and provides control interface for the cluster. **Spark Slaves** serves mainly for data processing. The nubmer of Spark Slaves can be changed in configuration files
+    - Spark Master default IP address - 192.168.0.100
+    - Spark Slave default IP address - 192.168.0.101
+
+#### Default login credentials
+- user: **spark**
+- login: **Stream4Flow**
 
 #### Requirements
 - latest version of [Vagrant](https://www.vagrantup.com/)
 - latest version of [ansible](https://www.ansible.com/)
 - Internet connection
 
-#### Default machine configuration
-- producer IP address - 192.168.0.2
-- consumer IP address - 192.168.0.3
-- Spark Master IP address - 192.168.0.100
-- Spark Slave IP address - 192.168.0.101
+### We support two types of deployment:
+- **Standalone deployment:** Stream4Flow will be deployed into virtual maniches on your physical machine using [Vagrant](https://www.vagrantup.com/)
+- **Cluster deployment:** you can deploy Stream4Flow on your own cluster using [ansible](https://www.ansible.com/)
 
-#### Default login credentials
-- user: **spark**
-- login: **Stream4Flow**
 
 ### Standalone deployment
 
@@ -36,7 +49,7 @@ We support two types of deployment:
 
 The minimum hardware requirements for standalone Stream4Flow cluster
 - 14GB of RAM 
-- 80GB hard drive space 
+
 
 ### Cluster deployment
 1. clone repository
@@ -48,7 +61,7 @@ The minimum hardware requirements for standalone Stream4Flow cluster
 
 | Usage |  Description | Usage information |
 |---|---|---|
-| Input data  | Input point for network monitoring data in **IPFIX/Netflow**  format | <ul><li> producer IP addres (default IP is 192.168.0.2)</li> <li> port **UDP/4739** </li></ul>  |
+| Input data  | Input point for network monitoring data in **IPFIX/Netflow**  format | <ul><li> producer IP addres</li> <li>default IP is 192.168.0.2</li> <li> port **UDP/4739** </li></ul>  |
 | Stream4Flow Web Interface | Web interface for application for viewing data |<ul><li> consumer IP address</li> <li>default IP address is http://192.168.0.3/ </li></ul>|
 | Spark Web Interface | Apache Spark streaming interface for application control | <ul><li> consumer IP address:8080</li> <li>default IP address is http://192.168.0.100:8080/ </li></ul>| 
 
