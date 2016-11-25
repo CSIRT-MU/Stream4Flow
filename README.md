@@ -39,11 +39,11 @@ We have it all prepared for you. Everything is preconfigured. You have to only c
 ### We support two types of deployment:
 - **Standalone deployment:** Stream4Flow will be deployed into virtual machines on your physical machine using [Vagrant](https://www.vagrantup.com/)
 - **Cluster deployment:** you can deploy Stream4Flow on your own cluster using [ansible](https://www.ansible.com/)
-
+    - requirement: Debian-based OS
 
 ### Standalone deployment
 
-1. clone repository
+1. download repository
 2. go to folder **provisioning/**
 3. run vagrant provisioning: `vagrant up`
 
@@ -52,7 +52,10 @@ The minimum hardware requirements for standalone Stream4Flow cluster
 
 
 ### Cluster deployment
-1. clone repository
+
+_Note:  machnies in cluster must run Debian OS_
+
+1. download repository
 2. go to folder **provisioning/ansible**
 3. supply your inventory file with you cluster deployment according to file inventory.ini.example
 4. run ansible `ansible-playbook -i <your inventory file> site.yml --user <username> --ask-pass` (consult ansible docs for further information)
@@ -76,3 +79,16 @@ The minimum hardware requirements for standalone Stream4Flow cluster
 `./run-application.sh ./protocols-statistics/protocols_statistics.py -iz producer:2181 -it ipfix.entry -oh consumer:20101`
  
 
+#### Send data to Stream4Flow
+
+Stream4Flow is compatible with any Netflow v5/9 or IPFIX network probe. To measure your first data for Stream4Flow, you can use [softflowd](https://code.google.com/archive/p/softflowd/) - Flow-based network traffic analyser
+
+- Install softflowd
+`sudo apt-get install softflowd`
+
+- Start data export
+    - Standalone deployment
+      `softflowd -i <your interface> -n 192.168.0.2:4739`
+    - Cluster deployment 
+      `softflowd -i <your interface> -n <IP address of producer>:4739`
+    - for more softflowd options see [man pages](http://manpages.ubuntu.com/manpages/precise/man8/softflowd.8.html)
