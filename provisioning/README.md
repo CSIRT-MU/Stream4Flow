@@ -49,6 +49,8 @@ Templates of configuration files are stored in ansible/roles/<name_of_role>/temp
 - kafka_download_url: Download location of Kafka
 - kafka_filename: Name of Kafka directory when unarchived
 - retention: Retention setting for the Kafka topic
+- kafka_maximum_heap_space: Maximum java heap space for kafka in MB (Default 0.5 of total RAM)
+- kafka_minimum_heap_space: Minimum java heap space for kafka in MB (Default 0.25 of total RAM)
 
 ## kafka templates:
 - kafka-broker.conf.j2: Ubuntu upstart file for kafka service
