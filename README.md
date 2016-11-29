@@ -1,4 +1,4 @@
-<img src="https://stream4flow.ics.muni.cz/images/logo_text.png" width="55%" style="padding-bottom: 20px"/>
+<img src="https://stream4flow.ics.muni.cz/images/logo_text-small.png" style="padding-bottom: 20px"/>
 
 A framework for the real-time IP flow data analysis built on Apache Spark Streaming, a modern distributed stream processing system.
 
