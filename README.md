@@ -66,7 +66,7 @@ _Note:  machnies in cluster must run Debian OS_
 | Usage |  Description | Usage information |
 |---|---|---|
 | Input data  | Input point for network monitoring data in **IPFIX/Netflow**  format | <ul><li> producer IP addres</li> <li>default IP is 192.168.0.2</li> <li> port **UDP/4739** </li></ul>  |
-| Stream4Flow Web Interface | Web interface for application for viewing data |<ul><li> consumer IP address</li> <li>default IP address is http://192.168.0.3/ </li></ul>|
+| Stream4Flow Web Interface | Web interface for application for viewing data |<ul><li> consumer IP address</li> <li>default IP address is http://192.168.0.3/ </li><li>Default login:**stream4flow**</li><li>Default password:**stream4flow**</li></ul>|
 | Spark Web Interface | Apache Spark streaming interface for application control | <ul><li> Spark master IP address:8080</li> <li>default IP address is http://192.168.0.100:8080/ </li></ul>|
 | Kibana Web Interface | Elastic Kibana web interface for Elasticsearch data | <ul><li>index name: **spark-*** </li><li> consumer IP address:5601</li> <li>default IP address is http://192.168.0.3:5601/ </li></ul>|
 
