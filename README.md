@@ -35,6 +35,7 @@ We have it all prepared for you. Everything is preconfigured. You have to only c
 #### Requirements
 - [Vagrant](https://www.vagrantup.com/) >= 1.8.0
 - [ansible](https://www.ansible.com/) >= 2.1.0
+- python 2.7
 - Internet connection
 
 ### We support two types of deployment:
