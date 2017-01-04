@@ -94,3 +94,7 @@ Stream4Flow is compatible with any Netflow v5/9 or IPFIX network probe. To measu
     - Cluster deployment 
       `softflowd -i <your interface> -n <IP address of producer>:4739`
     - for more softflowd options see [man pages](http://manpages.ubuntu.com/manpages/precise/man8/softflowd.8.html)
+    
+# Acknowledgement
+   
+The SecurityCloud project is supported by the [Technology Agency of the Czech Republic](https://www.tacr.cz/) under No. TA04010062 Technology for processing and analysis of network data in big data concept.
