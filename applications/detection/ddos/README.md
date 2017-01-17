@@ -1,7 +1,7 @@
 ## DDOS detection
 
 ###Description
-A method for detection of DoS/DDoS attacks based on an evaluation of the incoming/outgoing packet volume ratio and its variance to the long-time (long window) ratio.
+A method for detection of DoS/DDoS attacks based on an evaluation of the incoming/outgoing packet volume ratio and its variance to the long-time ratio.
 
 ###Usage:
 - General 
