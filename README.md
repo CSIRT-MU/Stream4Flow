@@ -45,17 +45,16 @@ We have it all prepared for you. Everything is preconfigured. You have to only c
 
 ### Standalone deployment
 
+_Note: The minimum hardware requirement is 14GB of RAM_
+
 1. download repository
 2. go to folder **provisioning/**
 3. run vagrant provisioning: `vagrant up`
 
-The minimum hardware requirements for standalone Stream4Flow cluster
-- 14GB of RAM 
-
 
 ### Cluster deployment
 
-_Note:  machnies in cluster must run Debian OS_
+_Note:  machines in cluster must run Debian OS_
 
 1. download repository
 2. go to folder **provisioning/ansible**
@@ -66,15 +65,15 @@ _Note:  machnies in cluster must run Debian OS_
 
 | Usage |  Description | Usage information |
 |---|---|---|
-| Input data  | Input point for network monitoring data in **IPFIX/Netflow**  format | <ul><li> producer IP addres</li> <li>default IP is 192.168.0.2</li> <li> port **UDP/4739** </li></ul>  |
+| Input data  | Input point for network monitoring data in **IPFIX/Netflow**  format | <ul><li> producer IP address</li> <li>default IP is 192.168.0.2</li> <li> port **UDP/4739** </li></ul>  |
 | Stream4Flow Web Interface | Web interface for application for viewing data |<ul><li> consumer IP address</li> <li>default IP address is http://192.168.0.3/ </li><li>default login:**stream4flow**</li><li>default password:**stream4flow**</li></ul>|
 | Spark Web Interface | Apache Spark streaming interface for application control | <ul><li> Spark master IP address:8080</li> <li>default IP address is http://192.168.0.100:8080/ </li></ul>|
 | Kibana Web Interface | Elastic Kibana web interface for Elasticsearch data | <ul><li>index name: **spark-*** </li><li> consumer IP address:5601</li> <li>default IP address is http://192.168.0.3:5601/ </li></ul>|
 
-#### Run an expample application protocols_statistics
+#### Run an example application protocols_statistics
 
 1. login to Spark Master machine via ssh
-`ssh spark@192.168.0.2`
+`ssh spark@192.168.0.100`
 2. go to application directory
 `cd /home/spark/applications/`
 3. run example application
@@ -83,7 +82,7 @@ _Note:  machnies in cluster must run Debian OS_
 
 #### Send data to Stream4Flow
 
-Stream4Flow is compatible with any Netflow v5/9 or IPFIX network probe. To measure your first data for Stream4Flow, you can use [softflowd](https://code.google.com/archive/p/softflowd/) - Flow-based network traffic analyser
+Stream4Flow is compatible with any Netflow v5/9 or IPFIX network probe. To measure your first data for Stream4Flow, you can use [softflowd](https://code.google.com/archive/p/softflowd/) - Flow-based network traffic analyzer
 
 - Install softflowd
 `sudo apt-get install softflowd`
