@@ -164,12 +164,8 @@ def inspect_ddos(stream_data):
 
     # Compare incoming and outgoing transfers volumes and filter only those suspicious
     # -> overreaching the minimal_incoming volume of packets and
-    # -> overreaching the minimal short-term ratio and
-    # -> overreaching the minimal number of attackers
     # -> short-term ratio is greater than long-term ratio * threshold
     windows_union_filtered = nonzero_union.filter(lambda rdd: rdd[1][0][0] > minimal_incoming and
-                                                  float(rdd[1][0][0]) / rdd[1][0][1] > absolute_threshold and
-                                                  len(rdd[1][0][2]) >= attackers_threshold and
                                                   float(rdd[1][0][0]) / rdd[1][0][1] > float(rdd[1][1][0]) /
                                                   rdd[1][1][1] * threshold
                                                   )
@@ -194,9 +190,7 @@ if __name__ == "__main__":
     kafka_partitions = 1  # Number of partitions of the input Kafka topic
 
     # Set method parameters:
-    attackers_threshold = 10  # Minimal count of attacking devices
     threshold = 50  # Minimal increase of receive/sent packets ratio
-    absolute_threshold = 500  # Threshold for minimal receive/sent packets ratio
     minimal_incoming = 100000  # Minimal count of incoming packets
     max_bpp = 2  # Maximal Bytes per packet ratio
     long_window_length = 7200  # Window length for average ratio computation (must be a multiple of microbatch interval)
