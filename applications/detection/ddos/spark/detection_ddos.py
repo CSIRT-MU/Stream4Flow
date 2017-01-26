@@ -192,7 +192,6 @@ if __name__ == "__main__":
     # Set method parameters:
     threshold = 50  # Minimal increase of receive/sent packets ratio
     minimal_incoming = 100000  # Minimal count of incoming packets
-    max_bpp = 2  # Maximal Bytes per packet ratio
     long_window_length = 7200  # Window length for average ratio computation (must be a multiple of microbatch interval)
     base_window_length = 30  # Window length for basic computation (must be a multiple of microbatch interval)
 
@@ -210,7 +209,7 @@ if __name__ == "__main__":
     ddos_result = inspect_ddos(input_stream)
 
     # Process the results of the detection and send them to the specified host
-    ddos_result.foreachRDD(lambda rdd: print_and_send(rdd,args.output_host))
+    ddos_result.foreachRDD(lambda rdd: print_and_send(rdd, args.output_host))
 
     # Start input data processing
     ssc.start()
