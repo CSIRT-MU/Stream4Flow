@@ -230,11 +230,16 @@ if __name__ == "__main__":
     sc = SparkContext(appName=application_name + " " + " ".join(sys.argv[1:]))  # Application name used as the appName
     ssc = StreamingContext(sc, 1)  # Spark microbatch is 1 second
 
-    # Count names definition (name, array position).
+    # Position of statistics in DStream.
+    # Overall structure of a record
     statistics_position = {"total_stats": 0, "peer_number": 1, "dport_count": 2, "average_flow_duration": 3}
+    # Structure of basic characteristics
     total_stats_position = {"type": 0, "total_flows": 1, "total_packets": 2, "total_bytes": 3}
+    # Structure of peer number count characteristics
     peer_number_position = {"type": 0, "peer_number": 1}
+    # Structure of destination port count characteristics
     dport_count_position = {"type": 0, "dport_number": 1}
+    # Structure of average flow duration characteristics
     avg_flow_duration_postion = {"type": 0, "avg_duration": 1}
 
     # Initialize input DStream of flows from specified Zookeeper server and Kafka topic
