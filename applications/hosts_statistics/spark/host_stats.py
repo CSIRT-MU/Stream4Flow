@@ -135,7 +135,7 @@ def process_results(json_rrd, output_host):
         results += json.dumps(result_dict) + "\n"
 
     # Sent results to a given socket
-    print(results)
+    #print(results)  # Controll print
     send_data(results, output_host)
 
 
