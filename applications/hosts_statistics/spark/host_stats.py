@@ -119,18 +119,18 @@ def process_results(json_rrd, output_host):
         result_dict = {"@type": "host_stats", "ip": ip, "stats": stats_dict}
 
         # Process total stats
-        total_dict["flow"] = data[statistcs_position["total_stats"]][total_stats_position["total_flows"]]
-        total_dict["packets"] = data[statistcs_position["total_stats"]][total_stats_position["total_packets"]]
-        total_dict["bytes"] = data[statistcs_position["total_stats"]][total_stats_position["total_bytes"]]
+        total_dict["flow"] = data[statistics_position["total_stats"]][total_stats_position["total_flows"]]
+        total_dict["packets"] = data[statistics_position["total_stats"]][total_stats_position["total_packets"]]
+        total_dict["bytes"] = data[statistics_position["total_stats"]][total_stats_position["total_bytes"]]
 
         # Process peer_number stats
-        stats_dict["peer_number"] = data[statistcs_position["peer_number"]][peer_number_position["peer_number"]]
+        stats_dict["peer_number"] = data[statistics_position["peer_number"]][peer_number_position["peer_number"]]
 
         # Process dport_number stats
-        stats_dict["dport_count"] = data[statistcs_position["dport_count"]][dport_count_position["dport_number"]]
+        stats_dict["dport_count"] = data[statistics_position["dport_count"]][dport_count_position["dport_number"]]
 
         # Process average flow duration stats
-        stats_dict["avg_flow_duration"] = data[statistcs_position["average_flow_duration"]][avg_flow_duration_postion["avg_duration"]]
+        stats_dict["avg_flow_duration"] = data[statistics_position["average_flow_duration"]][avg_flow_duration_postion["avg_duration"]]
 
         results += json.dumps(result_dict) + "\n"
 
@@ -231,7 +231,7 @@ if __name__ == "__main__":
     ssc = StreamingContext(sc, 1)  # Spark microbatch is 1 second
 
     # Count names definition (name, array position).
-    statistcs_position = {"total_stats": 0, "peer_number": 1, "dport_count": 2, "average_flow_duration": 3}
+    statistics_position = {"total_stats": 0, "peer_number": 1, "dport_count": 2, "average_flow_duration": 3}
     total_stats_position = {"type": 0, "total_flows": 1, "total_packets": 2, "total_bytes": 3}
     peer_number_position = {"type": 0, "peer_number": 1}
     dport_count_position = {"type": 0, "dport_number": 1}
