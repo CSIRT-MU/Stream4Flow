@@ -88,7 +88,9 @@
             "latitude" : { "type" : "float", "doc_values" : true },
             "longitude" : { "type" : "float", "doc_values" : true }
           }
-        }
+        },
+        "src_ipv4" : { "type" : "ip", "norms" : { "enabled" : false } },
+        "dst_ipv4" : { "type" : "ip", "norms" : { "enabled" : false } }
       }
     }
   }
