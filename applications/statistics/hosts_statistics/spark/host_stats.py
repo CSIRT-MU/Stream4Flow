@@ -91,7 +91,7 @@ def process_results(json_rrd, output_host):
     Transform given computation results into the JSON format and send them to the specified host.
 
     JSON format:
-    {"ip":"<host src IPv4 address>",
+    {"src_ipv4":"<host src IPv4 address>",
      "@type":"host_stats",
      "stats":{
         "total":{"packets":<# of packets>,"bytes":# of bytes,"flow":<# of flows>},
@@ -116,7 +116,7 @@ def process_results(json_rrd, output_host):
     for ip, data in json_rrd.iteritems():
         total_dict = {}
         stats_dict = {"total": total_dict}
-        result_dict = {"@type": "host_stats", "ip": ip, "stats": stats_dict}
+        result_dict = {"@type": "host_stats", "src_ipv4": ip, "stats": stats_dict}
 
         # Process total stats
         total_dict["flow"] = data[statistics_position["total_stats"]][total_stats_position["total_flows"]]

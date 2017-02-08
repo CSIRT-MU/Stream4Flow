@@ -97,7 +97,7 @@ def print_and_send(rdd, output_host):
         attackers = list(stats[0][2])
 
         new_entry = {"@type": "detection.ddos",
-                     "host": host,
+                     "dst_ipv4": host,
                      "shortratio": short_ratio,
                      "longratio": long_ratio,
                      "attackers": attackers}

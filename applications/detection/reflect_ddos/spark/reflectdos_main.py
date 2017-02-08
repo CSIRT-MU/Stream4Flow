@@ -85,7 +85,7 @@ def print_and_send(rdd, output_host):
     JSON format:
         {"@type": "detection.reflectdos", "@sub_type": "DNS", "data_received": <volume of recieved data>,
          "data_sent": <volume of sent data>, "outgoing_connections": <number of outgoing connections>,
-         "src_ip": <list of attack targets>, "dns_ip": <IP address of attacked DNS server>}
+         "src_ipv4": <list of attack targets>, "dns_ip": <IP address of attacked DNS server>}
     
     :param rdd: map of detected dns servers
     :param output_host: results receiver in the "hostname:port" format
@@ -105,7 +105,7 @@ def print_and_send(rdd, output_host):
                      "data_received": stats[0],
                      "data_sent": stats[1],
                      "outgoing_connections": stats[3],
-                     "src_ip": source_dns[0],
+                     "src_ipv4": source_dns[0],
                      "dns_ip": source_dns[1]}
         results += ("%s\n" % json.dumps(new_entry))
 
