@@ -208,8 +208,8 @@ function loadChart(data_type) {
     )
 
     // Convert times to UTC in ISO format
-    var beginning = new Date( $('#beginning').val().replace("-", " ", "g") ).toISOString();
-    var end = new Date( $('#end').val().replace("-", " ", "g") ).toISOString();
+    var beginning = new Date( $('#beginning').val()).toISOString();
+    var end = new Date( $('#end').val()).toISOString();
 
     // Set data request
     var data_request = encodeURI( '{{=URL('get-statistics')}}' + '?beginning=' + beginning + '&end=' + end + '&aggregation=' + $('#aggregation').val()) + '&type=' + data_type;
