@@ -1,0 +1,18 @@
+[Unit]
+Description=Apache Zookeeper server (broker)
+Documentation=https://zookeeper.apache.org/
+Requires=network.target remote-fs.target
+After=network.target remote-fs.target
+
+[Service]
+Type=simple
+PIDFile=/var/run/zookeeper.pid
+User=kafka
+Group=kafka
+ExecStart={{ kafka_dir }}/bin/zookeeper-server-start.sh {{ kafka_dir }}/config/zookeeper.properties
+ExecStop={{ kafka_dir }}/bin/zookeeper-server-stop.sh
+Restart=on-failure
+SyslogIdentifier=zookeeper
+
+[Install]
+WantedBy=multi-user.target
