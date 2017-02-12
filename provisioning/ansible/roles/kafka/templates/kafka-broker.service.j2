@@ -7,8 +7,8 @@ After=network.target remote-fs.target
 [Service]
 Type=simple
 PIDFile=/var/run/kafka.pid
-User=kafka
-Group=kafka
+User=root
+Group=root
 ExecStart={{ kafka_dir }}/bin/kafka-server-start.sh {{ kafka_dir }}/config/server.properties
 ExecStop={{ kafka_dir }}/bin/kafka-server-stop.sh
 Restart=on-failure
