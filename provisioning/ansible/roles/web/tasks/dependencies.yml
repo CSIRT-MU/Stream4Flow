@@ -1,12 +1,6 @@
 ---
 # Install dependencies for running web.
 
-# Install pip
-- name: Install pip
-  apt: name={{ item }} state=latest update_cache=yes
-  with_items:
-  - python-pip
-
 # Install required apt packages
 - name: Install required apt packages
   apt: name={{ item }} state=latest update_cache=yes
