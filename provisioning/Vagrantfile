@@ -54,8 +54,9 @@ Vagrant.configure("2") do |config|
 			v.customize ["modifyvm", :id, "--cpus", producer_cpu_num]
 			v.customize ["modifyvm", :id, "--name", "producer"]
 		end
+
         # Install python2 for ansible
-        sparkMaster.vm.provision "shell" do |s|
+        producer.vm.provision "shell" do |s|
             s.inline = "apt-get install -y python"
         end
 	end
@@ -71,6 +72,7 @@ Vagrant.configure("2") do |config|
 			v.customize ["modifyvm", :id, "--cpus", sparkMaster_cpu_num]
 			v.customize ["modifyvm", :id, "--name", "sparkMaster"]
 		end
+
         # Install python2 for ansible
         sparkMaster.vm.provision "shell" do |s|
             s.inline = "apt-get install -y python"
