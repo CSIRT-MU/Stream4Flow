@@ -12,12 +12,12 @@ Vagrant.configure("2") do |config|
 
 	# Every Vagrant development environment requires a box. You can search for
 	# boxes at https://atlas.hashicorp.com/search.
-	# config.vm.box = "ubuntu/trusty64"
-  
+	# config.vm.box = "ubuntu/xenial64"
+
 	# GENERAL CONFIG:
 		# VM BOX CONFIGURATION
-		config.vm.box = "ubuntu/trusty64"
-		config.vm.box_url = "ubuntu/trusty64"
+		config.vm.box = "ubuntu/xenial64"
+		config.vm.box_url = "ubuntu/xenial64"
 
 		# IP CONFIGURATION
 		producer_ip = "192.168.0.2"
@@ -54,6 +54,10 @@ Vagrant.configure("2") do |config|
 			v.customize ["modifyvm", :id, "--cpus", producer_cpu_num]
 			v.customize ["modifyvm", :id, "--name", "producer"]
 		end
+        # Install python2 for ansible
+        sparkMaster.vm.provision "shell" do |s|
+            s.inline = "apt-get install -y python"
+        end
 	end
 
 	# SPARK-MASTER STARTUP:
@@ -67,6 +71,11 @@ Vagrant.configure("2") do |config|
 			v.customize ["modifyvm", :id, "--cpus", sparkMaster_cpu_num]
 			v.customize ["modifyvm", :id, "--name", "sparkMaster"]
 		end
+        # Install python2 for ansible
+        sparkMaster.vm.provision "shell" do |s|
+            s.inline = "apt-get install -y python"
+        end
+
 	end
 
 	# SPARK-SLAVES STARTUP:
@@ -89,6 +98,12 @@ Vagrant.configure("2") do |config|
 				v.customize ["modifyvm", :id, "--cpus", sparkSlave_cpu_num]
 				v.customize ["modifyvm", :id, "--name", "sparkSlave#{i}"]
 			end
+
+            # Install python2 for ansible
+            node.vm.provision "shell" do |s|
+                s.inline = "apt-get install -y python"
+            end
+
 		end
 	end
 
@@ -104,6 +119,11 @@ Vagrant.configure("2") do |config|
 			v.customize ["modifyvm", :id, "--cpus", consumer_cpu_num]
 			v.customize ["modifyvm", :id, "--name", "consumer"]
 		end
+
+        # Install python2 for ansible
+        consumer.vm.provision "shell" do |s|
+                        s.inline = "apt-get install -y python"
+        end
 
 		consumer.vm.provision :ansible do |ansible|
 			ansible.playbook = "ansible/site.yml"
