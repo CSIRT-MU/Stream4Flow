@@ -1,5 +1,5 @@
 ---
-# file: roles/web/vars/main.yml
+# file: roles/web/defaults/main.yml
 
 # CSR subject
 cert_subj: "/C=CZ/ST=CzechRepublic/L=Brno/O=Stream4Flow/OU=Stream4Flow/CN={{ ansible_host }}"

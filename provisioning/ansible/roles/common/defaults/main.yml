@@ -1,5 +1,5 @@
 ---
-# file: roles/common/vars/main.yml
+# file: roles/common/defaults/main.yml
 
 # login
 user: spark
