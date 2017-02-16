@@ -1,5 +1,5 @@
 ---
-# file: roles/kafka/vars/main.yml
+# file: roles/kafka/defaults/main.yml
 
 kafka_dir: /opt/kafka
 kafka_download_url: http://apache.miloslavbrada.cz/kafka/0.10.0.0/kafka_2.11-0.10.0.0.tgz
