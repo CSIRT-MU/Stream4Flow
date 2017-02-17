@@ -45,12 +45,12 @@
                     </select>
                 </div>
                 <div class="form-group">
-                    <label for="beginning">From:</label>
-                    <input type="text" name="beginning" id="beginning" class="datetimepicker form-control">
+                    <label for="datetime-beginning">From:</label>
+                    <input type="text" name="beginning" id="datetime-beginning" class="datetimepicker form-control">
                 </div>
                 <div class="form-group">
-                    <label for="end">To:</label>
-                    <input type="text" name="end" id="end" class="datetimepicker form-control">
+                    <label for="datetime-end">To:</label>
+                    <input type="text" name="end" id="datetime-end" class="datetimepicker form-control">
                 </div>
                 <div class="form-group">
                     <label for="aggregation">Aggregation:</label>
@@ -90,7 +90,7 @@
             <!-- Status -->
             <div class="chart-status" id="chart-flows-status"></div>
             <!-- Main Chart -->
-            <div id="chart-flows" class="highchart col-md-12" style="display: none; height:540px;"></div>
+            <div id="chart-flows" class="col-md-12"></div>
         </div>
         <!-- Packets -->
         <div role="tabpanel" class="tab-pane fade" id="chart-packets-panel" aria-labelledby="chart-packets-tab">
@@ -113,142 +113,9 @@
 <!-- //Statistics Chart -->
 
 
-<!-- Datatime Scripts -->
-<script>
-// Set interval on select interval change
-function setInterval(value) {
-    // On "custom" value show datetimepicker for "#beginning"
-    if (value == "custom") {
-        $('#beginning').datetimepicker('toggle');
-        return;
-    };
-
-    // Check NaN
-    if ( isNaN(value) ) return;
-
-    // Get current datetime with seconds rounded to tens
-    var datetime = new Date(new Date().getTime() - new Date().getTimezoneOffset()*60*1000);
-    var secondsRounded = parseInt(datetime.getSeconds() / 10) * 10;
-    datetime.setSeconds(secondsRounded);
-
-    // Set '#beginning' to current time
-    $('#end').val( datetime.toISOString().substr(0, 19).replace('T', ' ') )
-
-    // Set '#end' to current time subtract given value
-    datetime.setHours(datetime.getHours() - parseInt(value));
-    $('#beginning').val( datetime.toISOString().substr(0, 19).replace('T', ' ') );
-}
-
-// Set default interval to 2 hours
-$(window).load(setInterval(2));
-</script>
-<!-- //Datetime Scripts -->
-
-<!-- Highcharts Scripts -->
-<script>
-function generateChart(data_type, data_csv) {
-    // Elements ID
-    var chartId = '#chart-' + data_type;
-    var chartIdStatus = chartId + '-status';
-
-    // Hide status element
-    $(chartIdStatus).hide();
-    // Show chart element
-    $(chartId).show();
-
-    // Replace null value by zero
-    data_csv = data_csv.replace(/null/g,'0')
-
-    // Generate capitalized data type name
-    var type_name = data_type.charAt(0).toUpperCase() + data_type.slice(1);
-
-    // Generate a Chart
-    $(chartId).highcharts({
-        chart: {
-            type: 'line',
-            zoomType: 'x',
-            events: {
-                hide: function() {
-                    alert(1);
-                }
-            }
-        },
-        title: {
-            text: 'Number of ' + type_name + ' per Protocol'
-        },
-        yAxis: {
-            title: {
-                text: 'Number of ' + type_name
-            },
-            min: 0
-        },
-        xAxis: {
-            type: 'datetime'
-        },
-        data: {
-            csv: data_csv
-        }
-    });
-};
-
-function loadChart(data_type) {
-    // Elements ID
-    var chartId = '#chart-' + data_type;
-    var chartIdStatus = chartId + '-status';
-
-    // Hide chart element
-    $(chartId).hide();
-    // Show status element
-    $(chartIdStatus).show();
-
-    // Set loading status
-    $(chartIdStatus).html(
-        '<i class="fa fa-refresh fa-spin fa-2x fa-fw"></i>\
-         <span>Loading...</span>'
-    )
-
-    // Convert times to UTC in ISO format
-    var beginning = new Date( $('#beginning').val()).toISOString();
-    var end = new Date( $('#end').val()).toISOString();
-
-    // Set data request
-    var data_request = encodeURI( '{{=URL('get-statistics')}}' + '?beginning=' + beginning + '&end=' + end + '&aggregation=' + $('#aggregation').val()) + '&type=' + data_type;
-    // Get Elasticsearch data
-    $.ajax({
-        async: true,
-        type: 'GET',
-        url: data_request,
-        success: function(raw) {
-            var response = jQuery.parseJSON(raw);
-            if (response.status == "Ok") {
-                // Replace separator ';' to new line to create a CSV string and generate a chart
-                generateChart(data_type, response.data.replace(/;/g,'\n') );
-            } else {
-                // Show error message
-                $(chartIdStatus).html(
-                    '<i class="fa fa-exclamation-circle fa-2x"></i>\
-                     <span>' + response.status + ': ' + response.data + '</span>'
-                )
-            }
-        }
-    });
-};
-
-function loadAllCharts() {
-    loadChart("flows");
-    loadChart("packets");
-    loadChart("bytes");
-};
-
-// Load all charts when page loaded
-$(window).load(loadAllCharts());
-
-// Reflow highchart after the panel is selected
-$('a[data-toggle="tab"]').on('shown.bs.tab', function (e) {
-    var target = $(e.target).attr("href") + " .highchart";
-    $(target).highcharts().reflow();
-});
-</script>
-<!-- //Highcharts Scripts -->
+<!-- Load Custom Scripts -->
+<script src="{{=URL('static','js/custom/datetime_interval.js')}}"></script>
+<script src="{{=URL('static','js/custom/protocols_statistics.js')}}"></script>
+<!-- //Load Custom Scripts -->
 
 {{pass}}
