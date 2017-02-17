@@ -55,7 +55,8 @@ function generateChart(data_type, data) {
             all: '%D %M %d<br>%h:%i:%s'
           },
           label:{
-            text: 'Time'
+            text: 'Time',
+            visible: false
           }
         },
         scaleY:{
@@ -89,6 +90,7 @@ function generateChart(data_type, data) {
         },
         preview:{
           adjustLayout: true,
+          y: '85%',
           borderColor:'#444444',
           borderWidth: 1,
           mask:{
