@@ -119,12 +119,12 @@ function generateChart(data_type, data) {
         }
     };
 
-    // Render ZingChart
+    // Render ZingChart with width based on the whole panel
     zingchart.render({
 	    id: chartId,
 	    data: myConfig,
-	    height: '540px',
-	    width: '100%'
+	    height: $('#chart-panels').height(),
+	    width: $('#chart-panels').width()
     });
 };
 
@@ -184,13 +184,11 @@ function loadAllCharts() {
 // Load all charts when page loaded
 $(window).load(loadAllCharts());
 
-// Resize chart to full width after the panel is selected
-$('a[data-toggle="tab"]').on('shown.bs.tab', function (e) {
-    // Derive chart ID
-    var chartId = $(e.target).attr("href").replace(/-panel/g,'').slice(1);
-
-    // Resize selcted chart
-    zingchart.exec(chartId, 'resize', {
-        width : '100%'
+// Reflow zingcharts when main page width is changed
+$("#page-wrapper").on('transitionend', function () {
+    $('.zingchart').each(function() {
+        zingchart.exec(this.id, 'resize', {
+	        width: $('#chart-panels').width()
+        });
     });
 });

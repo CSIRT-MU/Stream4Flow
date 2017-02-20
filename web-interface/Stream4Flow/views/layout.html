@@ -191,14 +191,6 @@ Template License URL: http://creativecommons.org/licenses/by/3.0/
 				classie.toggle( showLeftPush, 'disabled' );
 			}
 		}
-
-		// Reflow highcarts when menu is hided or showed
-        $("#page-wrapper").on('transitionend', function () {
-            var highchart = $('.highchart').highcharts();
-            if (typeof highchart !== 'undefined') {
-                highchart.reflow();
-            }
-        });
 	</script>
     <!-- Datetime Picker -->
     <script>
@@ -209,16 +201,6 @@ Template License URL: http://creativecommons.org/licenses/by/3.0/
         });
     </script>
     <!-- //Datetime Picker -->
-    <!-- Highcharts -->
-    <script>
-        // This is for all plots, change Date axis to local timezone
-        Highcharts.setOptions({
-            global : {
-                useUTC : false
-            }
-        });
-    </script>
-    <!-- //Highcharts -->
 	<!--scrolling js-->
 	<script src="{{=URL('static','js/common/jquery.nicescroll.min.js')}}"></script>
 	<script src="{{=URL('static','js/template/scripts.js')}}"></script>
