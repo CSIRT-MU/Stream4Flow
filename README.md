@@ -4,7 +4,7 @@ A framework for the real-time IP flow data analysis built on Apache Spark Stream
 
 ## About Stream4Flow
 
-The basis of the Stream4Flow framework is formed by the IPFIXCol collector, Kafka messaging system, Apache Spark, and Elastic Stack. IPFIXCol enables incoming IP flow records to be transformed into the JSON format provided to the Kafka messaging system. The selection of Kafka was based on its scalability and partitioning possibilities, which provide sufficient data throughput. Apache Spark was selected as the data stream processing framework for its quick IP flow data throughput, available programming languages (Scala, Java, or Python) and MapReduce programming model. The analysis results are stored in Elastic Stack containing Logstash, Elasticsearch, and Kibana, which enable storage, querying, and visualizing the results. The Stream4Flow framework also contains the additional web interface in order to make administration easier and visualize complex results of the analysis.
+The basis of the Stream4Flow framework is formed by the IPFIXCol collector, Kafka messaging system, Apache Spark, and Elastic Stack. IPFIXCol is able to receive IP flows from majority of network Netflow/IPFIX probes (e.g. Flowmon Probe, softflowd, etc. ). IPFIXCol enables incoming IP flow records to be transformed into the JSON format provided to the Kafka messaging system. The selection of Kafka was based on its scalability and partitioning possibilities, which provide sufficient data throughput. Apache Spark was selected as the data stream processing framework for its quick IP flow data throughput, available programming languages (Scala, Java, or Python) and MapReduce programming model. The analysis results are stored in Elastic Stack containing Logstash, Elasticsearch, and Kibana, which enable storage, querying, and visualizing the results. The Stream4Flow framework also contains the additional web interface in order to make administration easier and visualize complex results of the analysis.
 
 ![architecture](https://stream4flow.ics.muni.cz/images/architecture.png)
 
@@ -82,7 +82,7 @@ _Note:  machines in cluster must run Debian OS ekvivalent to Ubuntu 14.* (due to
 
 #### Send data to Stream4Flow
 
-Stream4Flow is compatible with any Netflow v5/9 or IPFIX network probe. To measure your first data for Stream4Flow, you can use [softflowd](https://code.google.com/archive/p/softflowd/) - Flow-based network traffic analyzer
+Stream4Flow is compatible with any Netflow v5/9 or IPFIX network probe. To measure your first data for Stream4Flow, you can use either commercial solution such as [Flowmon Probe](https://www.flowmon.com/en/products/flowmon/probe)  or an open-source alternative [softflowd](https://code.google.com/archive/p/softflowd/) 
 
 - Install softflowd
 `sudo apt-get install softflowd`
@@ -97,3 +97,8 @@ Stream4Flow is compatible with any Netflow v5/9 or IPFIX network probe. To measu
 # Acknowledgement
    
 The SecurityCloud project is supported by the [Technology Agency of the Czech Republic](https://www.tacr.cz/) under No. TA04010062 Technology for processing and analysis of network data in big data concept.
+
+#### Project partners
+
+[CESNET, z. s. p. o.](https://www.cesnet.cz/?lang=en)
+[FLOWMON NETWORKS A.S.](https://www.flowmon.com/) 
