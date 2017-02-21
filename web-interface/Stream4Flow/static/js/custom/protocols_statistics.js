@@ -14,104 +14,104 @@ function generateChart(data_type, data) {
         type: 'line',
         backgroundColor:'#fff',
         title:{
-          text: 'Number of ' + data_type.charAt(0).toUpperCase() +  data_type.slice(1) + ' per Protocol',
-          adjustLayout: true,
-          fontColor:"#444444"
+            text: 'Number of ' + data_type.charAt(0).toUpperCase() +  data_type.slice(1) + ' per Protocol',
+            adjustLayout: true,
+            fontColor:"#444444"
         },
         legend:{
-          align: 'center',
-          verticalAlign: 'top',
-          backgroundColor:'none',
-          borderWidth: 0,
-          item:{
-            fontColor:'#444444',
-            cursor: 'hand'
-          },
-          marker:{
-            type:'circle',
+            align: 'center',
+            verticalAlign: 'top',
+            backgroundColor:'none',
             borderWidth: 0,
-            cursor: 'hand'
-          },
-          toggleAction: 'remove'
+            item:{
+                fontColor:'#444444',
+                cursor: 'hand'
+            },
+            marker:{
+                type:'circle',
+                borderWidth: 0,
+                cursor: 'hand'
+            },
+            toggleAction: 'remove'
         },
         plotarea:{
-          margin:'dynamic 70'
+            margin:'dynamic 70'
         },
         plot:{
-          lineWidth: 2,
-          marker:{
-            borderWidth: 0,
-            size: 3
-          }
+            lineWidth: 2,
+            marker:{
+                borderWidth: 0,
+                size: 3
+            }
         },
         scaleX:{
-          lineColor: '#444444',
-          zooming: true,
-          item:{
-            fontColor:'#444444'
-          },
-          transform:{
-            type: 'date',
-            all: '%D %M %d<br>%h:%i:%s'
-          },
-          label:{
-            text: 'Time',
-            visible: false
-          }
+            lineColor: '#444444',
+            zooming: true,
+            item:{
+                fontColor:'#444444'
+            },
+            transform:{
+                type: 'date',
+                all: '%D %M %d<br>%h:%i:%s'
+            },
+            label:{
+                text: 'Time',
+                visible: false
+            }
         },
         scaleY:{
-          minorTicks: 1,
-          lineColor: '#444444',
-          tick:{
-            lineColor: '#444444'
-          },
-          minorTick:{
-            lineColor: '#444444'
-          },
-          minorGuide:{
-            visible: false
-          },
-          guide:{
-            lineStyle: 'dashed'
-          },
-          item:{
-            fontColor:'#444444'
-          },
-          label:{
-            text: 'Number of Flows',
-            fontSize: 12,
-            fontColor: '#444444'
-          },
-          short: true
+            minorTicks: 1,
+            lineColor: '#444444',
+            tick:{
+                lineColor: '#444444'
+            },
+            minorTick:{
+                lineColor: '#444444'
+            },
+            minorGuide:{
+                visible: false
+            },
+            guide:{
+                lineStyle: 'dashed'
+            },
+            item:{
+                fontColor:'#444444'
+            },
+            label:{
+                text: 'Number of Flows',
+                fontSize: 12,
+                fontColor: '#444444'
+            },
+            short: true
         },
         tooltip:{
-          borderWidth: 0,
-          borderRadius: 3
+            borderWidth: 0,
+            borderRadius: 3
         },
         preview:{
-          adjustLayout: true,
-          y: '85%',
-          borderColor:'#444444',
-          borderWidth: 1,
-          mask:{
-            backgroundColor:'#658687'
-          }
+            adjustLayout: true,
+            y: '85%',
+            borderColor:'#444444',
+            borderWidth: 1,
+            mask:{
+                backgroundColor:'#658687'
+            }
         },
         crosshairX:{
-          plotLabel:{
-            multiple: true,
-            borderRadius: 3
-          },
-          scaleLabel:{
-            backgroundColor:'#373f47',
-            borderRadius: 3
-          },
-          marker:{
-            size: 7,
-            alpha: 0.5
-          }
+            plotLabel:{
+                multiple: true,
+                borderRadius: 3
+            },
+            scaleLabel:{
+                backgroundColor:'#373f47',
+                borderRadius: 3
+            },
+            marker:{
+                size: 7,
+                alpha: 0.5
+            }
         },
-        csv: {
+        csv:{
             dataString: data,
             rowSeparator: ';',
             separator: ',',
@@ -183,12 +183,3 @@ function loadAllCharts() {
 
 // Load all charts when page loaded
 $(window).load(loadAllCharts());
-
-// Reflow zingcharts when main page width is changed
-$("#page-wrapper").on('transitionend', function () {
-    $('.zingchart').each(function() {
-        zingchart.exec(this.id, 'resize', {
-	        width: $('#chart-panels').width()
-        });
-    });
-});
