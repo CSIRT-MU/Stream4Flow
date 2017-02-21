@@ -101,4 +101,5 @@ The SecurityCloud project is supported by the [Technology Agency of the Czech Re
 #### Project partners
 
 [CESNET, z. s. p. o.](https://www.cesnet.cz/?lang=en)
-[FLOWMON NETWORKS A.S.](https://www.flowmon.com/) 
+
+[Flowmon Networks, a.s.](https://www.flowmon.com/)
