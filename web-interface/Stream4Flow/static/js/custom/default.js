@@ -54,6 +54,9 @@ function generateSumChart(data) {
             logBase: 10,
             minValue: 0
         },
+        tooltip:{
+            visible: false,
+        },
         csv:{
             dataString: data,
             rowSeparator: ';',
