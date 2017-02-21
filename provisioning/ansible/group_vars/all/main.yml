@@ -2,6 +2,7 @@
 
 # Common variables.
 
+
 # login
 user: spark
 
@@ -13,12 +14,13 @@ user_passwd: $1$wolF4mae$jSX8IG9goPtqVfomlbla6.
 # Ipfixcol variables - main
 
 
-
 # Set the configuration file path for ipfixcol to load here:
 script_path: /usr/local/etc/ipfixcol/
 script_filename: startup.xml.udp
 
+
 #  Kafka variables
+
 
 kafka_dir: /opt/kafka
 kafka_download_url: http://apache.miloslavbrada.cz/kafka/0.10.0.0/kafka_2.11-0.10.0.0.tgz
@@ -29,6 +31,7 @@ kafka_minimum_heap_space: "{{(ansible_memtotal_mb * 0.25)|int}}"
 
 
 # Spark variables
+
 
 # download mirrors
 url_spark: "http://apache.miloslavbrada.cz/spark/spark-1.6.2/spark-1.6.2-bin-hadoop2.6.tgz"
@@ -44,7 +47,9 @@ spark_worker_cores: 2
 spark_worker_memory: "{{ ansible_memtotal_mb }}"
 spark_masterurl: spark://{{ masterIP }}:7077
 
+
 # Web variables
+
 
 # CSR subject
 cert_subj: "/C=CZ/ST=CzechRepublic/L=Brno/O=Stream4Flow/OU=Stream4Flow/CN={{ ansible_host }}"
