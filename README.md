@@ -89,9 +89,9 @@ Stream4Flow is compatible with any Netflow v5/9 or IPFIX network probe. To measu
 
 - Start data export
     - Standalone deployment
-      `softflowd -i <your interface> -n 192.168.0.2:4739`
+      `softflowd -i <your interface> -D -n 192.168.0.2:4739`
     - Cluster deployment 
-      `softflowd -i <your interface> -n <IP address of producer>:4739`
+      `softflowd -i <your interface> -D -n <IP address of producer>:4739`
     - for more softflowd options see [man pages](http://manpages.ubuntu.com/manpages/precise/man8/softflowd.8.html)
     
 # Acknowledgement
