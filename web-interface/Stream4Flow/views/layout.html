@@ -25,34 +25,32 @@ Template License URL: http://creativecommons.org/licenses/by/3.0/
     <link href="{{=URL('static','css/jquery.datetimepicker.min.css')}}" rel='stylesheet' type='text/css' />
     <!-- //datetime picker -->
     <!-- js-->
-    <script src="{{=URL('static','js/jquery-1.11.1.min.js')}}"></script>
-    <script src="{{=URL('static','js/modernizr.custom.js')}}"></script>
+    <script src="{{=URL('static','js/common/jquery-1.11.1.min.js')}}"></script>
+    <script src="{{=URL('static','js/common/modernizr.custom.js')}}"></script>
     <!-- datetime picker -->
-    <script src="{{=URL('static','js/jquery.datetimepicker.full.min.js')}}"></script>
+    <script src="{{=URL('static','js/common/jquery.datetimepicker.full.min.js')}}"></script>
     <!-- //datetime picker -->
     <!--webfonts-->
     <link href='//fonts.googleapis.com/css?family=Roboto+Condensed:400,300,300italic,400italic,700,700italic' rel='stylesheet' type='text/css'>
     <!--//webfonts-->
     <!--animate-->
     <link href="{{=URL('static','css/animate.css')}}" rel="stylesheet" type="text/css" media="all">
-    <script src="{{=URL('static','js/wow.min.js')}}"></script>
+    <script src="{{=URL('static','js/common/wow.min.js')}}"></script>
 	<script>
 		 new WOW().init();
 	</script>
     <!--//end-animate-->
     <!-- Metis Menu -->
-    <script src="{{=URL('static','js/metisMenu.min.js')}}"></script>
-    <script src="{{=URL('static','js/custom.js')}}"></script>
+    <script src="{{=URL('static','js/common/metisMenu.min.js')}}"></script>
+    <script src="{{=URL('static','js/template/custom.js')}}"></script>
     <link href="{{=URL('static','css/custom.css')}}" rel="stylesheet">
 	<!--//Metis Menu -->
 	<!--validator js-->
-    <script src="{{=URL('static','js/validator.min.js')}}"></script>
+    <script src="{{=URL('static','js/common/validator.min.js')}}"></script>
 	<!--//validator js-->
-    <!-- Highcharts -->
-    <script src="{{=URL('static','js/highcharts.js')}}"></script>
-    <script src="{{=URL('static','js/highcharts.data.js')}}"></script>
-    <script src="{{=URL('static','js/highcharts.exporting.js')}}"></script>
-    <!-- //Highcharts -->
+    <!-- ZingChart -->
+    <script src="{{=URL('static','js/charts/zingchart.min.js')}}"></script>
+    <!-- //ZingChart -->
 </head> 
 <body class="cbp-spmenu-push">
 	<div class="main-content">
@@ -170,7 +168,7 @@ Template License URL: http://creativecommons.org/licenses/by/3.0/
 
     <!-- Javascript =============================== -->
 	<!-- Classie -->
-	<script src="{{=URL('static','js/classie.js')}}"></script>
+	<script src="{{=URL('static','js/common/classie.js')}}"></script>
 	<script>
 		var menuLeft = document.getElementById( 'cbp-spmenu-s1' ),
 			showLeftPush = document.getElementById( 'showLeftPush' ),
@@ -188,14 +186,6 @@ Template License URL: http://creativecommons.org/licenses/by/3.0/
 				classie.toggle( showLeftPush, 'disabled' );
 			}
 		}
-
-		// Reflow highcarts when menu is hided or showed
-        $("#page-wrapper").on('transitionend', function () {
-            var highchart = $('.highchart').highcharts();
-            if (typeof highchart !== 'undefined') {
-                highchart.reflow();
-            }
-        });
 	</script>
     <!-- Datetime Picker -->
     <script>
@@ -206,22 +196,16 @@ Template License URL: http://creativecommons.org/licenses/by/3.0/
         });
     </script>
     <!-- //Datetime Picker -->
-    <!-- Highcharts -->
-    <script>
-        // This is for all plots, change Date axis to local timezone
-        Highcharts.setOptions({
-            global : {
-                useUTC : false
-            }
-        });
-    </script>
-    <!-- //Highcharts -->
+    <!-- Charts Hacks -->
+    <script src="{{=URL('static','js/charts/custom.js')}}"></script>
+    <!-- //Charts Hacks
 	<!--scrolling js-->
-	<script src="{{=URL('static','js/jquery.nicescroll.min.js')}}"></script>
-	<script src="{{=URL('static','js/scripts.js')}}"></script>
+	<script src="{{=URL('static','js/common/jquery.nicescroll.min.js')}}"></script>
+	<script src="{{=URL('static','js/template/scripts.js')}}"></script>
 	<!--//scrolling js-->
 	<!-- Bootstrap JavaScript -->
-    <script src="{{=URL('static','js/bootstrap.js')}}"> </script>
-    <script src="{{=URL('static','js/bootstrap-table.min.js')}}"> </script>
+    <script src="{{=URL('static','js/common/bootstrap.js')}}"> </script>
+    <script src="{{=URL('static','js/common/bootstrap-table.min.js')}}"> </script>
+    <!-- //Bootstrap JavaScript -->
 </body>
 </html>

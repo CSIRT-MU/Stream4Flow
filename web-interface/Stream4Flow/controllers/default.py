@@ -61,7 +61,10 @@ def login():
 
     # Redirect to the index if everything was ok
     if not error:
-        redirect(current_page if not "login" in current_page else "/index")
+        if ("login" in current_page) or ("logout" in current_page):
+            redirect("/index")
+        else:
+            redirect(current_page)
 
     # Use standard error view
     response.view = 'error.html'
@@ -135,7 +138,7 @@ def get_summary_statistics():
         result = s.execute()
 
         # Result Parsing into CSV in format: timestamp, tcp protocol value, udp protocol value
-        data = "null, Flows, Packets, Bytes;"
+        data = "Timestamp, Flows, Packets, Bytes;"
         timestamp = "Last 5 Minutes"
         data += timestamp + ', ' +\
                 str(int(result.aggregations.sum_of_flows['value'])) + ', ' +\
