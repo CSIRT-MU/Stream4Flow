@@ -2,7 +2,7 @@
 function setInterval(value) {
     // On "custom" value show datetimepicker for "#beginning"
     if (value == "custom") {
-        $('#beginning').datetimepicker('toggle');
+        $('#datetime-beginning').datetimepicker('toggle');
         return;
     };
 
