@@ -54,7 +54,7 @@ _Note: The minimum hardware requirement is 14GB of RAM_
 
 ### Cluster deployment
 
-_Note:  machines in cluster must run Debian OS ekvivalent to Ubuntu 14.* (due to initd)_
+_Note:  machines in cluster must run Debian OS equivalent to Ubuntu 14.* (due to initd)_
 
 1. download repository
 2. go to folder **provisioning/ansible**
