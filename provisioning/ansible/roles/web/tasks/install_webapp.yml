@@ -1,5 +1,31 @@
+---
+- name: Install git
+  apt:
+   name: git
+   state: present
+
+- name: Clone git repository
+  git:
+     repo: "{{ repository_url }}"
+     dest: "{{ repository_tmp }}"
+     version: master
+
 - name: Copy routes.py to /var/www/web2py
-  copy: src=routes.py dest=/var/www/web2py/routes.py owner=www-data group=www-data
+  shell: mv {{ repository_tmp }}/web-interface/routes.py /var/www/web2py/routes.py
+
+- name: Set routes.py attributes
+  file:
+      path: /var/www/web2py/routes.py
+      owner: www-data
+      group: www-data
 
 - name: Copy Stream4Flow web2py application
-  unarchive: src=Stream4Flow.tgz dest=/var/www/web2py/applications/ owner=www-data group=www-data creates=/var/www/web2py/applications/Stream4Flow
+  shell: mv {{ repository_tmp }}/web-interface/Stream4Flow /var/www/web2py/applications/
+
+- name: Set hostname appconfig.ini
+  shell: sed -e 's/hostname    .*$/hostname    = "{{ hostname }}"/g' /var/www/web2py/applications/Stream4Flow/private/appconfig.ini
+
+- name: Remove Stream4Flow repository
+  file:
+    path: "{{ repository_tmp }}"
+    state: absent

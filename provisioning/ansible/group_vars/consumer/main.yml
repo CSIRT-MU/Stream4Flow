@@ -6,8 +6,4 @@ cert_subj: "/C=CZ/ST=CzechRepublic/L=Brno/O=Stream4Flow/OU=Stream4Flow/CN={{ ans
 
 web2py_passwd: password
 
-
 repository_url: "https://github.com/CSIRT-MU/Stream4Flow"
-repository_tmp: "/tmp/Stream4Flow"
-
-hostname: "{{ ansible_hostname }}"
