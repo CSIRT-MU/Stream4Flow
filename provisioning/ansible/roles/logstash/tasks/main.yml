@@ -1,3 +1,0 @@
-- name: Include install playbook.
-  include: install.yml
-  become: yes

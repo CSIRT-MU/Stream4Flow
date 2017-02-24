@@ -14,3 +14,10 @@
   - oracle-java8-installer
   - ca-certificates
   - oracle-java8-set-default
+- name: Install Maven 3
+  apt:
+    name: "{{ item }}"
+    state: latest
+    update_cache: yes
+  with_items:
+    - maven

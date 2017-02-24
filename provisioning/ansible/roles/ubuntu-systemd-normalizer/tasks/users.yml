@@ -1,0 +1,14 @@
+---
+
+- name: Create normalizer user group
+  group:
+    name: "{{ normalizer_user }}"
+    state: present
+
+- name: Create normalizer user
+  user:
+    name: "{{ normalizer_user }}"
+    group: "{{ normalizer_user }}"
+    comment: "TCP Normalizer User"
+    shell: /usr/sbin/nologin
+    home: /home/{{ normalizer_user }}
