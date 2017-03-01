@@ -90,7 +90,8 @@ def process_results(results, output_host):
         output_json += "{\"@type\": \"protocols_statistics\", \"protocol\": \"" + key + "\", \"flows\": " + str(value[0]) + ", \"packets\": " + str(value[1]) + ", \"bytes\": " + str(value[2]) + "}\n"
 
     # Print results to standard output
-    cprint(output_json)
+    if output_json:
+        cprint(output_json)
 
     # Send results to the specified host
     send_data(output_json, output_host)
