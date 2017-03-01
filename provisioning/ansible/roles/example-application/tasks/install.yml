@@ -5,14 +5,7 @@
   with_items:
   - python-pip
 
-# Install dependencies needed for installation of ujson module
-- name: Install ujson dependencies
-  apt: name={{item}} state=latest update_cache=yes
-  with_items:
-  - cpp-4.6
-  - gcc-4.6-base
-  - python-dev
-
+# Instal ujson and termcolor modules for application
 - name: Install python modules
   pip: name={{item}} executable=pip
   with_items:

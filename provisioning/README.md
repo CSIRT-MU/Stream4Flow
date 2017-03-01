@@ -53,7 +53,7 @@ Templates of configuration files are stored in ansible/roles/<name_of_role>/temp
 - kafka_minimum_heap_space: Minimum java heap space for kafka in MB (Default 0.25 of total RAM)
 
 ## kafka templates:
-- kafka-broker.conf.j2: Ubuntu upstart file for kafka service
+- kafka-broker.service.j2: Ubuntu upstart file for kafka service
 - kafka-broker.j2: defaults file for kafka service
 - kafka-server-start.sh.j2: Start script for Kafka server
 

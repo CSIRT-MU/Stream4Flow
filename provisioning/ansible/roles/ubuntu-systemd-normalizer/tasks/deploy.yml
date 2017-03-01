@@ -1,0 +1,26 @@
+---
+
+- name: Get From Git
+  git:
+    repo: https://github.com/CSIRT-MU/simple_tcp_normalizer.git
+    dest: /opt/simple_tcp_normalizer
+    version: master
+
+- name: Build
+  command: mvn package
+  args:
+    chdir: /opt/simple_tcp_normalizer
+
+- name: Set Owner
+  file:
+    path: /opt/simple_tcp_normalizer
+    owner: "{{ normalizer_user }}"
+    group: "{{ normalizer_user }}"
+    recurse: yes
+
+- name: Copy Systemd Service
+  template: src=templates/tcpnormalizer@.service.j2 dest=/etc/systemd/system/tcpnormalizer@.service mode=664 owner=root group=root
+
+- name: Enable Autostart of Service Instance 'default'
+  command: systemctl enable tcpnormalizer@default.service
+  notify: Restart Service Instance 'default'

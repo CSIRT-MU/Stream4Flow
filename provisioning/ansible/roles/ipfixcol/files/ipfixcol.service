@@ -1,0 +1,19 @@
+[Unit]
+Description=Ipfixcol service
+Documentation=https://github.com/CESNET/ipfixcol
+Requires=network.target remote-fs.target
+After=network.target remote-fs.target
+
+[Service]
+Type=simple
+PIDFile=/var/run/ipfixcol.pid
+User=root
+Group=root
+EnvironmentFile=/etc/default/ipfixcol
+ExecStart=/usr/local/bin/ipfixcol -c $IPFIXCOL_SCRIPT -v 2
+ExecStop=
+Restart=on-failure
+SyslogIdentifier=ipfixcol
+
+[Install]
+WantedBy=multi-user.target
