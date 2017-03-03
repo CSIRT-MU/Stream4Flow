@@ -34,7 +34,7 @@ Vagrant.configure("2") do |config|
 		producer_mem_mb = 4096
 		producer_cpu_num = 4
 		# Consumer
-		consumer_mem_mb = 2048
+		consumer_mem_mb = 4096
 		consumer_cpu_num = 2
 		# SparkMaster
 		sparkMaster_mem_mb = 4096

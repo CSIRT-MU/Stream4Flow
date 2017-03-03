@@ -3,13 +3,9 @@
 
 # Add keys and repositories
 - name: add key for elasticsearch
-  apt_key: url=https://packages.elastic.co/GPG-KEY-elasticsearch
+  apt_key: url=https://artifacts.elastic.co/GPG-KEY-elasticsearch
 - name: add repository elasticsearch
-  apt_repository: repo='deb http://packages.elastic.co/elasticsearch/2.x/debian stable main'
-- name: add repository logstash
-  apt_repository: repo='deb http://packages.elastic.co/logstash/2.2/debian stable main'
-- name: add repository kibana
-  apt_repository: repo='deb http://packages.elastic.co/kibana/4.4/debian stable main'
+  apt_repository: repo='deb https://artifacts.elastic.co/packages/5.x/apt stable main'
 # Install ELK
 - name: install elastic
   apt: name=elasticsearch state=installed

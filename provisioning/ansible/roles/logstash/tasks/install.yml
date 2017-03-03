@@ -1,9 +1,9 @@
 ---
 # Install Logstash
 - name: add key for ELK
-  apt_key: url=https://packages.elastic.co/GPG-KEY-elasticsearch
+  apt_key: url=https://artifacts.elastic.co/GPG-KEY-elasticsearch
 - name: add repository logstash
-  apt_repository: repo='deb http://packages.elastic.co/logstash/2.2/debian stable main'
+  apt_repository: repo='deb https://artifacts.elastic.co/packages/apt stable main'
 - name: install logstash
   apt: name=logstash state=installed
 
