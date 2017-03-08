@@ -97,49 +97,56 @@ def process_results(results, output_host):
     send_data(output_json, output_host)
 
 
-def count_protocols_statistics(flows_stream):
+def get_protocol_name(protocol_identifier):
+    """
+    Returns protocol name for the given identifier.
+
+    :param protocol_identifier: Number representing the protocol.
+    :return: string "tcp" if protocol_identifier is 6, "udp" if protocol_identifier is 17, and "other" otherwise
+    """
+
+    # Check identifier and return corresponfing string
+    if protocol_identifier == 6:
+        return "tcp"
+    elif protocol_identifier == 17:
+        return "udp"
+    else:
+        return "other"
+
+
+def count_protocols_statistics(flows_stream, window_duration, window_slide):
     """
     Count number of transferred flows, packets, and bytes of TCP, UDP, and other protocols using Spark Streaming functions.
 
     :param flows_stream: DStream of parsed flows in the JSON format
+    :param window_duration: Duration of the time window for statistics count
+    :param window_slide: Slide interval of the time window for statistics count (typically same as window_duration)
     :return: union DStream of UDP, TCP, and other protocols statistics
     """
 
     # Check required flow keys
     flows_stream_checked = flows_stream.filter(lambda flow_json: ("ipfix.protocolIdentifier" in flow_json.keys()))
 
-    # Filter TCP protocol (number 6)
-    flows_tcp = flows_stream_checked.filter(lambda flow_json: (flow_json["ipfix.protocolIdentifier"] == 6))
-    # Filter UDP protocol (number 17)
-    flows_udp = flows_stream_checked.filter(lambda flow_json: (flow_json["ipfix.protocolIdentifier"] == 17))
-    # Filter other protocols
-    flows_other = flows_stream_checked.filter(lambda flow_json: ((flow_json["ipfix.protocolIdentifier"] != 6) and (flow_json["ipfix.protocolIdentifier"] != 17)))
+    # Set protocol name as a key and map number of flows, packets, and bytes
+    flows_mapped = flows_stream_checked.map(lambda flow_json: (get_protocol_name(flow_json["ipfix.protocolIdentifier"]), (1, flow_json["ipfix.packetDeltaCount"], flow_json["ipfix.octetDeltaCount"])))
 
-    # Count TCP statistics (#flows, #packets, #bytes)
-    tcp_statistics = flows_tcp.map(lambda flow_json: ("tcp", (1, flow_json["ipfix.packetDeltaCount"], flow_json["ipfix.octetDeltaCount"])))\
-                              .reduceByKey(lambda actual, update: (
-                                               actual[0] + update[0],
-                                               actual[1] + update[1],
-                                               actual[2] + update[2]
-                                           ))
-    # Count UDP statistics (#flows, #packets, #bytes)
-    udp_statistics = flows_udp.map(lambda flow_json: ("udp", (1, flow_json["ipfix.packetDeltaCount"], flow_json["ipfix.octetDeltaCount"])))\
-                              .reduceByKey(lambda actual, update: (
-                                               actual[0] + update[0],
-                                               actual[1] + update[1],
-                                               actual[2] + update[2]
-                                           ))
+    # Reduce mapped flows to get statistics for smallest analysis interval and reduce volume of processed data
+    flows_reduced = flows_mapped.reduceByKey(lambda actual, update: (
+                                                 actual[0] + update[0],
+                                                 actual[1] + update[1],
+                                                 actual[2] + update[2]
+                                             ))
 
-    # Count other statistics (#flows, #packets, #bytes)
-    other_statistics = flows_other.map(lambda flow_json: ("other", (1, flow_json["ipfix.packetDeltaCount"], flow_json["ipfix.octetDeltaCount"])))\
-                                  .reduceByKey(lambda actual, update: (
-                                                   actual[0] + update[0],
-                                                   actual[1] + update[1],
-                                                   actual[2] + update[2]
-                                               ))
+    # Set time window and compute statistics over the window using the same reduce
+    flows_statistics = flows_reduced.window(window_duration, window_slide)\
+                                    .reduceByKey(lambda actual, update: (
+                                                     actual[0] + update[0],
+                                                     actual[1] + update[1],
+                                                     actual[2] + update[2]
+                                                 ))
 
-    # Union TCP, UDP, and other statistics and return them as a single DStream
-    return tcp_statistics.union(udp_statistics).union(other_statistics)
+    # Return computed statistics
+    return flows_statistics
 
 
 if __name__ == "__main__":
@@ -168,11 +175,8 @@ if __name__ == "__main__":
     # Parse flows in the JSON format
     flows_json = input_stream.map(lambda x: json.loads(x[1]))
 
-    # Set window and slide duration for flows analysis
-    flows_json_windowed = flows_json.window(window_duration, window_slide)
-
     # Count statistics of the UDP, TCP, and other protocols
-    statistics = count_protocols_statistics(flows_json_windowed)
+    statistics = count_protocols_statistics(flows_json, window_duration, window_slide)
 
     # Process computed statistics and send them to the specified host
     statistics.foreachRDD(lambda rdd: process_results(rdd.collectAsMap(), args.output_host))
