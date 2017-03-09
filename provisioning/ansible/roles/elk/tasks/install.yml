@@ -4,7 +4,7 @@
 # Add keys and repositories
 - name: add key for elasticsearch
   apt_key: url=https://artifacts.elastic.co/GPG-KEY-elasticsearch
-- name: add repository elasticsearch
+- name: add repository
   apt_repository: repo='deb https://artifacts.elastic.co/packages/5.x/apt stable main'
 # Install ELK
 - name: install elastic
