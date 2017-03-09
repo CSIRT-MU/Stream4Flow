@@ -89,12 +89,13 @@ def process_results(results, output_host):
     for key, value in results.iteritems():
         output_json += "{\"@type\": \"protocols_statistics\", \"protocol\": \"" + key + "\", \"flows\": " + str(value[0]) + ", \"packets\": " + str(value[1]) + ", \"bytes\": " + str(value[2]) + "}\n"
 
-    # Print results to standard output
+    # Check if there are any results
     if output_json:
+        # Print results to standard output
         cprint(output_json)
 
-    # Send results to the specified host
-    send_data(output_json, output_host)
+        # Send results to the specified host
+        send_data(output_json, output_host)
 
 
 def get_protocol_name(protocol_identifier):
