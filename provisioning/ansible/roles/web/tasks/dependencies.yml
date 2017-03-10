@@ -12,6 +12,7 @@
     - python-dev
     - libapache2-mod-wsgi
     - xvfb
+    - git
     - python-pip
     - build-essential 
     - chrpath
