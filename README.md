@@ -45,7 +45,7 @@ We have it all prepared for you. Everything is preconfigured. You have to only c
 
 ### Standalone deployment
 
-_Note: The minimum hardware requirement is 14GB of RAM_
+_Note: The minimum hardware requirement is 16GB of RAM_
 
 1. download repository
 2. go to folder **provisioning/**
