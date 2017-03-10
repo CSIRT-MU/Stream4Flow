@@ -1,12 +1,21 @@
 ---
+#Kafka home directory
 kafka_dir: /opt/kafka
+#Download location of Kafka
 kafka_download_url: http://apache.miloslavbrada.cz/kafka/0.10.0.0/kafka_2.11-0.10.0.0.tgz
+#Name of Kafka directory when unarchived
 kafka_filename: kafka_2.11-0.10.0.0
+#Retention setting for the Kafka topic
 retention: 30000
+#Maximum java heap space for kafka in MB (Default 0.5 of total RAM)
 kafka_maximum_heap_space: "{{(ansible_memtotal_mb * 0.5)|int}}"
+#Maximum java heap space for kafka in MB (Default 0.25 of total RAM)
 kafka_minimum_heap_space: "{{(ansible_memtotal_mb * 0.25)|int}}"
 
 # Set the configuration file path for ipfixcol to load here:
+# Path to the location of ipfixcol scripts
 script_path: /usr/local/etc/ipfixcol/
+#Filename of ipfixcol script to run. Allowed values are: startup.xml.tcp and startup.xml.udp.
+#If you want to change the script later after deployment, set the IPFIXCOL_SCRIPT environment variable accordingly in /etc/default/ipfixcol
 script_filename: startup.xml.udp
 
