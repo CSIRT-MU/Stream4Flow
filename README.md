@@ -33,7 +33,7 @@ We have it all prepared for you. Everything is preconfigured. You have to only c
 - login: **Stream4Flow**
 
 #### Requirements
-- [Vagrant](https://www.vagrantup.com/) >= 1.8.0
+- [Vagrant](https://www.vagrantup.com/) >= 1.8.4
 - [ansible](https://www.ansible.com/) >= 2.1.0
 - python 2.7
 - Internet connection
@@ -54,7 +54,7 @@ _Note: The minimum hardware requirement is 14GB of RAM_
 
 ### Cluster deployment
 
-_Note:  machines in cluster must run Debian OS ekvivalent to Ubuntu 14.* (due to initd)_
+_Note:  machines in cluster must run Debian OS with systemd_
 
 1. download repository
 2. go to folder **provisioning/ansible**

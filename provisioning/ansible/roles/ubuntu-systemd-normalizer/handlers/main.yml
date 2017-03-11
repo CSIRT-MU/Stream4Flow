@@ -1,0 +1,5 @@
+---
+
+- name: Restart Service Instance 'default'
+  become: yes
+  command: systemctl restart tcpnormalizer@default.service

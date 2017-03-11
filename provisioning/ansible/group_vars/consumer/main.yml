@@ -1,0 +1,11 @@
+---
+# file: roles/web/defaults/main.yml
+
+# CSR subject
+cert_subj: "/C=CZ/ST=CzechRepublic/L=Brno/O=Stream4Flow/OU=Stream4Flow/CN={{ ansible_host }}"
+
+#Password for web2py administration through web interface
+web2py_passwd: password
+
+#Repository from where web is installled
+repository_url: "https://github.com/CSIRT-MU/Stream4Flow"

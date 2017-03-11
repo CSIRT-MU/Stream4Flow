@@ -1,5 +1,30 @@
+---
+- name: Clone git repository
+  git:
+     repo: "{{ repository_url }}"
+     dest: "{{ repository_tmp }}"
+     version: master
+
 - name: Copy routes.py to /var/www/web2py
-  copy: src=routes.py dest=/var/www/web2py/routes.py owner=www-data group=www-data
+  copy: remote_src=True src={{ repository_tmp }}/web-interface/routes.py dest=/var/www/web2py/routes.py owner=www-data group=www-data
 
 - name: Copy Stream4Flow web2py application
-  unarchive: src=Stream4Flow.tgz dest=/var/www/web2py/applications/ owner=www-data group=www-data creates=/var/www/web2py/applications/Stream4Flow
+  command: mv {{ repository_tmp }}/web-interface/Stream4Flow /var/www/web2py/applications/
+
+- name: Set application attributes
+  file:
+     path: /var/www/web2py/applications/Stream4Flow
+     owner: www-data
+     group: www-data
+     recurse: yes
+
+- name: Set hostname in appconfig.ini
+  lineinfile:
+           dest: /var/www/web2py/applications/Stream4Flow/private/appconfig.ini
+           regexp: "hostname"
+           line: "hostname    = {{ hostname }} "
+
+- name: Remove Stream4Flow repository
+  file:
+    path: "{{ repository_tmp }}"
+    state: absent

@@ -1,0 +1,14 @@
+[Unit]
+Description=Simple TCP Normalizer
+After=network.target remote-fs.target syslog.target
+
+[Service]
+ExecStart=/opt/simple_tcp_normalizer/bin/tcp_normalizer.sh --config /opt/simple_tcp_normalizer/config/%i.yml
+Type=simple
+User={{ normalizer_user }}
+Restart=on-failure
+SuccessExitStatus=143
+SyslogIdentifier=tcpnormalizer
+
+[Install]
+WantedBy=multi-user.target
