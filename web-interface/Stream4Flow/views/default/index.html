@@ -23,9 +23,9 @@
         <div class="widget-shadow" id="network-statistics">
             <h4 class="title">Current Network Statistics</h4>
             <!-- Status -->
-            <div class="chart-status" id="chart-sum-status"></div>
+            <div id="chart-sum-status" class="chart-status"></div>
             <!-- Main Chart -->
-            <div id="chart-sum" class="highchart" style="display: none; width: 100%; "></div>
+            <div id="chart-sum" class="zingchart"></div>
         </div>
     </div>
 
@@ -52,97 +52,14 @@
         </div>
     </div>
 </div>
+<style>
+/* Hack to see the whole watermark */
+#chart-sum-license-text {
+    padding-top: 7px !important;
+}
+</style>
 
 
-<!-- Highcharts Scripts -->
-<script>
-function generateSumChart(data_csv) {
-    // Elements ID
-    var chartId = '#chart-sum';
-    var chartIdStatus = chartId + '-status';
-
-    // Hide status element
-    $(chartIdStatus).hide();
-    // Show chart element
-    $(chartId).show();
-
-    // Replace null value by zero
-    data_csv = data_csv.replace(/null/g,'0')
-
-    // Generate a chart
-    $(chartId).highcharts({
-        chart: {
-            type: 'column',
-            marginLeft: 0,
-            marginRight: 0
-        },
-        title: {
-            text: ''
-        },
-        yAxis: {
-            type: 'logarithmic',
-            labels: {
-                enabled: false
-            },
-            title: {
-                text: null
-            }
-        },
-        data: {
-            csv: data_csv
-        },
-        plotOptions: {
-            column: {
-                dataLabels: {
-                    enabled: true
-                },
-                enableMouseTracking: false
-            }
-        },
-        exporting: {
-            enabled: false
-        }
-    });
-};
-
-function loadSumChart() {
-    // Elements ID
-    var chartId = '#chart-sum';
-    var chartIdStatus = chartId + '-status';
-
-    // Hide chart element
-    $(chartId).hide();
-    // Show status element
-    $(chartIdStatus).show();
-
-    // Set loading status
-    $(chartIdStatus).html(
-        '<i class="fa fa-refresh fa-spin fa-2x fa-fw"></i>\
-         <span>Loading...</span>'
-    )
-
-    // Get Elasticsearch data
-    $.ajax({
-        async: true,
-        type: 'GET',
-        url: '{{=URL('get_summary_statistics')}}',
-        success: function(raw) {
-            var response = jQuery.parseJSON(raw);
-            if (response.status == "Ok") {
-                // Replace separator ';' to new line to create a CSV string and generate a chart
-                generateSumChart(response.data.replace(/;/g,'\n') );
-            } else {
-                // Show error message
-                $(chartIdStatus).html(
-                    '<i class="fa fa-exclamation-circle fa-2x"></i>\
-                     <span>' + response.status + ': ' + response.data + '</span>'
-                )
-            }
-        }
-    });
-};
-
-// Load all charts when page loaded
-$(window).load(loadSumChart());
-</script>
-<!-- //Highcharts Scripts -->
+<!-- Load Custom Scripts -->
+<script src="{{=URL('static','js/custom/default.js')}}"></script>
+<!-- //Load Custom Scripts -->

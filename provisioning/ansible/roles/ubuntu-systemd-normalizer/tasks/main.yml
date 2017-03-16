@@ -1,0 +1,9 @@
+---
+
+- name: Include User Creation
+  include: users.yml
+  become: yes
+
+- name: Include Deploy
+  include: deploy.yml
+  become: yes

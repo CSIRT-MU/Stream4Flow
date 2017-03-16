@@ -4,7 +4,7 @@ A framework for the real-time IP flow data analysis built on Apache Spark Stream
 
 ## About Stream4Flow
 
-The basis of the Stream4Flow framework is formed by the IPFIXCol collector, Kafka messaging system, Apache Spark, and Elastic Stack. IPFIXCol enables incoming IP flow records to be transformed into the JSON format provided to the Kafka messaging system. The selection of Kafka was based on its scalability and partitioning possibilities, which provide sufficient data throughput. Apache Spark was selected as the data stream processing framework for its quick IP flow data throughput, available programming languages (Scala, Java, or Python) and MapReduce programming model. The analysis results are stored in Elastic Stack containing Logstash, Elasticsearch, and Kibana, which enable storage, querying, and visualizing the results. The Stream4Flow framework also contains the additional web interface in order to make administration easier and visualize complex results of the analysis.
+The basis of the Stream4Flow framework is formed by the IPFIXCol collector, Kafka messaging system, Apache Spark, and Elastic Stack. IPFIXCol is able to receive IP flows from majority of network Netflow/IPFIX probes (e.g. Flowmon Probe, softflowd, etc. ). IPFIXCol enables incoming IP flow records to be transformed into the JSON format provided to the Kafka messaging system. The selection of Kafka was based on its scalability and partitioning possibilities, which provide sufficient data throughput. Apache Spark was selected as the data stream processing framework for its quick IP flow data throughput, available programming languages (Scala, Java, or Python) and MapReduce programming model. The analysis results are stored in Elastic Stack containing Logstash, Elasticsearch, and Kibana, which enable storage, querying, and visualizing the results. The Stream4Flow framework also contains the additional web interface in order to make administration easier and visualize complex results of the analysis.
 
 ![architecture](https://stream4flow.ics.muni.cz/images/architecture.png)
 
@@ -33,7 +33,7 @@ We have it all prepared for you. Everything is preconfigured. You have to only c
 - login: **Stream4Flow**
 
 #### Requirements
-- [Vagrant](https://www.vagrantup.com/) >= 1.8.0
+- [Vagrant](https://www.vagrantup.com/) >= 1.8.4
 - [ansible](https://www.ansible.com/) >= 2.1.0
 - python 2.7
 - Internet connection
@@ -54,7 +54,7 @@ _Note: The minimum hardware requirement is 16GB of RAM_
 
 ### Cluster deployment
 
-_Note:  machines in cluster must run Debian OS_
+_Note:  machines in cluster must run Debian OS with systemd_
 
 1. download repository
 2. go to folder **provisioning/ansible**
@@ -82,18 +82,24 @@ _Note:  machines in cluster must run Debian OS_
 
 #### Send data to Stream4Flow
 
-Stream4Flow is compatible with any Netflow v5/9 or IPFIX network probe. To measure your first data for Stream4Flow, you can use [softflowd](https://code.google.com/archive/p/softflowd/) - Flow-based network traffic analyzer
+Stream4Flow is compatible with any Netflow v5/9 or IPFIX network probe. To measure your first data for Stream4Flow, you can use either commercial solution such as [Flowmon Probe](https://www.flowmon.com/en/products/flowmon/probe)  or an open-source alternative [softflowd](https://code.google.com/archive/p/softflowd/) 
 
 - Install softflowd
 `sudo apt-get install softflowd`
 
 - Start data export
     - Standalone deployment
-      `softflowd -i <your interface> -n 192.168.0.2:4739`
+      `softflowd -i <your interface> -D -n 192.168.0.2:4739`
     - Cluster deployment 
-      `softflowd -i <your interface> -n <IP address of producer>:4739`
+      `softflowd -i <your interface> -D -n <IP address of producer>:4739`
     - for more softflowd options see [man pages](http://manpages.ubuntu.com/manpages/precise/man8/softflowd.8.html)
     
 # Acknowledgement
    
 The SecurityCloud project is supported by the [Technology Agency of the Czech Republic](https://www.tacr.cz/) under No. TA04010062 Technology for processing and analysis of network data in big data concept.
+
+#### Project partners
+
+[CESNET, z. s. p. o.](https://www.cesnet.cz/?lang=en)
+
+[Flowmon Networks, a.s.](https://www.flowmon.com/)

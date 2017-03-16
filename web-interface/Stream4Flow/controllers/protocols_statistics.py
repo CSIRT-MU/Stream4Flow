@@ -7,13 +7,6 @@ from elasticsearch_dsl import Search, Q, A
 from global_functions import escape
 
 
-#----------------- Common Settings ------------------#
-
-
-# Do not save the session for the all applications in the "system" controller
-session.forget(response)
-
-
 #----------------- Main Functions -------------------#
 
 
@@ -66,10 +59,10 @@ def get_statistics():
 
         # Result Parsing into CSV in format: timestamp, tcp protocol value, udp protocol value, other protocols value
         data_raw = {}
-        data = "null, TCP protocol, UDP protocol, Other protocols;"  # CSV header
+        data = "Timestamp,TCP protocol,UDP protocol,Other protocols;"  # CSV header
         for interval in result.aggregations.by_time.buckets:
             timestamp = interval.key
-            timestamp_values = ['null'] * 3
+            timestamp_values = [''] * 3
             data_raw[timestamp] = timestamp_values
             for bucket in interval.by_type.buckets:
                 value = bucket.sum_of_flows.value
@@ -80,7 +73,7 @@ def get_statistics():
                 elif bucket.key == "other":
                     data_raw[timestamp][2] = str(int(value))
 
-            data += str(timestamp) + ", " + str(data_raw[timestamp][0]) + ", " + str(data_raw[timestamp][1]) + ", " + str(data_raw[timestamp][2]) + ";"
+            data += str(timestamp) + "," + str(data_raw[timestamp][0]) + "," + str(data_raw[timestamp][1]) + "," + str(data_raw[timestamp][2]) + ";"
 
         json_response = '{"status": "Ok", "data": "' + data + '"}'
         return json_response
