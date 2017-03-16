@@ -5,7 +5,7 @@
   when: "'sparkMaster' in group_names"
   environment:
     SPARK_MASTER_HOST: "{{ masterIP }}"
-    SPARK_LOCAL_IP: "{{ masterIP }}"
+    SPARK_LOCAL_HOST: "{{ masterIP }}"
 
 # Run Spark slaves
 - name: Run Spark Slaves
@@ -13,4 +13,4 @@
   when: "'sparkSlave' in group_names"
   environment:
     SPARK_MASTER_HOST: "{{ masterIP }}"
-    SPARK_LOCAL_IP: "{{ ansible_host }}"
+    SPARK_LOCAL_HOST: "{{ ansible_host }}"
