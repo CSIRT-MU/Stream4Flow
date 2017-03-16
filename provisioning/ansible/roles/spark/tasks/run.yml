@@ -4,7 +4,7 @@
   shell: "{{ dir_spark }}/spark-bin/sbin/start-master.sh"
   when: "'sparkMaster' in group_names"
   environment:
-    SPARK_MASTER_IP: "{{ masterIP }}"
+    SPARK_MASTER_HOST: "{{ masterIP }}"
     SPARK_LOCAL_IP: "{{ masterIP }}"
 
 # Run Spark slaves
@@ -12,5 +12,5 @@
   shell: "{{ dir_spark }}/spark-bin/sbin/start-slave.sh {{ spark_masterurl }} -m {{ spark_worker_memory }}M"
   when: "'sparkSlave' in group_names"
   environment:
-    SPARK_MASTER_IP: "{{ masterIP }}"
+    SPARK_MASTER_HOST: "{{ masterIP }}"
     SPARK_LOCAL_IP: "{{ ansible_host }}"
