@@ -16,7 +16,7 @@
 
 # Kibana files
 - name: Copy kibana.yml (kibana)
-  template: src=templates/kibana.yml.j2 dest=/opt/kibana/config/kibana.yml mode=0664
+  template: src=templates/kibana.yml.j2 dest=/etc/kibana/kibana.yml mode=0664
 
 - name: Restart Kibana
   service: name=kibana state=restarted enabled=yes
