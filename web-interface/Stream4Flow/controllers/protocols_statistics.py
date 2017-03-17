@@ -52,7 +52,7 @@ def get_statistics():
         qx = Q({'bool': {'must': elastic_bool}})
         s = Search(using=client, index='_all').query(qx)
         s.aggs.bucket('by_time', 'date_histogram', field='@timestamp', interval=aggregation)\
-              .bucket('by_type', 'terms', field='protocol.raw', size=0)\
+              .bucket('by_type', 'terms', field='protocol.keyword')\
               .bucket('sum_of_flows', 'sum', field=type)
         s.sort('@timestamp')
         result = s.execute()
