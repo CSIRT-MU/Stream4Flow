@@ -1,9 +1,9 @@
 ## DDOS detection
 
-###Description
+### Description
 A method for detection of reflected DoS/DDoS attacks based on an evaluation of the incoming/outgoing bytes volume ratio. he detection is aimed to protect DNS known servers in local network infrastructure (only DNS traffic on UDP is considered)
 
-###Usage:
+### Usage:
 - General 
 `detection_reflectddos.py -iz <input-zookeeper-hostname>:<input-zookeeper-port> -it <input-topic> -oh
     <output-hostname>:<output-port> -dns <comma separated list of DNS servers IP addresses>`

@@ -1,9 +1,9 @@
 ## DDOS detection
 
-###Description
+### Description
 A method for detection of DoS/DDoS attacks based on an evaluation of the incoming/outgoing packet volume ratio and its variance to the long-time ratio.
 
-###Usage:
+### Usage:
 - General 
 `detection_ddos.py -iz <input-zookeeper-hostname>:<input-zookeeper-port> -it <input-topic> -oh <output-hostname>:<output-port> -nf <regex for network range>`
 
