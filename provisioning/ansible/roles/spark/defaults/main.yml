@@ -10,7 +10,7 @@ dir_applications: /home/{{ user }}/applications/
 
 # download mirrors
 url_spark: "http://apache.miloslavbrada.cz/spark/spark-2.1.0/spark-2.1.0-bin-hadoop2.7.tgz"
-url_kafka_assembly: "https://repo1.maven.org/maven2/org/apache/spark/spark-streaming-kafka-assembly_2.11/1.6.3/spark-streaming-kafka-assembly_2.11-1.6.3.jar"
+url_kafka_assembly: "http://search.maven.org/remotecontent?filepath=org/apache/spark/spark-streaming-kafka-0-8-assembly_2.11/2.1.0/spark-streaming-kafka-0-8-assembly_2.11-2.1.0.jar"
 
 # Name of spark directory after inflating downloaded archive
 spark_inflated_dir_name: spark-2.1.0-bin-hadoop2.7
