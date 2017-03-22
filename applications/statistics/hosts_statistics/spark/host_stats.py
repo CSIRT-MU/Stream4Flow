@@ -38,7 +38,7 @@ Usage:
 
   To run this on the Stream4Flow, you need to receive flows by IPFIXCol and make them available via Kafka topic. Then
   you can run the example
-    $ ./run-application.sh ./host_statistics/host_statistics.py -iz producer:2181 -it ipfix.entry -oh consumer:20101 -net "10\.10\..+"
+    $ ./run-application.sh ./statistics/hosts_statistics/spark/host_stats.py -iz producer:2181 -it ipfix.entry -oh consumer:20101 -net "10\.10\..+"
 
 """
 

@@ -36,7 +36,7 @@ Usage:
 
   To run this on the Stream4Flow, you need to receive flows by IPFIXCol and make them available via Kafka topic. Then
   you can run the example
-    $ /home/spark/applications/run-application.sh  /home/spark/applications/detection/reflected_ddos/spark/detection_reflectddos.py
+    $ /home/spark/applications/run-application.sh  detection/reflected_ddos/spark/detection_reflectddos.py
     -iz producer:2181 -it ipfix.entry -oh consumer:20101 -dns "10.10.0.1,10.10.0.2
 
 """
