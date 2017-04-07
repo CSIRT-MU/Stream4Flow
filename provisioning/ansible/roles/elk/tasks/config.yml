@@ -54,8 +54,3 @@
     weekday: '*'
     month: '*'
 
-- name: Set host in curator.yml
-  lineinfile:
-           dest: /home/{{ user }}/.curator/curator.yml
-           regexp: "    - notSet"
-           line: "    - {{ ansible_host }}"
