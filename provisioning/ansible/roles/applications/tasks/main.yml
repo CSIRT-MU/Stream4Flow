@@ -1,6 +1,7 @@
 ---
 - name: Install dependencies
   include: dependencies.yml
+  become: yes
 
 - name: Install applications
   include: install.yml
