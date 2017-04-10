@@ -9,3 +9,6 @@ web2py_passwd: password
 
 #Repository from where web is installled
 repository_url: "https://github.com/CSIRT-MU/Stream4Flow"
+
+#Number of indices to keep, older indices will be deleted
+number_of_indices: 30

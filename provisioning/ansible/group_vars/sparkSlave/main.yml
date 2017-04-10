@@ -1,14 +1,13 @@
 ---
 # download mirrors
-url_spark: "http://apache.miloslavbrada.cz/spark/spark-1.6.2/spark-1.6.2-bin-hadoop2.6.tgz"
-url_kafka_assembly: "http://search.maven.org/remotecontent?filepath=org/apache/spark/spark-streaming-kafka-assembly_2.10/1.6.2/spark-streaming-kafka-assembly_2.10-1.6.2.jar"
+url_spark: "http://apache.miloslavbrada.cz/spark/spark-2.1.0/spark-2.1.0-bin-hadoop2.7.tgz"
+url_kafka_assembly: "http://search.maven.org/remotecontent?filepath=org/apache/spark/spark-streaming-kafka-0-8-assembly_2.11/2.1.0/spark-streaming-kafka-0-8-assembly_2.11-2.1.0.jar"
 
 # Name of spark directory after inflating downloaded archive
-spark_inflated_dir_name: spark-1.6.2-bin-hadoop2.6
+spark_inflated_dir_name: spark-2.1.0-bin-hadoop2.7
 
 # spark test settings
 spark_batch_size: 5000
 spark_worker_cores: 2
 # spark worker memory in MB
 spark_worker_memory: "{{ ansible_memtotal_mb }}"
-spark_masterurl: spark://{{ masterIP }}:7077

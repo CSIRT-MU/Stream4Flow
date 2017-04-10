@@ -1,10 +1,10 @@
 ## Protocol statistics
 
-###Description
+### Description
 
 Counts number of flows, packets, and bytes for TCP, UDP, and other flows received from Kafka every 10 seconds. Template application for a application developers.
 
-###Usage:
+### Usage:
 - General 
 ` protocols_statistics.py -iz <input-zookeeper-hostname>:<input-zookeeper-port> -it <input-topic> -oh <output-hostname>:<output-port>`
 

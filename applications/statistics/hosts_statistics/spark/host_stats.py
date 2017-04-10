@@ -38,7 +38,7 @@ Usage:
 
   To run this on the Stream4Flow, you need to receive flows by IPFIXCol and make them available via Kafka topic. Then
   you can run the example
-    $ ./run-application.sh ./host_statistics/host_statistics.py -iz producer:2181 -it ipfix.entry -oh consumer:20101 -net "10\.10\..+"
+    $ ./run-application.sh ./statistics/hosts_statistics/spark/host_stats.py -iz producer:2181 -it ipfix.entry -oh consumer:20101 -net "10\.10\..+"
 
 """
 
@@ -55,6 +55,36 @@ from termcolor import cprint  # Colors in the console output
 from pyspark import SparkContext  # Spark API
 from pyspark.streaming import StreamingContext  # Spark streaming API
 from pyspark.streaming.kafka import KafkaUtils  # Spark streaming Kafka receiver
+
+
+def map_tcp_flags(bitmap):
+    """
+    Maps text names of tcp flags to values in bitmap
+
+    :param bitmap: array[8]
+    :return: dictionary with keynames as names of the flags
+    """
+    result = dict()
+    result["FIN"] = bitmap[7]
+    result["SYN"] = bitmap[6]
+    result["RST"] = bitmap[5]
+    result["PSH"] = bitmap[4]
+    result["ACK"] = bitmap[3]
+    result["URG"] = bitmap[2]
+    result["ECE"] = bitmap[1]
+    result["CRW"] = bitmap[0]
+    return result
+
+
+def decimal_to_bitmap(decimal):
+    """
+    Trasfers decimal number into a 8bit bitmap
+
+    :param decimal: decimal number
+    :return: bitmap of 8bits
+    """
+    bitmap = map(int, list('{0:08b}'.format(decimal)))
+    return bitmap
 
 
 def send_data(data, output_host):
@@ -98,13 +128,15 @@ def process_results(json_rrd, output_host):
         "avg_flow_duration":<avg. duration of flows>,
         "dport_count":<number of distinct destination ports>,
         "peer_number":<number of distinct communication peers>
+        "tcp_flags":{"FIN":<number of FIN flags>, "SYN":<number of SYN flags>, ...}
         }
     }
 
     :param json_rrd: Map in following format  (src IP , (('total_stats', <# of flows>, <# of packets>, <# of bytes>),
                                                          ('peer_number', <# of peers>),
                                                          ('dport_count',  <# number of distinct ports>),
-                                                         ('avg_flow_duration',<average flow duration>)
+                                                         ('avg_flow_duration',<average flow duration>),
+                                                         ('tcp_flags',<bitarray of tcpflags>)
                                                         )
                                                )
     :param output_host: results receiver in the "hostname:port" format
@@ -114,6 +146,7 @@ def process_results(json_rrd, output_host):
     results = ""
 
     for ip, data in json_rrd.iteritems():
+
         total_dict = {}
         stats_dict = {"total": total_dict}
         result_dict = {"@type": "host_stats", "src_ipv4": ip, "stats": stats_dict}
@@ -132,10 +165,14 @@ def process_results(json_rrd, output_host):
         # Process average flow duration stats
         stats_dict["avg_flow_duration"] = data[statistics_position["average_flow_duration"]][avg_flow_duration_postion["avg_duration"]]
 
+        # Process tcp flags sums
+        if data[statistics_position["tcp_flags"]]:  # if exists statistics for a given host
+            stats_dict["tcp_flags"] = map_tcp_flags(data[statistics_position["tcp_flags"]][tcp_flags_position["tcp_flags_array"]])
+
         results += json.dumps(result_dict) + "\n"
 
     # Sent results to a given socket
-    #print(results)  # Controll print
+    # print(results)  # Controll print
     send_data(results, output_host)
 
 
@@ -154,56 +191,91 @@ def count_host_stats(flow_json):
                                                        ("ipfix.destinationTransportPort" in json_rdd.keys()) and
                                                        ("ipfix.flowStartMilliseconds" in json_rdd.keys()) and
                                                        ("ipfix.flowEndMilliseconds" in json_rdd.keys()) and
+                                                       ("ipfix.protocolIdentifier" in json_rdd.keys()) and
                                                        (re.match(local_ip_pattern, json_rdd["ipfix.sourceIPv4Address"]))
                                       )
 
+    # Set window and slide duration for flows analysis
+    flow_with_keys_windowed = flow_with_keys.window(window_duration, window_slide)
+
     # Compute basic hosts statistics - number of flows, packets, bytes sent by a host
-    flow_ip_total_stats = flow_with_keys.map(lambda json_rdd: (json_rdd["ipfix.sourceIPv4Address"], ("total_stats", 1, json_rdd["ipfix.packetDeltaCount"], json_rdd["ipfix.octetDeltaCount"])))\
-                                        .reduceByKey(lambda actual, update: (
-                                            actual[total_stats_position["type"]],
-                                            actual[total_stats_position["total_flows"]] + update[total_stats_position["total_flows"]],
-                                            actual[total_stats_position["total_packets"]] + update[total_stats_position["total_packets"]],
-                                            actual[total_stats_position["total_bytes"]] + update[total_stats_position["total_bytes"]]
-                                                    ))
+    flow_ip_total_stats_no_window = flow_with_keys.map(lambda json_rdd: (json_rdd["ipfix.sourceIPv4Address"], ("total_stats", 1, json_rdd["ipfix.packetDeltaCount"], json_rdd["ipfix.octetDeltaCount"])))\
+                                                  .reduceByKey(lambda actual, update: (
+                                                      actual[total_stats_position["type"]],
+                                                      actual[total_stats_position["total_flows"]] + update[total_stats_position["total_flows"]],
+                                                      actual[total_stats_position["total_packets"]] + update[total_stats_position["total_packets"]],
+                                                      actual[total_stats_position["total_bytes"]] + update[total_stats_position["total_bytes"]]
+                                                  ))
+
+    flow_ip_total_stats = flow_ip_total_stats_no_window.window(window_duration, window_slide)\
+                                                       .reduceByKey(lambda actual, update: (
+                                                            actual[total_stats_position["type"]],
+                                                            actual[total_stats_position["total_flows"]] + update[total_stats_position["total_flows"]],
+                                                            actual[total_stats_position["total_packets"]] + update[total_stats_position["total_packets"]],
+                                                            actual[total_stats_position["total_bytes"]] + update[total_stats_position["total_bytes"]]
+                                                       ))
 
     # Compute a number of distinct communication peers with a host
-    flow_communicating_pairs = flow_with_keys.map(lambda json_rdd: ((json_rdd["ipfix.sourceIPv4Address"], json_rdd["ipfix.sourceIPv4Address"]+"-"+json_rdd["ipfix.destinationIPv4Address"]), 1))\
-                                             .reduceByKey(lambda actual, update: actual+update)\
-                                             .map(lambda json_rdd: (json_rdd[0][0], ("peer_number", 1)))\
-                                             .reduceByKey(lambda actual, update: (
-                                                      actual[0],
-                                                      actual[1] + update[1]))
+    flow_communicating_pairs_no_window = flow_with_keys.map(lambda json_rdd: ((json_rdd["ipfix.sourceIPv4Address"], json_rdd["ipfix.sourceIPv4Address"]+"-"+json_rdd["ipfix.destinationIPv4Address"]), 1))\
+                                                       .reduceByKey(lambda actual, update: actual)
+
+    flow_communicating_pairs = flow_communicating_pairs_no_window.window(window_duration, window_slide) \
+                                                                 .reduceByKey(lambda actual, update: actual + update)\
+                                                                 .map(lambda json_rdd: (json_rdd[0][0], ("peer_number", 1)))\
+                                                                 .reduceByKey(lambda actual, update: (
+                                                                    actual[0],
+                                                                    actual[1] + update[1]))
 
     # Compute a number of distinct destination ports for each host
-    flow_dst_port_count = flow_with_keys.map(lambda json_rdd: ((json_rdd["ipfix.sourceIPv4Address"], json_rdd["ipfix.sourceIPv4Address"]+"-"+str(json_rdd["ipfix.destinationTransportPort"])), 1))\
-                                        .reduceByKey(lambda actual, update: actual+update)\
-                                        .map(lambda json_rdd: (json_rdd[0][0], ("dport_count", 1)))\
-                                        .reduceByKey(lambda actual, update: (
-                                               actual[0],
-                                               actual[1] + update[1]))
+    flow_dst_port_count_no_window = flow_with_keys_windowed.map(lambda json_rdd: ((json_rdd["ipfix.sourceIPv4Address"], json_rdd["ipfix.sourceIPv4Address"]+"-"+str(json_rdd["ipfix.destinationTransportPort"])), 1))\
+                                                           .reduceByKey(lambda actual, update: actual)
+    flow_dst_port_count = flow_dst_port_count_no_window.window(window_duration, window_slide) \
+                                                       .reduceByKey(lambda actual, update: actual)\
+                                                       .map(lambda json_rdd: (json_rdd[0][0], ("dport_count", 1)))\
+                                                       .reduceByKey(lambda actual, update: (
+                                                                    actual[0],
+                                                                    actual[1] + update[1]))
 
     # Compute an average duration of a flow in seconds for each host
-    flow_average_duration = flow_with_keys.map(lambda json_rdd: (json_rdd["ipfix.sourceIPv4Address"], (1, (json_rdd["ipfix.flowEndMilliseconds"]-json_rdd["ipfix.flowStartMilliseconds"]))))\
-                                          .reduceByKey(lambda actual, update: (
+    flow_average_duration = flow_with_keys_windowed.map(lambda json_rdd: (json_rdd["ipfix.sourceIPv4Address"], (1, (json_rdd["ipfix.flowEndMilliseconds"]-json_rdd["ipfix.flowStartMilliseconds"]))))\
+                                                   .reduceByKey(lambda actual, update: (
                                                         actual[0] + update[0],  # number of flow
                                                         actual[1] + update[1]  # sum of flow duration
                                                         ))\
-                                          .map(lambda json_rdd: (json_rdd[0], ("avg_flow_duration", (json_rdd[1][1]/float(1000))/float(json_rdd[1][0]))))  # compute the average
+                                                   .map(lambda json_rdd: (json_rdd[0], ("avg_flow_duration", (json_rdd[1][1]/float(1000))/float(json_rdd[1][0]))))  # compute the average
+
+    # Compute TCP Flags
+    # Filter out TCP traffic
+    flow_tcp = flow_with_keys.filter(lambda json_rdd: (json_rdd["ipfix.protocolIdentifier"] == 6))
+    # Compute flags statistics
+    flow_tcp_flags_no_window = flow_tcp.map(lambda json_rdd: (json_rdd["ipfix.sourceIPv4Address"], ("tcp_flags", decimal_to_bitmap(json_rdd["ipfix.tcpControlBits"]))))\
+                                       .reduceByKey(lambda actual, update: (
+                                            actual[0],
+                                            [x + y for x, y in zip(actual[1], update[1])]
+                                       ))
+
+    flow_tcp_flags = flow_tcp_flags_no_window.window(window_duration, window_slide)\
+                                             .reduceByKey(lambda actual, update: (
+                                                actual[0],
+                                                [x + y for x, y in zip(actual[1], update[1])]
+                                             ))
 
     # Union the DStreams to be able to process all in one foreachRDD
     # The structure of DSstream is
-    # (src IP, (((('total_stats', <# of flows>, <# of packets>, <# of bytes>), ('peer_number', <# of peers>)),
+    # (src IP, ((((('total_stats', <# of flows>, <# of packets>, <# of bytes>), ('peer_number', <# of peers>)),
     # ('dport_count', <# number of distinct ports>)),
-    # ('avg_flow_duration', <average flow duration>))
+    # ('avg_flow_duration', <average flow duration>)),
+    # ('tcp_flags',<bitarray of tcpflags>))
     # )
     union_stream = flow_ip_total_stats.fullOuterJoin(flow_communicating_pairs)\
-                                    .fullOuterJoin(flow_dst_port_count)\
-                                    .fullOuterJoin(flow_average_duration)
+                                      .fullOuterJoin(flow_dst_port_count)\
+                                      .fullOuterJoin(flow_average_duration)\
+                                      .fullOuterJoin(flow_tcp_flags)
 
     # Transform union_stream to parsable Dstream
     # (src IP , (('total_stats', <# of flows>, <# of packets>, <# of bytes>), ('peer_number', <# of peers>),
-    # ('dport_count',  <# number of distinct ports>), ('avg_flow_duration',<average flow duration>)))
-    parsable_union_stream = union_stream.map(lambda json_rdd: (json_rdd[0], (json_rdd[1][0][0][0], json_rdd[1][0][0][1], json_rdd[1][0][1], json_rdd[1][1])))\
+    # ('dport_count',  <# number of distinct ports>), ('avg_flow_duration',<average flow duration>),("tcp_flags",<bitarray of tcpflags>)))
+    parsable_union_stream = union_stream.map(lambda json_rdd: (json_rdd[0], (json_rdd[1][0][0][0][0], json_rdd[1][0][0][0][1], json_rdd[1][0][0][1], json_rdd[1][0][1], json_rdd[1][1])))
 
     return parsable_union_stream
 
@@ -232,7 +304,7 @@ if __name__ == "__main__":
 
     # Position of statistics in DStream.
     # Overall structure of a record
-    statistics_position = {"total_stats": 0, "peer_number": 1, "dport_count": 2, "average_flow_duration": 3}
+    statistics_position = {"total_stats": 0, "peer_number": 1, "dport_count": 2, "average_flow_duration": 3, "tcp_flags": 4}
     # Structure of basic characteristics
     total_stats_position = {"type": 0, "total_flows": 1, "total_packets": 2, "total_bytes": 3}
     # Structure of peer number count characteristics
@@ -241,6 +313,8 @@ if __name__ == "__main__":
     dport_count_position = {"type": 0, "dport_number": 1}
     # Structure of average flow duration characteristics
     avg_flow_duration_postion = {"type": 0, "avg_duration": 1}
+    # Structure of protocol characteristics
+    tcp_flags_position = {"type": 0, "tcp_flags_array": 1}
 
     # Initialize input DStream of flows from specified Zookeeper server and Kafka topic
     input_stream = KafkaUtils.createStream(ssc, args.input_zookeeper, "spark-consumer-" + application_name, {args.input_topic: kafka_partitions})
@@ -248,11 +322,8 @@ if __name__ == "__main__":
     # Parse flows in the JSON format
     input_stream_json = input_stream.map(lambda x: json.loads(x[1]))
 
-    # Set window and slide duration for flows analysis
-    input_stream_json_windowed = input_stream_json.window(window_duration, window_slide)
-
     # Process data to the defined function.
-    host_statistics = count_host_stats(input_stream_json_windowed)
+    host_statistics = count_host_stats(input_stream_json)
 
     # Process computed statistics and send them to the specified host
     host_statistics.foreachRDD(lambda rdd: process_results(rdd.collectAsMap(), args.output_host))

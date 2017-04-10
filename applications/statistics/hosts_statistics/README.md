@@ -1,13 +1,14 @@
 ## Host statistics
 
-###Description
-An application for computing statistics for all hosts in network. Computed statistics for each host each window are following:
+### Description
+An application for computing statistics for all hosts in network. Computed statistics for each host in each window are following:
 - **Basic Characteristics**: sum of flows, packets and bytes
 - **Port Statistics**: number of distinct destination ports
 - **Communication Peers**: number of distinct communication peers
-- **Average Flow Duration**: average duration of flows in a given window
+- **Average Flow Duration**: average duration of flows
+- **TCP Flags Distribution**: number of each individual TCP flags 
 
-###Usage:
+### Usage:
 - General 
 `  detection_ddos.py -iz <input-zookeeper-hostname>:<input-zookeeper-port> -it <input-topic> -oh <output-hostname>:<output-port> -net <regex for network range>`
 
