@@ -1,4 +1,8 @@
 ---
+- name: Install dependencies
+  include: dependencies.yml
+
 - name: Install applications
   include: install.yml
   become: yes
+  when: "'sparkMaster' in group_names"

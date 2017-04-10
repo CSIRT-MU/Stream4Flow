@@ -1,4 +1,4 @@
 repository_url: "https://github.com/CSIRT-MU/Stream4Flow"
 repository_tmp: "/tmp/Stream4Flow"
-user: spark
+
 dir_applications: /home/{{ user }}/applications/
