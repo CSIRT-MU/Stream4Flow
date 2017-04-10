@@ -1,0 +1,4 @@
+---
+- hosts: [sparkMaster,Producer]
+  role:
+  - integration-test

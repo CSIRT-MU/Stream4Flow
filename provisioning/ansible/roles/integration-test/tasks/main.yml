@@ -1,0 +1,15 @@
+---
+- name: Start application on sparkMaster
+  command: ./run-application.sh ./protocols-statistics/protocols_statistics.py -iz producer:2181 -it ipfix.entry -oh consumer:20101
+  delegate_to: {{ sparkMaster_ip }}
+
+
+- name: Copy test Data to producer
+  copy: src=test-data.ipfix dest=/tmp/testData
+  delegate_to: {{ producer_ip }}
+
+- name: Send data with ipfixsend
+  command: ipfixsend -i test-data.ipfix -d {{ producer_ip }} -p {{ producer_port }}
+  delegate_to: {{ producer_ip }}
+
+- name: Query elasticsearch for data
