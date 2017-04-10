@@ -1,0 +1,4 @@
+repository_url: "https://github.com/CSIRT-MU/Stream4Flow"
+repository_tmp: "/tmp/Stream4Flow"
+
+dir_applications: /home/{{ user }}/applications/
