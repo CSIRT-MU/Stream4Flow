@@ -1,7 +1,7 @@
 ---
 
 - name: Copy query script
-  copy: src="query_for_data.py" dest="/tmp/query_for_data.py"
+  template: src="query_for_data.py" dest="/tmp/query_for_data.py"
 
 - name: Wait for sending
   wait_for:

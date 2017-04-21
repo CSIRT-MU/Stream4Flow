@@ -1,4 +1,3 @@
 ---
-producer_ip: 192.168.0.2
-sparkMaster_ip: 192.168.0.100
-producer_port: 4739
+consumer_ip: 192.168.0.3
+consumer_port: 9200

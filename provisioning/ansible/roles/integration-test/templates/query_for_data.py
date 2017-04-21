@@ -12,7 +12,7 @@ def contains(set):
 
 
 def getdata():
-    url = urlopen('http://192.168.0.3:9200/spark-*/_search').read()
+    url = urlopen('http://{{ consumer_ip }}:{{ consumer_port }}/spark-*/_search').read()
     url = json.loads(url)
     a = []
     for i in range(0, len(url.get('hits').get('hits'))):
