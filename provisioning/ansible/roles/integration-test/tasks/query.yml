@@ -1,0 +1,17 @@
+---
+
+- name: Copy query script
+  copy: src="query_for_data.py" dest="/tmp/query_for_data.py"
+
+- name: Wait for sending
+  wait_for:
+    host: consumer
+    state: present
+    delay: 10
+    timeout: 15
+
+- name: Run query test
+  command: python /tmp/query_for_data.py
+  register: out
+
+- debug: var=out.stdout

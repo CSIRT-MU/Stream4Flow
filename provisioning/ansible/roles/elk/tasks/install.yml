@@ -7,7 +7,7 @@
 - name: add repository
   apt_repository: repo='deb https://artifacts.elastic.co/packages/5.x/apt stable main'
 # Install ELK
-- name: install elastic
+- name: install elasticsearch
   apt: name=elasticsearch state=installed
 - name: install kibana
   apt: name=kibana state=installed
