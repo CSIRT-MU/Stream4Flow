@@ -152,3 +152,7 @@
     padding: 1em 1em 0em 1em;
     font-size: 15px;
 }
+/* Datetime */
+#datetime-beginning, #datetime-end {
+    width: 140px;
+}
