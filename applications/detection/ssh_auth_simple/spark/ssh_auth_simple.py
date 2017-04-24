@@ -29,10 +29,10 @@ Detects brute-force attacks on the SSH authentication using basic thresholds for
 duration within given time interval.
 
 Default values are:
-    * min amount of packets: 12
-    * max amount of packets: 19
-    * min amount of bytes: 1973
-    * max amount of bytes: 2860
+    * min amount of packets: 10
+    * max amount of packets: 20
+    * min amount of bytes: 1800
+    * max amount of bytes: 3000
     * max flow duration: 12000
     * min amount of flows: 10
     * windows size: 300
@@ -251,13 +251,13 @@ if __name__ == "__main__":
 
     # Define Arguments for detection
     parser.add_argument("-minp", "--min_packets", help="min amount of packets which passes filter",
-                        type=int, required=False, default=12)
+                        type=int, required=False, default=10)
     parser.add_argument("-maxp", "--max_packets", help="max amount of packets which passes filter",
-                        type=int, required=False, default=19)
+                        type=int, required=False, default=20)
     parser.add_argument("-minb", "--min_bytes", help="min amount of bytes which passes filter",
-                        type=int, required=False, default=1973)
+                        type=int, required=False, default=1800)
     parser.add_argument("-maxb", "--max_bytes", help="max amount of bytes which passes filter",
-                        type=int, required=False, default=2860)
+                        type=int, required=False, default=3000)
     parser.add_argument("-d", "--max_duration", help="max flow duration which passes filter (in milliseconds)",
                         type=int, required=False, default=12000)
     parser.add_argument("-ft", "--flows_threshold", help="min amount of flows which we consider being an attack",
