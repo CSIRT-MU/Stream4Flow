@@ -93,6 +93,7 @@ function generateHistogram(dataJson) {
             }
         },
         scaleY:{
+            minValue: 1,
             progression: "log",
             logBase: 10,
             minorTicks: 1,
