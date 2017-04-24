@@ -84,9 +84,9 @@ def get_histogram_statistics():
                 # Append array of timestamp and number of flows
                 detections[source.key].append([timestamp, source.sum_of_flows.value])
 
+        # Return data as JSON
         response = {"status" : "Ok", "data" : detections}
 
-        #json_response = '{"status": "Ok", "data": "' + json.dumps(detections) + '"}'
         return json.dumps(response)
 
     except Exception as e:
@@ -133,7 +133,7 @@ def get_top_n_statistics():
         # Prepare query
         qx = Q({'bool': {'must': elastic_bool}})
 
-        # Get ordered data
+        # Get ordered data (with maximum size aggregation)
         search = Search(using=client, index='_all').query(qx)
         search.aggs.bucket('by_src', 'terms', field='src_ip.raw', size=2147483647)\
               .bucket('by_dst', 'terms', field='dst_ip.raw', size=2147483647)\
@@ -199,6 +199,7 @@ def get_attacks_list():
             elastic_bool.append({'bool': {'should': elastic_should}})
         qx = Q({'bool': {'must': elastic_bool}})
 
+        # Search with maximum size aggregations
         search = Search(using=client, index='_all').query(qx)
         search.aggs.bucket('by_src', 'terms', field='src_ip.raw', size=2147483647) \
               .bucket('by_dst', 'terms', field='dst_ip.raw', size=2147483647) \
