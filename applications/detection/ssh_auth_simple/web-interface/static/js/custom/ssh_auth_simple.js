@@ -114,7 +114,7 @@ function generateHistogram(dataJson) {
                 fontColor:'#444444'
             },
             label:{
-                text: 'Count',
+                text: 'Flows',
                 fontSize: 12,
                 fontColor: '#444444'
             },
