@@ -1,0 +1,148 @@
+{{extend 'layout.html'}}
+
+<script>
+    // Set correct menu view.
+    $('#menu-detections').addClass('active');
+    $('#menu-ssh-auth-simple').addClass('active');
+    // Include specific CSS
+    $('head').append("<link href=\"{{=URL('static','css/ssh_auth_simple.css')}}\" rel=\"stylesheet\">");
+</script>
+
+<h3 class="title1">Detection of SSH Authentication Attacks (Simple)</h3>
+
+{{if not session.logged:}}
+<div class="alert alert-danger" role="alert">
+   <strong>Error: </strong>You must be logged to view this page!
+</div>
+{{else:}}
+
+{{if ('alert_type' in globals()) and alert_type != "":}}
+<div class="alert alert-{{=alert_type}}" role="alert">
+    <strong>
+        {{if alert_type == "danger":}}Error:
+        {{elif alert_type == "success":}}Success:
+        {{elif alert_type == "info":}}Info:
+        {{elif alert_type == "warning":}}Warning:
+        {{pass}}
+    </strong>{{=alert_message}}
+</div>
+{{pass}}
+
+<!-- Options Form -->
+<div class="forms inline-form widget-shadow">
+    <div class="form-title">
+	    <h4>Options</h4>
+    </div>
+    <div class="form-body">
+        <div data-example-id="simple-form-inline">
+            <form class="form-inline">
+                <div class="form-group">
+                    <label for="interval">Interval:</label>
+                    <select name="interval" id="interval" class="form-control" placeholder="interval" onchange="setInterval(this.value)">
+                        <option value="1" selected>Last 1 hour</option>
+                        <option value="6">Last 6 hours</option>
+                        <option value="12">Last 12 hours</option>
+                        <option value="24">Last 24 hours</option>
+                        <option value="custom">Custom</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="datetime-beginning">From:</label>
+                    <input type="text" name="beginning" id="datetime-beginning" class="datetimepicker form-control">
+                </div>
+                <div class="form-group">
+                    <label for="datetime-end">To:</label>
+                    <input type="text" name="end" id="datetime-end" class="datetimepicker form-control">
+                </div>
+                <div class="form-group">
+                    <label for="aggregation">Aggregation:</label>
+                    <select name="aggregation" id="aggregation" class="form-control" placeholder="aggregation">
+                        <option value="10s">10 seconds</option>
+                        <option value="30s" selected>30 seconds</option>
+                        <option value="1m">1 minute</option>
+                        <option value="5m">5 minutes</option>
+                        <option value="30m">30 minutes</option>
+                        <option value="1h">1 hour</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="filter">IP Filter:</label>
+                    <input type="text" name="filter" id="filter" class="form-control">
+                </div>
+                <button type="button" class="btn btn-default" onclick="loadAllCharts();false;">Set options</button>
+            </form>
+        </div>
+	</div>
+</div>
+<!-- //Options Form -->
+
+<!-- Detections Histogram -->
+<div class="panel-info widget-shadow general chart-ssh-simple-histogram">
+    <h4 class="title2">Attacks Histogram</h4>
+    <!-- Status -->
+    <div class="chart-status" id="chart-ssh-simple-histogram-status"></div>
+    <!-- Main Chart -->
+    <div id="chart-ssh-simple-histogram" class="zingchart"></div>
+</div>
+<!-- //Detections Histogram -->
+
+
+<!-- Top N -->
+<div class="panel-info widget-shadow general chart-ssh-simple-top">
+    <h4 class="title2">Top 10 Statistics</h4>
+    <!-- Sources -->
+    <div class="col-md-6">
+        <!-- Status -->
+        <div class="chart-status" id="chart-ssh-simple-top-sources-status"></div>
+        <!-- Main Chart -->
+        <div id="chart-ssh-simple-top-sources" class="zingchart"></div>
+    </div>
+    <!-- //Sources -->
+    <!-- Victims -->
+    <div class="col-md-6">
+        <!-- Status -->
+        <div class="chart-status" id="chart-ssh-simple-top-victims-status"></div>
+        <!-- Main Chart -->
+        <div id="chart-ssh-simple-top-victims" class="zingchart"></div>
+    </div>
+    <!-- //Victims -->
+    <div class="clearfix"> </div>
+</div>
+<!-- //Top N -->
+
+
+<!-- Table -->
+<div class="panel-info widget-shadow general table-ssh-simple">
+    <h4 class="title2">Attacks Details</h4>
+    <!-- Status -->
+    <div class="table-status" id="table-ssh-simple-status"></div>
+    <!-- Main Table -->
+    <div id="table-ssh-simple" style="display: none;">
+        <table data-toggle="table" data-striped="true" data-pagination="true" data-search="true" data-page-size="10" data-page-list="[10, 20, 40]" data-search-text="">
+            <thead>
+                <tr>
+                    <th data-sortable="true" data-field="timestamp">Timestamp</th>
+                    <th data-sortable="true" data-field="src_ip">Source host</th>
+                    <th data-sortable="true" data-field="dst_ip">Destination host</th>
+                    <th data-sortable="true" data-field="flows">Flows</th>
+                    <th data-sortable="true" data-field="duration">Duration</th>
+                </tr>
+            </thead>
+        </table>
+    </div>
+</div>
+<!-- //Table -->
+
+
+<!-- Custom Scripts -->
+<script src="{{=URL('static','js/custom/datetime_interval.js')}}"></script>
+<script src="{{=URL('static','js/custom/ssh_auth_simple.js')}}"></script>
+<style>
+/* Hack to see the whole watermark */
+#chart-flows-license-text, #chart-packets-license-text, #chart-bytes-license-text {
+    margin-left: -20px !important;
+}
+</style>
+<!-- //Custom Scripts -->
+
+{{pass}}
