@@ -68,7 +68,7 @@ def get_histogram_statistics():
 
         # Get histogram data
         search_histogram = Search(using=client, index='_all').query(qx)
-        search_histogram.aggs.bucket('by_time', 'date_histogram', field='timestamp', interval=aggregation) \
+        search_histogram.aggs.bucket('by_time', 'date_histogram', field='@timestamp', interval=aggregation) \
             .bucket('by_src', 'terms', field='src_ip.raw', size=2147483647) \
             .bucket('sum_of_flows', 'sum', field='flows_increment')
         histogram = search_histogram.execute()
