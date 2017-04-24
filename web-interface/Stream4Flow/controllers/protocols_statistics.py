@@ -31,6 +31,11 @@ def get_statistics():
     :return: JSON with status "ok" or "error" and requested data.
     """
 
+    # Check login
+    if not session.logged:
+        json_response = '{"status": "Error", "data": "You must be logged!"}'
+        return json_response
+
     # Check mandatory inputs
     if not (request.get_vars.beginning and request.get_vars.end and request.get_vars.aggregation and request.get_vars.type):
         json_response = '{"status": "Error", "data": "Some mandatory argument is missing!"}'
