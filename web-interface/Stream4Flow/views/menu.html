@@ -4,9 +4,21 @@
         <a href="/index" id="menu-dashboard"><i class="fa fa-home nav_icon"></i>Dashboard</a>
     </li>
 
-    <!-- Protocols Statistics -->
-    <li>
-        <a href="/protocols-statistics/protocols-statistics" id="menu-protocols-statistics"><i class="fa fa-line-chart nav_icon"></i>Protocols Statistics</a>
+    <!-- Statistics -->
+    <li id="menu-statistics">
+        <a href="#"><i class="fa fa-line-chart nav_icon"></i>Statistics<span class="fa arrow"></span></a>
+        <ul class="nav nav-second-level collapse">
+            {{include 'menu/protocols_statistics.html'}}
+            <!-- include statistics -->
+        </ul>
+    </li>
+
+    <!-- Detections -->
+    <li id="menu-detections">
+        <a href="#"><i class="fa fa-shield nav_icon"></i>Detections<span class="fa arrow"></span></a>
+        <ul class="nav nav-second-level collapse">
+            <!-- include detections -->
+        </ul>
     </li>
 
     <!-- System -->
