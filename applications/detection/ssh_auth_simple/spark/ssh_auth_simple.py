@@ -32,7 +32,7 @@ Default values are:
     * min amount of packets: 10
     * max amount of packets: 20
     * min amount of bytes: 1800
-    * max amount of bytes: 3000
+    * max amount of bytes: 5000
     * max flow duration: 12000
     * min amount of flows: 10
     * windows size: 300
@@ -257,7 +257,7 @@ if __name__ == "__main__":
     parser.add_argument("-minb", "--min_bytes", help="min amount of bytes which passes filter",
                         type=int, required=False, default=1800)
     parser.add_argument("-maxb", "--max_bytes", help="max amount of bytes which passes filter",
-                        type=int, required=False, default=3000)
+                        type=int, required=False, default=5000)
     parser.add_argument("-d", "--max_duration", help="max flow duration which passes filter (in milliseconds)",
                         type=int, required=False, default=12000)
     parser.add_argument("-ft", "--flows_threshold", help="min amount of flows which we consider being an attack",
