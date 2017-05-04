@@ -11,3 +11,8 @@ spark_batch_size: 5000
 spark_worker_cores: 2
 # spark worker memory in MB
 spark_worker_memory: "{{ ansible_memtotal_mb }}"
+spark_masterurl: spark://{{ masterIP }}:7077
+
+repository_url: "https://github.com/CSIRT-MU/Stream4Flow"
+repository_tmp: "/tmp/Stream4Flow"
+dir_applications: /home/{{ user }}/applications/

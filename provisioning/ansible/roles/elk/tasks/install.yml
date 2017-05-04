@@ -7,9 +7,17 @@
 - name: add repository
   apt_repository: repo='deb https://artifacts.elastic.co/packages/5.x/apt stable main'
 # Install ELK
-- name: install elasticsearch
-  apt: name=elasticsearch state=installed
-- name: install kibana
-  apt: name=kibana state=installed
-- name: install logstash
-  apt: name=logstash state=installed
+- name: install elk and dependencies
+  apt: name={{ item }} state=installed
+  with_items:
+  - elasticsearch
+  - kibana
+  - logstash
+  - python-pip
+
+- name: Install elasticsearch-curator
+  pip: "name={{ item }}"
+  with_items:
+  - elasticsearch-curator
+  - argparse
+

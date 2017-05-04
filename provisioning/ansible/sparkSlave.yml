@@ -2,4 +2,4 @@
 - hosts: sparkSlave
   roles:
     - spark
-    - example-application
+    - applications

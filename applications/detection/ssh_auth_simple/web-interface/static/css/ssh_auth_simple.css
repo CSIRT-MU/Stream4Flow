@@ -1,0 +1,35 @@
+/* SSH Auth Simple */
+.chart-ssh-simple-histogram .chart-status, .chart-ssh-simple-histogram .zingchart {
+    height: 420px;
+}
+#filter {
+    width: 120px;
+}
+.chart-ssh-simple-top .chart-status, .chart-ssh-simple-top .zingchart {
+    height: 300px;
+}
+#table-ssh-simple{
+    margin-top: -40px;
+    padding-left: 15px;
+    padding-right: 15px;
+}
+.table-status {
+    text-align: center;
+    color: #777777;
+    width: 100%;
+}
+.table-status span {
+    position: relative;
+    top: -4px;
+    font-size: 20px;
+    font-weight: 600;
+    margin-left: 0.5em;
+}
+/* Hack to see the whole watermark */
+#chart-ssh-simple-histogram-license-text {
+    padding-top: 20px !important;
+    margin-left: -20px !important;
+}
+#chart-ssh-simple-histogram-top {
+    height: 420px !important;
+}

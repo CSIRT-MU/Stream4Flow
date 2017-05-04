@@ -33,3 +33,24 @@
 
 - name: Restart Logstash
   service: name=logstash state=restarted enabled=yes
+
+# Curator files
+- name: Make configuration directory
+  file: path=/home/{{ user }}/.curator state=directory mode=0755
+
+- name: Copy curator.yml
+  template: src=templates/curator.yml dest=/home/{{ user }}/.curator mode=0755
+
+- name: Copy curatorAction.yml
+  template: src=templates/curatorAction.yml dest=/home/{{ user }}/.curator mode=0755
+
+- name: Configure cron jobs for Elasticsearch Curator.
+  cron:
+    name: Delete indices older than 30 days
+    job:  " /usr/local/bin/curator --config /home/{{ user }}/.curator/curator.yml /home/{{ user }}/.curator/curatorAction.yml > /var/log/curator.log 2>&1 "
+    minute: 0
+    hour: 1
+    day: '*'
+    weekday: '*'
+    month: '*'
+

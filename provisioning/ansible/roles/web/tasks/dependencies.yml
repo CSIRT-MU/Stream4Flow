@@ -13,13 +13,12 @@
     - libapache2-mod-wsgi
     - xvfb
     - git
-    - python-pip
-    - build-essential 
+    - build-essential
     - chrpath
     - libssl-dev
     - libxft-dev
     - unzip
-    - python-pip
+
 
 # Install python modules
 - name: Install python modules

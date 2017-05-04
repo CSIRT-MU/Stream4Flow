@@ -1,0 +1,13 @@
+---
+# Install pip
+- name: Install pip and git
+  apt: name={{ item }} state=latest update_cache=yes
+  with_items:
+  - python-pip
+  - git
+# Instal ujson and termcolor modules for application
+- name: Install python modules
+  pip: name={{item}} executable=pip
+  with_items:
+  - ujson
+  - termcolor
