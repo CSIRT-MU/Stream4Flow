@@ -22,8 +22,8 @@ def getdata():
 
 if __name__ == "__main__":
     if contains(getdata()):
-        print "Number of flows in elasticsearch is as expected"
+        print("Number of flows in elasticsearch is as expected")
         exit(0)
     else:
-        print "Something went wrong "
+        print("Something went wrong - data are not as expected")
         exit(1)

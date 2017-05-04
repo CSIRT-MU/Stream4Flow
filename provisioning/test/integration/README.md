@@ -1,4 +1,5 @@
-#Integration test for Stream4Flow
+# Integration test for Stream4Flow
+
 This test is designed for determining the correctness of cluster deployment.
 The test consists of multiple stages.
 - Run protocol statistics application on sparkMaster.

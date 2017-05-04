@@ -1,0 +1,12 @@
+[producer] 
+producer ansible_host=192.168.0.2 
+
+[consumer] 
+consumer ansible_host=192.168.0.3 
+
+[sparkMaster] 
+sparkMaster ansible_host=192.168.0.100 
+
+[sparkSlave] 
+sparkSlave101 ansible_host=192.168.0.101
+sparkSlave102 ansible_host=192.168.0.102
