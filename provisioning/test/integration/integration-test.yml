@@ -1,0 +1,5 @@
+---
+- hosts: [sparkMaster,producer,consumer]
+  remote_user: spark
+  roles:
+    - integration-test

@@ -26,3 +26,4 @@
   with_items:
   - elasticsearch
   - elasticsearch-dsl
+  - simplejson

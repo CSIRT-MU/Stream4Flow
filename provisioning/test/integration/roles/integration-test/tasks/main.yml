@@ -1,0 +1,11 @@
+---
+- name: Prepare sparkMaster
+  include: prepareMaster.yml
+  when: "'sparkMaster' in group_names"
+
+- name: Test
+  include: prepareProducer.yml
+  when: "'producer' in group_names"
+- name: Query
+  include: query.yml
+  when: "'consumer' in group_names"
