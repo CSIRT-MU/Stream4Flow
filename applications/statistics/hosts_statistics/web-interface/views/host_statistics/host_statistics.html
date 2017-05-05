@@ -1,0 +1,99 @@
+{{extend 'layout.html'}}
+
+<script>
+    // Set correct menu view.
+    $('#menu-statistics').addClass('active');
+    $('#menu-protocols-statistics').addClass('active');
+</script>
+
+
+<h3 class="title1">Protocols Statistics</h3>
+
+{{if not session.logged:}}
+<div class="alert alert-danger" role="alert">
+   <strong>Error: </strong>You must be logged to view this page!
+</div>
+{{else:}}
+
+{{if ('alert_type' in globals()) and alert_type != "":}}
+<div class="alert alert-{{=alert_type}}" role="alert">
+    <strong>
+        {{if alert_type == "danger":}}Error:
+        {{elif alert_type == "success":}}Success:
+        {{elif alert_type == "info":}}Info:
+        {{elif alert_type == "warning":}}Warning:
+        {{pass}}
+    </strong>{{=alert_message}}
+</div>
+{{pass}}
+
+
+<!-- Options Form -->
+<div class="forms inline-form widget-shadow">
+    <div class="form-title">
+	    <h4>Options</h4>
+    </div>
+    <div class="form-body">
+        <div data-example-id="simple-form-inline">
+            <form class="form-inline">
+                <div class="form-group">
+                    <label for="interval">Interval:</label>
+                    <select name="interval" id="interval" class="form-control" placeholder="interval" onchange="setInterval(this.value)">
+                        <option value="1" selected>Last 1 hour</option>
+                        <option value="6">Last 6 hours</option>
+                        <option value="12">Last 12 hours</option>
+                        <option value="24">Last 24 hours</option>
+                        <option value="custom">Custom</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="datetime-beginning">From:</label>
+                    <input type="text" name="beginning" id="datetime-beginning" class="datetimepicker form-control">
+                </div>
+                <div class="form-group">
+                    <label for="datetime-end">To:</label>
+                    <input type="text" name="end" id="datetime-end" class="datetimepicker form-control">
+                </div>
+                <div class="form-group">
+                    <label for="aggregation">Aggregation:</label>
+                    <select name="aggregation" id="aggregation" class="form-control" placeholder="aggregation">
+                        <option value="10s">10 seconds</option>
+                        <option value="30s" selected>30 seconds</option>
+                        <option value="1m">1 minute</option>
+                        <option value="5m">5 minutes</option>
+                        <option value="30m">30 minutes</option>
+                        <option value="1h">1 hour</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="filter">IP Filter:</label>
+                    <input type="text" name="filter" id="filter" class="form-control">
+                </div>
+                <button type="button" class="btn btn-default" onclick="loadAllCharts();false;">Set options</button>
+            </form>
+        </div>
+	</div>
+</div>
+<!-- //Options Form -->
+
+<!-- Heatmap-->
+<div class="panel-info widget-shadow general chart-host-heatmap">
+    <h4 class="title2">Heatmap</h4>
+    <!-- Status -->
+    <div class="chart-status" id="chart-host-heatmap-status"></div>
+    <!-- Main Chart -->
+    <div id="chart-host-heatmap" class="zingchart"></div>
+</div>
+<!-- //Detections Histogram -->
+
+<!-- Custom Scripts -->
+<script src="{{=URL('static','js/custom/datetime_interval.js')}}"></script>
+<script src="{{=URL('static','js/custom/host_statistics.js')}}"></script>
+<style>
+/* Hack to see the whole watermark */
+#chart-flows-license-text, #chart-packets-license-text, #chart-bytes-license-text {
+    margin-left: -20px !important;
+}
+</style>
+
+{{pass}}
