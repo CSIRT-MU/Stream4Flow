@@ -5,7 +5,7 @@ This directory stores all configurable variables. Divided by roles that are usin
 Contains variables for user configuration.
 - **user**: User for Spark installation
 - **user_passwd**: User password
-- **maven_proxy**: Enable proxy support
+- **maven_proxy**: Enable proxy support {False/True}
 - **proxy_id**:The unique identifier for this proxy. This is used to differentiate between proxy elements.
 - **proxy_user,proxy_pass**:These elements appear as a pair denoting the login and password required to authenticate to this proxy server.
 - **proxy_host,proxy_port,proxy_protocol**: The protocol://host:port of the proxy, seperated into discrete elements.
