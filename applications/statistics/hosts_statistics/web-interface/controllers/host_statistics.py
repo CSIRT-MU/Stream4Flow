@@ -55,16 +55,22 @@ def get_heatmap_statistics():
             [{'host': myconf.get('consumer.hostname'), 'port': myconf.get('consumer.port')}])
         elastic_bool = []
         elastic_bool.append({'range': {'@timestamp': {'gte': beginning, 'lte': end}}})
-        elastic_bool.append({'wildcard': {'ip.raw': "147.251." + "*"}})
+        elastic_bool.append({'term': {'src_ipv4': filter}})
 
         qx = Q({'bool': {'must': elastic_bool}})
         s = Search(using=client, index='_all').query(qx)
-        s.aggs.bucket('by_host', 'terms', field='ip.raw', size=2147483647) \
+        s.aggs.bucket('by_host', 'terms', field='src_ipv4', size=2147483647) \
               .bucket('sum_of_flows', 'sum', field='stats.total.flow')
 
         result = s.execute()
-
-        return json.dumps(response)
+        data={}
+        for record in result.aggregations.by_host.buckets:
+            host = record.key
+            number_of_flows = record.sum_of_flows.value
+            data[host] = number_of_flows
+        json_response = '{"status": "Ok", "data": "' + json.dumps(data) + '"}'
+        return json_response
+        #return json.dumps(response)
 
     except Exception as e:
         json_response = '{"status": "Error", "data": "Elasticsearch query exception: ' + escape(str(e)) + '"}'
