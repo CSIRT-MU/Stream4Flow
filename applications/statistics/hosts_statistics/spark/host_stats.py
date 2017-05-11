@@ -34,11 +34,11 @@ for each host each window are following:
 
 Usage:
   detection_ddos.py -iz <input-zookeeper-hostname>:<input-zookeeper-port> -it <input-topic> -oh
-    <output-hostname>:<output-port> -net <regex for network range>
+    <output-hostname>:<output-port> -net <CIDR network range>
 
   To run this on the Stream4Flow, you need to receive flows by IPFIXCol and make them available via Kafka topic. Then
   you can run the example
-    $ ./run-application.sh ./statistics/hosts_statistics/spark/host_stats.py -iz producer:2181 -it ipfix.entry -oh consumer:20101 -net "10\.10\..+"
+    $ ./run-application.sh ./statistics/hosts_statistics/spark/host_stats.py -iz producer:2181 -it ipfix.entry -oh consumer:20101 -net "10.0.0.0/24"
 
 """
 
@@ -47,8 +47,8 @@ import os  # Common operating system functions
 import argparse  # Arguments parser
 import ujson as json  # Fast JSON parser
 import socket  # Socket interface
-import re  # Parsing and matching regular expression
 import time  # Time handling
+import ipaddress  # IP address handling
 
 from termcolor import cprint  # Colors in the console output
 
@@ -183,16 +183,13 @@ def count_host_stats(flow_json):
     :type flow_json: Initialized spark streaming context, windowed, json_loaded.
     """
 
-    # Create regex for monitored network
-    local_ip_pattern = re.compile(network_filter)
-
     # Filter flows with relevant keys
     flow_with_keys = flow_json.filter(lambda json_rdd: ("ipfix.sourceIPv4Address" in json_rdd.keys()) and
                                                        ("ipfix.destinationTransportPort" in json_rdd.keys()) and
                                                        ("ipfix.flowStartMilliseconds" in json_rdd.keys()) and
                                                        ("ipfix.flowEndMilliseconds" in json_rdd.keys()) and
                                                        ("ipfix.protocolIdentifier" in json_rdd.keys()) and
-                                                       (re.match(local_ip_pattern, json_rdd["ipfix.sourceIPv4Address"]))
+                                                       (ipaddress.ip_address(json_rdd["ipfix.sourceIPv4Address"]) in network_filter)
                                       )
 
     # Set window and slide duration for flows analysis
@@ -296,7 +293,7 @@ if __name__ == "__main__":
     kafka_partitions = 1  # Number of partitions of the input Kafka topic
     window_duration = 10  # Analysis window duration (10 seconds)
     window_slide = 10  # Slide interval of the analysis window (10 seconds)
-    network_filter = args.network_range  # Filter for network for detection (regex filtering), e.g. "10\.10\..+"
+    network_filter = ipaddress.ip_network(unicode(args.network_range,"utf8"))  # Filter for network for detection (regex filtering), e.g. "10\.10\..+"
 
     # Spark context initialization
     sc = SparkContext(appName=application_name + " " + " ".join(sys.argv[1:]))  # Application name used as the appName
