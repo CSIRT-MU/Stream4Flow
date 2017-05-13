@@ -44,7 +44,6 @@ def heatmap_matrix(network):
      ip_first_d = int(ip_first.split(".")[3])
      ip_last_c = int(ip_last.split(".")[2])
      ip_last_d = int(ip_last.split(".")[3])
-     print(ip_first, ip_last, ip_first_c, ip_first_d, ip_last_c, ip_last_d)
      matrix = {}
      for c in range(ip_first_c,ip_last_c+1,1):
           matrix[c] = []
