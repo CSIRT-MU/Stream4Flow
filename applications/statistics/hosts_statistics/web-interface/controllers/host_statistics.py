@@ -11,7 +11,8 @@ from elasticsearch_dsl import Search, Q, A
 import collections
 # Import JSON operations
 import json
-
+# Import IP address handling
+import ipaddress
 
 #----------------- Main Functions -------------------#
 
@@ -24,6 +25,34 @@ def host_statistics():
     # Use standard view
     response.view = request.controller + '/host_statistics.html'
     return dict()
+
+#----------------- Minor Functions ------------------#
+
+def heatmap_matrix(network):
+     """
+     Creates empty
+     Args:
+         network:
+
+     Returns:
+
+     """
+     network_cidr = ipaddress.ip_network(unicode(network,"utf8"))
+     ip_first = str(network_cidr[0])
+     ip_last = str(network_cidr[-1])
+     ip_first_c = int(ip_first.split(".")[2])
+     ip_first_d = int(ip_first.split(".")[3])
+     ip_last_c = int(ip_last.split(".")[2])
+     ip_last_d = int(ip_last.split(".")[3])
+     print(ip_first, ip_last, ip_first_c, ip_first_d, ip_last_c, ip_last_d)
+     matrix = {}
+     for c in range(ip_first_c,ip_last_c+1,1):
+          matrix[c] = []
+          for d in range(ip_first_d, ip_last_d+1,1):
+               matrix[c].append(0)
+
+     return matrix
+
 
 #----------------- Chart Functions ------------------#
 
@@ -63,14 +92,21 @@ def get_heatmap_statistics():
               .bucket('sum_of_flows', 'sum', field='stats.total.flow')
 
         result = s.execute()
-        data={}
+
+        # Prepare data matrix for heatmap
+        data_raw = heatmap_matrix(filter)
+
+        # Fill matrix with data
         for record in result.aggregations.by_host.buckets:
-            host = record.key
+            host_c = int(record.key.split(".")[2])
+            host_d = int(record.key.split(".")[3])
             number_of_flows = record.sum_of_flows.value
-            data[host] = number_of_flows
-        json_response = '{"status": "Ok", "data": "' + json.dumps(data) + '"}'
-        return json_response
-        #return json.dumps(response)
+            data_raw[host_c][host_d] = number_of_flows
+        json_response = {"status": "Ok", "data": data_raw}
+
+
+        return json.dumps(json_response)
+
 
     except Exception as e:
         json_response = '{"status": "Error", "data": "Elasticsearch query exception: ' + escape(str(e)) + '"}'

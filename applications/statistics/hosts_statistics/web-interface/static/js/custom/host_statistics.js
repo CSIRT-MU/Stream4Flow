@@ -25,121 +25,134 @@ function generateHistogram(dataJson) {
 
     // ZingChart configuration
     var myConfig = {
-        type: 'line',
-        backgroundColor:'#fff',
-        title:{
-            text: 'Attacks in Time by Source',
-            adjustLayout: true,
-            fontColor:"#444444"
+
+      "graphset": [{
+        "type": "piano",
+        "theme": "classic",
+        "title": {
+          "text": "Heatmap",
+          "background-color": "none",
+          "font-color": "#05636c",
+          "font-size": "24px",
+          "adjust-layout": true,
+          "padding-bottom": 25
         },
-        legend:{
-            align: 'center',
-            verticalAlign: 'top',
-            backgroundColor:'none',
-            borderWidth: 0,
-            item:{
-                fontColor:'#444444',
-                cursor: 'hand'
-            },
-            marker:{
-                type:'circle',
-                borderWidth: 0,
-                cursor: 'hand'
-            },
-            toggleAction: 'remove',
-            maxItems: 8,
-            overflow: 'scroll',
-            scroll:{
-                bar:{
-                    border: '1px solid #444444',
-                    height: '6'
-                },
-                handle:{
-                    backgroundColor: '#668586'
-                }
-            }
+        "backgroundColor": "#fff",
+        "plotarea": {
+          "margin": "dynamic"
         },
-        plotarea:{
-            margin:'dynamic 70'
+        "scaleX": {
+          "placement": "opposite",
+          "lineWidth": 0,
+          "item": {
+            "border-color": "none",
+            "size": "13px",
+            "font-color": "#05636c"
+          },
+          "guide": {
+            "visible": false
+          },
+          "tick": {
+            "visible": false
+          },
+          "zooming": true,
+          "zoom-snap": true,
+
         },
-        plot:{
-            lineWidth: 2,
-            marker:{
-                borderWidth: 0,
-                size: 4
-            },
-            hoverMarker:{
-                borderWidth: 2,
-                size: 6,
-                borderColor: '#000'
-            },
-            cursor: 'hand'
+        "zoom": {
+          "preserve-zoom": true,
+          "background-color": "#e5e8ea",
+          "border-color": "#009",
+          "border-width": 2,
+          "alpha": 0.75
         },
-        scaleX:{
-            minValue: beginning,
-            maxValue: end,
-            lineColor: '#444444',
-            zooming: true,
-            item:{
-                fontColor:'#444444'
-            },
-            transform:{
-                type: 'date',
-                all: '%D %M %d<br>%H:%i:%s'
-            },
-            label:{
-                text: 'Time',
-                visible: false
-            }
+        "scroll-x": {
+          "bar": {
+            "border-radius": 3,
+            "background-color": "#01579B",
+            "alpha": .5
+          },
+          "handle": {
+            "border-radius": 5,
+            "background-color": "#01579B",
+            "border-top": "none",
+            "border-right": "none",
+            "border-bottom": "none",
+            "border-left": "none"
+          }
         },
-        scaleY:{
-            minValue: 1,
-            progression: "log",
-            logBase: 10,
-            minorTicks: 1,
-            lineColor: '#444444',
-            tick:{
-                lineColor: '#444444'
-            },
-            minorTick:{
-                lineColor: '#444444'
-            },
-            minorGuide:{
-                visible: false
-            },
-            guide:{
-                lineStyle: 'dashed'
-            },
-            item:{
-                fontColor:'#444444'
-            },
-            label:{
-                text: 'Flows',
-                fontSize: 12,
-                fontColor: '#444444'
-            },
-            short: true
+        "scroll-y": {
+          "bar": {
+            "border-radius": 3,
+            "background-color": "#01579B",
+            "alpha": .5
+          },
+          "handle": {
+            "border-radius": 5,
+            "background-color": "#01579B",
+            "border-top": "none",
+            "border-right": "none",
+            "border-bottom": "none",
+            "border-left": "none"
+          }
         },
-        tooltip:{
-            borderWidth: 1,
-            borderRadius: 3,
-            text: '<b>%t:</b> %v<br>%k',
-            backgroundColor: '#fff',
-            borderColor: '#444444',
-            fontColor: '#444444',
-            callout: true
+        "scaleY": {
+          "zooming": true,
+          "lineWidth": 0,
+          "mirrored": true,
+          "tick": {
+            "visible": false
+          },
+          "guide": {
+            "visible": false
+          },
+          "item": {
+            "border-color": "none",
+            "size": "13px",
+            "font-color": "#05636c"
+          }
         },
-        preview:{
-            adjustLayout: true,
-            y: '85%',
-            borderColor:'#444444',
-            borderWidth: 1,
-            mask:{
-                backgroundColor:'#658687'
-            }
+        "plot": {
+          "aspect": "none",
+          "borderWidth": 2,
+          "borderColor": "#eeeeee",
+          "borderRadius": 7,
+          "tooltip": {
+            "font-size": "14px",
+            "font-color": "white",
+            "text": " The surf will be about %v feet.",
+            "text-align": "left"
+          }/*,
+          "rules": [{
+            "rule": "%node-value > 6",
+            "backgroundColor": "#081D58",
+            "font-color": "#05636c"
+          }, {
+            "rule": "%node-value > 4 && %node-value <= 5",
+            "backgroundColor": "#253494",
+            "font-color": "#05636c"
+          }, {
+            "rule": "%node-value > 3 && %node-value <= 4",
+            "backgroundColor": "#225EA8",
+            "font-color": "#05636c"
+          }, {
+            "rule": "%node-value > 2 && %node-value <= 3",
+            "backgroundColor": "#1D91C0",
+            "font-color": "#05636c"
+          }, {
+            "rule": "%node-value > 1 && %node-value <= 2",
+            "backgroundColor": "#41B6C4",
+            "font-color": "#05636c"
+          }, {
+            "rule": "%node-value > 0 && %node-value <= 1",
+            "backgroundColor": "#7FCDBB",
+            "font-color": "#05636c"
+          }]*/
         },
-        series: mySeries
+        "series": mySeries
+      }]
     };
+
 
     // Render ZingChart with hight based on the whole panel
     zingchart.render({
