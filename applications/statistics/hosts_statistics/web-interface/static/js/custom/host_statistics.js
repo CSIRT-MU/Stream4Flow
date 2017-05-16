@@ -222,9 +222,56 @@ function loadHeatmapChart() {
     });
 };
 
+// Obtain histogram data and generate the chart
+function loadHostFlowChart() {
+    // Elements ID
+    var chartId = '#chart-host-flows';
+    var chartIdStatus = chartId + '-status';
+
+    // Hide chart element
+    $(chartId).hide();
+    // Show status element
+    $(chartIdStatus).show();
+
+    // Set loading status
+    $(chartIdStatus).html(
+        '<i class="fa fa-refresh fa-spin fa-2x fa-fw"></i>\
+         <span>Loading...</span>'
+    )
+
+    // Convert times to UTC in ISO format
+    var beginning = new Date( $('#datetime-beginning').val()).toISOString();
+    var end = new Date( $('#datetime-end').val()).toISOString();
+
+    // Get filter value (if empty then set "none")
+    var filter = $('#filter').val() ? $('#filter').val() : 'none';
+
+    // Set data request
+    var data_request = encodeURI( './get_host_flows' + '?beginning=' + beginning + '&end=' + end + '&aggregation=' + $('#aggregation').val() + '&filter=' + filter);
+    // Get Elasticsearch data
+    $.ajax({
+        async: true,
+        type: 'GET',
+        url: data_request,
+        success: function(raw) {
+            var response = jQuery.parseJSON(raw);
+            if (response.status == "Ok") {
+                generateHistogram(response.data);
+            } else {
+                // Show error message
+                $(chartIdStatus).html(
+                    '<i class="fa fa-exclamation-circle fa-2x"></i>\
+                     <span>' + response.status + ': ' + response.data + '</span>'
+                )
+            }
+        }
+    });
+};
+
 // Load histogram chart, top statistics, and table with all attacks
 function loadAllCharts() {
     loadHeatmapChart();
+    loadHostFlowChart();
 };
 
 

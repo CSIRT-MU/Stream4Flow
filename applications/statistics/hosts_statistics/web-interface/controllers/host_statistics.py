@@ -110,3 +110,62 @@ def get_heatmap_statistics():
     except Exception as e:
         json_response = '{"status": "Error", "data": "Elasticsearch query exception: ' + escape(str(e)) + '"}'
         return json_response
+
+def get_host_flows():
+    """
+    Gets flows, packet and bytes time series for a given host
+
+    Returns: JSON with status "ok" or "error" and requested data.
+
+    """
+
+    # Check login
+    if not session.logged:
+        json_response = '{"status": "Error", "data": "You must be logged!"}'
+        return json_response
+
+    # Check mandatory inputs
+    if not (request.get_vars.beginning and request.get_vars.end and request.get_vars.aggregation and request.get_vars.filter):
+        json_response = '{"status": "Error", "data": "Some mandatory argument is missing!"}'
+        return json_response
+
+    # Parse inputs and set correct format
+    beginning = escape(request.get_vars.beginning)
+    end = escape(request.get_vars.end)
+    aggregation = escape(request.get_vars.aggregation)
+    filter = escape(request.get_vars.filter)
+
+    try:
+        # Elastic query
+        client = elasticsearch.Elasticsearch(
+            [{'host': myconf.get('consumer.hostname'), 'port': myconf.get('consumer.port')}])
+        elastic_bool = []
+        elastic_bool.append({'range': {'@timestamp': {'gte': beginning, 'lte': end}}})
+        elastic_bool.append({'term': {'src_ipv4': filter}})
+
+        qx = Q({'bool': {'must': elastic_bool}})
+        s = Search(using=client, index='_all').query(qx)
+        s.aggs.bucket('by_time', 'date_histogram', field='@timestamp', interval=aggregation) \
+              .metric('sum_of_flows', 'sum', field='stats.total.flow') \
+              .metric('sum_of_packets', 'sum', field='stats.total.packets') \
+              .metric('sum_of_bytes', 'sum', field='stats.total.bytes')
+
+        result = s.execute()
+
+        data_raw = {}
+        data = "Timestamp,Number of flows,Number of packets,Number of bytes;"
+        for record in result.aggregations.by_time.buckets:
+            timestamp = record.key
+            number_of_flows = record.sum_of_flows.value
+            number_of_packets = record.sum_of_packets.value
+            number_of_bytes = record.sum_of_bytes.value
+
+            data += str(timestamp) + "," + str(number_of_flows) + "," + str(number_of_packets) + "," + str(number_of_bytes) + ";"
+
+        json_response = '{"status": "Ok", "data": "' + data + '"}'
+        return json.dumps(json_response)
+
+
+    except Exception as e:
+        json_response = '{"status": "Error", "data": "Elasticsearch query exception: ' + escape(str(e)) + '"}'
+        return json_response
