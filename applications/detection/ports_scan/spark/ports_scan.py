@@ -120,14 +120,14 @@ def get_output_json(key, value, flows_increment):
     timestamp = '%s.%03d' % (time.strftime('%Y-%m-%dT%H:%M:%S', time.gmtime(s)), ms) + 'Z'
 
     if key[0] == 'horizontal':
-        output_json += "{\"@type\": \"ports_scan-" + key[0] + "\", \"src_ip\": \"" + key[1] + "\", \"dst_port\": \"" \
+        output_json += "{\"@type\": \"ports_scan_" + key[0] + "\", \"src_ip\": \"" + key[1] + "\", \"dst_port\": \"" \
                        + str(key[2]) + "\", \"dst_ips\": \"" + str(value[1]) + "\", \"flows\": " \
                        + str(value[0]) + ", " "\"duration_in_milliseconds\": " + str(value[2]) + \
                        ", \"timestamp\": \"" + str(timestamp) + \
                        "\", \"flows_increment\": " + str(flows_increment) + \
                        ", \"targets_count\": " + str(value[4]) + "}\n"
     if key[0] == 'vertical':
-        output_json += "{\"@type\": \"ports_scan-" + key[0] + "\", \"src_ip\": \"" + key[1] + "\", \"dst_ip\": \"" \
+        output_json += "{\"@type\": \"ports_scan_" + key[0] + "\", \"src_ip\": \"" + key[1] + "\", \"dst_ip\": \"" \
                        + str(key[2]) + "\", \"dst_ports\": \"" + str(value[1]) + "\", \"flows\": " \
                        + str(value[0]) + ", " "\"duration_in_milliseconds\": " + str(value[2]) + \
                        ", \"timestamp\": \"" + str(timestamp) + \
