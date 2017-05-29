@@ -88,36 +88,75 @@
 <!-- //Detections Histogram -->
 
 
-<!-- Top N -->
+<!-- Top N - Horizontal -->
 <div class="panel-info widget-shadow general chart-ports-scan-top">
-    <h4 class="title2">Top 10 Statistics</h4>
+    <h4 class="title2">Top 10 Statistics For Horizontal Scans (IPs)</h4>
     <!-- Sources -->
-    <div class="col-md-4">
+    <div class="col-md-6">
         <!-- Status -->
-        <div class="chart-status" id="chart-ports-scan-top-sources-status"></div>
+        <div class="chart-status" id="chart-ports-scan-top-horizontal-sources-status"></div>
         <!-- Main Chart -->
-        <div id="chart-ports-scan-top-sources" class="zingchart"></div>
+        <div id="chart-ports-scan-top-horizontal-sources" class="zingchart" style="display: none;"></div>
     </div>
     <!-- //Sources -->
-    <!-- Victims - Horizontal -->
-    <div class="col-md-4">
+    <!-- Victims-->
+    <div class="col-md-6">
         <!-- Status -->
         <div class="chart-status" id="chart-ports-scan-top-horizontal-victims-status"></div>
         <!-- Main Chart -->
-        <div id="chart-ports-scan-top-horizontal-victims" class="zingchart"></div>
-    </div>
-    <!-- //Victims -->
-    <!-- Victims - Vertical -->
-    <div class="col-md-4">
-        <!-- Status -->
-        <div class="chart-status" id="chart-ports-scan-top-vertical-victims-status"></div>
-        <!-- Main Chart -->
-        <div id="chart-ports-scan-top-vertical-victims" class="zingchart"></div>
+        <div id="chart-ports-scan-top-horizontal-victims" class="zingchart" style="display: none;"></div>
     </div>
     <!-- //Victims -->
     <div class="clearfix"> </div>
 </div>
-<!-- //Top N -->
+<!-- //Top N - Horizontal -->
+
+<!-- Top N - Vertical -->
+<div class="panel-info widget-shadow general chart-ports-scan-top">
+    <h4 class="title2">Top 10 Statistics For Vertical Scans (Ports)</h4>
+    <!-- Sources -->
+    <div class="col-md-6">
+        <!-- Status -->
+        <div class="chart-status" id="chart-ports-scan-top-vertical-sources-status"></div>
+        <!-- Main Chart -->
+        <div id="chart-ports-scan-top-vertical-sources" class="zingchart" style="display: none;"></div>
+    </div>
+    <!-- //Sources -->
+    <!-- Victims-->
+    <div class="col-md-6">
+        <!-- Status -->
+        <div class="chart-status" id="chart-ports-scan-top-vertical-victims-status"></div>
+        <!-- Main Chart -->
+        <div id="chart-ports-scan-top-vertical-victims" class="zingchart" style="display: none;"></div>
+    </div>
+    <!-- //Victims -->
+    <div class="clearfix"> </div>
+</div>
+<!-- //Top N - Vertical -->
+
+
+<!-- Table -->
+<div class="panel-info widget-shadow general table-ports-scan">
+    <h4 class="title2">TCP Ports Scans Details</h4>
+    <!-- Status -->
+    <div class="table-status" id="table-ports-scan-status"></div>
+    <!-- Main Table -->
+    <div id="table-ports-scan" style="display: none;">
+        <table data-toggle="table" data-striped="true" data-pagination="true" data-search="true" data-page-size="10" data-page-list="[10, 20, 40]" data-search-text="">
+            <thead>
+                <tr>
+                    <th data-sortable="true" data-field="type">Type</th>
+                    <th data-sortable="true" data-field="timestamp">Timestamp</th>
+                    <th data-sortable="true" data-field="src_ip">Source IP</th>
+                    <th data-sortable="true" data-field="dst">Destination (IP or Port)</th>
+                    <th data-sortable="true" data-field="scans_count">Scanned targets (IPs or Ports) Count</th>
+                    <th data-sortable="true" data-field="duration">Duration</th>
+                </tr>
+            </thead>
+        </table>
+    </div>
+</div>
+<!-- //Table -->
 
 
 <!-- Custom Scripts -->

@@ -48,16 +48,7 @@ function generateHistogram(dataJson) {
             },
             toggleAction: 'remove',
             maxItems: 8,
-            overflow: 'scroll',
-            scroll:{
-                bar:{
-                    border: '1px solid #444444',
-                    height: '6'
-                },
-                handle:{
-                    backgroundColor: '#668586'
-                }
-            }
+            overflow: 'page'
         },
         plotarea:{
             margin:'dynamic 70'
@@ -223,7 +214,9 @@ function generateTopN(type, dataCsv) {
 
     // Prepare title
     var chart_title = ""
-    if (type == "sources") {
+    if (type == "horizontal-sources") {
+        chart_title = "Top Scanning IPs";
+    } else if (type == "vertical-sources") {
         chart_title = "Top Scanning IPs";
     } else if (type == "horizontal-victims") {
         chart_title = "Top Scanned IPs";
@@ -341,8 +334,9 @@ function loadTopN(type, number) {
 // Load histogram chart, top statistics, and table with all attacks
 function loadAllCharts() {
     loadHistogramChart();
-    loadTopN("sources", 10);
+    loadTopN("horizontal-sources", 10);
     loadTopN("horizontal-victims", 10);
+    loadTopN("vertical-sources", 10);
     loadTopN("vertical-victims", 10);
 };
 
