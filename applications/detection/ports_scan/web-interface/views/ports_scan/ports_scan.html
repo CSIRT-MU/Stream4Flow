@@ -28,6 +28,96 @@
 </div>
 {{pass}}
 
+<!-- Options Form -->
+<div class="forms inline-form widget-shadow">
+    <div class="form-title">
+	    <h4>Options</h4>
+    </div>
+    <div class="form-body">
+        <div data-example-id="simple-form-inline">
+            <form class="form-inline">
+                <div class="form-group">
+                    <label for="interval">Interval:</label>
+                    <select name="interval" id="interval" class="form-control" placeholder="interval" onchange="setInterval(this.value)">
+                        <option value="1" selected>Last 1 hour</option>
+                        <option value="6">Last 6 hours</option>
+                        <option value="12">Last 12 hours</option>
+                        <option value="24">Last 24 hours</option>
+                        <option value="custom">Custom</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="datetime-beginning">From:</label>
+                    <input type="text" name="beginning" id="datetime-beginning" class="datetimepicker form-control">
+                </div>
+                <div class="form-group">
+                    <label for="datetime-end">To:</label>
+                    <input type="text" name="end" id="datetime-end" class="datetimepicker form-control">
+                </div>
+                <div class="form-group">
+                    <label for="aggregation">Aggregation:</label>
+                    <select name="aggregation" id="aggregation" class="form-control" placeholder="aggregation">
+                        <option value="10s">10 seconds</option>
+                        <option value="30s" selected>30 seconds</option>
+                        <option value="1m">1 minute</option>
+                        <option value="5m">5 minutes</option>
+                        <option value="30m">30 minutes</option>
+                        <option value="1h">1 hour</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="filter">IP Filter:</label>
+                    <input type="text" name="filter" id="filter" class="form-control">
+                </div>
+                <button type="button" class="btn btn-default" onclick="loadAllCharts();false;">Set options</button>
+            </form>
+        </div>
+	</div>
+</div>
+<!-- //Options Form -->
+
+
+<!-- Detections Histogram -->
+<div class="panel-info widget-shadow general chart-ports-scan-histogram">
+    <h4 class="title2">TCP Ports Scan Histogram</h4>
+    <!-- Status -->
+    <div class="chart-status" id="chart-ports-scan-histogram-status"></div>
+    <!-- Main Chart -->
+    <div id="chart-ports-scan-histogram" class="zingchart"></div>
+</div>
+<!-- //Detections Histogram -->
+
+
+<!-- Top N -->
+<div class="panel-info widget-shadow general chart-ports-scan-top">
+    <h4 class="title2">Top 10 Statistics</h4>
+    <!-- Sources -->
+    <div class="col-md-4">
+        <!-- Status -->
+        <div class="chart-status" id="chart-ports-scan-top-sources-status"></div>
+        <!-- Main Chart -->
+        <div id="chart-ports-scan-top-sources" class="zingchart"></div>
+    </div>
+    <!-- //Sources -->
+    <!-- Victims - Horizontal -->
+    <div class="col-md-4">
+        <!-- Status -->
+        <div class="chart-status" id="chart-ports-scan-top-horizontal-victims-status"></div>
+        <!-- Main Chart -->
+        <div id="chart-ports-scan-top-horizontal-victims" class="zingchart"></div>
+    </div>
+    <!-- //Victims -->
+    <!-- Victims - Vertical -->
+    <div class="col-md-4">
+        <!-- Status -->
+        <div class="chart-status" id="chart-ports-scan-top-vertical-victims-status"></div>
+        <!-- Main Chart -->
+        <div id="chart-ports-scan-top-vertical-victims" class="zingchart"></div>
+    </div>
+    <!-- //Victims -->
+    <div class="clearfix"> </div>
+</div>
+<!-- //Top N -->
 
 
 <!-- Custom Scripts -->

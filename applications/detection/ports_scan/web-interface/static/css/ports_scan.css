@@ -1,1 +1,10 @@
 /* TCP Ports Scan */
+#filter {
+    width: 120px;
+}
+.chart-ports-scan-histogram .chart-status, .chart-ports-scan-histogram .zingchart {
+    height: 420px;
+}
+.chart-ports-scan-top .chart-status, .chart-ports-scan-top .zingchart {
+    height: 300px;
+}
