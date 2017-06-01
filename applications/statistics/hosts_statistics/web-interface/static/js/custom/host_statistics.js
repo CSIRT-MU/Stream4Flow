@@ -1,3 +1,4 @@
+//------------------- Histogram Chart --------------------------
 // Generate the histogram chart
 function generateHistogram(dataJson) {
     // Elements ID
@@ -222,7 +223,133 @@ function loadHeatmapChart() {
     });
 };
 
-// Obtain histogram data and generate the chart
+//------------------- Host Network Traffic Chart --------------------------
+// Generate a chart and set it to the given div
+function generateChart(data, host) {
+    // Elements ID
+    var chartId = 'chart-host-flows';
+    var chartIdStatus = chartId + '-status';
+
+    // Hide status element
+    $('#' + chartIdStatus).hide();
+    // Show chart element
+    $('#' + chartId).show();
+
+    // ZingChart configuration
+    var myConfig = {
+        type: 'line',
+        backgroundColor:'#fff',
+        title:{
+            text: 'Network traffic of a host ' + host,
+            adjustLayout: true,
+            fontColor:"#444444"
+        },
+        legend:{
+            align: 'center',
+            verticalAlign: 'top',
+            backgroundColor:'none',
+            borderWidth: 0,
+            item:{
+                fontColor:'#444444',
+                cursor: 'hand'
+            },
+            marker:{
+                type:'circle',
+                borderWidth: 0,
+                cursor: 'hand'
+            },
+            toggleAction: 'remove'
+        },
+        plotarea:{
+            margin:'dynamic 70'
+        },
+        plot:{
+            lineWidth: 2,
+            marker:{
+                borderWidth: 0,
+                size: 3
+            }
+        },
+        scaleX:{
+            lineColor: '#444444',
+            zooming: true,
+            item:{
+                fontColor:'#444444'
+            },
+            transform:{
+                type: 'date',
+                all: '%D %M %d<br>%h:%i:%s'
+            },
+            label:{
+                text: 'Time',
+                visible: false
+            }
+        },
+        scaleY:{
+            minorTicks: 1,
+            lineColor: '#444444',
+            tick:{
+                lineColor: '#444444'
+            },
+            minorTick:{
+                lineColor: '#444444'
+            },
+            minorGuide:{
+                visible: false
+            },
+            guide:{
+                lineStyle: 'dashed'
+            },
+            item:{
+                fontColor:'#444444'
+            },
+            short: true
+        },
+        tooltip:{
+            borderWidth: 0,
+            borderRadius: 3
+        },
+        preview:{
+            adjustLayout: true,
+            y: '85%',
+            borderColor:'#444444',
+            borderWidth: 1,
+            mask:{
+                backgroundColor:'#658687'
+            }
+        },
+        crosshairX:{
+            plotLabel:{
+                multiple: true,
+                borderRadius: 3
+            },
+            scaleLabel:{
+                backgroundColor:'#373f47',
+                borderRadius: 3
+            },
+            marker:{
+                size: 7,
+                alpha: 0.5
+            }
+        },
+        csv:{
+            dataString: data,
+            rowSeparator: ';',
+            separator: ',',
+            verticalLabels: true
+        }
+    };
+
+    // Render ZingChart with width based on the whole panel
+    zingchart.render({
+	    id: chartId,
+	    data: myConfig,
+	    height: $('#chart-panels').height(),
+	    width: $('#chart-panels').width()
+    });
+};
+
+// Obtain flow data for a host and generate the chart
 function loadHostFlowChart() {
     // Elements ID
     var chartId = '#chart-host-flows';
@@ -256,7 +383,7 @@ function loadHostFlowChart() {
         success: function(raw) {
             var response = jQuery.parseJSON(raw);
             if (response.status == "Ok") {
-                generateHistogram(response.data);
+                generateChart(response.data, response.host);
             } else {
                 // Show error message
                 $(chartIdStatus).html(
@@ -268,10 +395,184 @@ function loadHostFlowChart() {
     });
 };
 
+//------------------- Host Tcp Chart --------------------------
+// Generate a chart and set it to the given div
+function generateHostTcp(data, host) {
+    // Elements ID
+    var chartId = 'chart-host-flags';
+    var chartIdStatus = chartId + '-status';
+
+    // Hide status element
+    $('#' + chartIdStatus).hide();
+    // Show chart element
+    $('#' + chartId).show();
+
+    // ZingChart configuration
+    var myConfig = {
+        type: 'line',
+        backgroundColor:'#fff',
+        title:{
+            text: 'TCP flags of a host ' + host,
+            adjustLayout: true,
+            fontColor:"#444444"
+        },
+        legend:{
+            align: 'center',
+            verticalAlign: 'top',
+            backgroundColor:'none',
+            borderWidth: 0,
+            item:{
+                fontColor:'#444444',
+                cursor: 'hand'
+            },
+            marker:{
+                type:'circle',
+                borderWidth: 0,
+                cursor: 'hand'
+            },
+            toggleAction: 'remove'
+        },
+        plotarea:{
+            margin:'dynamic 70'
+        },
+        plot:{
+            lineWidth: 2,
+            marker:{
+                borderWidth: 0,
+                size: 3
+            }
+        },
+        scaleX:{
+            lineColor: '#444444',
+            zooming: true,
+            item:{
+                fontColor:'#444444'
+            },
+            transform:{
+                type: 'date',
+                all: '%D %M %d<br>%h:%i:%s'
+            },
+            label:{
+                text: 'Time',
+                visible: false
+            }
+        },
+        scaleY:{
+            minorTicks: 1,
+            lineColor: '#444444',
+            tick:{
+                lineColor: '#444444'
+            },
+            minorTick:{
+                lineColor: '#444444'
+            },
+            minorGuide:{
+                visible: false
+            },
+            guide:{
+                lineStyle: 'dashed'
+            },
+            item:{
+                fontColor:'#444444'
+            },
+            short: true
+        },
+        tooltip:{
+            borderWidth: 0,
+            borderRadius: 3
+        },
+        preview:{
+            adjustLayout: true,
+            y: '85%',
+            borderColor:'#444444',
+            borderWidth: 1,
+            mask:{
+                backgroundColor:'#658687'
+            }
+        },
+        crosshairX:{
+            plotLabel:{
+                multiple: true,
+                borderRadius: 3
+            },
+            scaleLabel:{
+                backgroundColor:'#373f47',
+                borderRadius: 3
+            },
+            marker:{
+                size: 7,
+                alpha: 0.5
+            }
+        },
+        csv:{
+            dataString: data,
+            rowSeparator: ';',
+            separator: ',',
+            verticalLabels: true
+        }
+    };
+
+    // Render ZingChart with width based on the whole panel
+    zingchart.render({
+	    id: chartId,
+	    data: myConfig,
+	    height: $('#chart-panels').height(),
+	    width: $('#chart-panels').width()
+    });
+};
+
+// Obtain flow data for a host and generate the chart
+function loadHostTcpChart() {
+    // Elements ID
+    var chartId = '#chart-host-flows';
+    var chartIdStatus = chartId + '-status';
+
+    // Hide chart element
+    $(chartId).hide();
+    // Show status element
+    $(chartIdStatus).show();
+
+    // Set loading status
+    $(chartIdStatus).html(
+        '<i class="fa fa-refresh fa-spin fa-2x fa-fw"></i>\
+         <span>Loading...</span>'
+    )
+
+    // Convert times to UTC in ISO format
+    var beginning = new Date( $('#datetime-beginning').val()).toISOString();
+    var end = new Date( $('#datetime-end').val()).toISOString();
+
+    // Get filter value (if empty then set "none")
+    var filter = $('#filter').val() ? $('#filter').val() : 'none';
+
+    // Set data request
+    var data_request = encodeURI( './get_host_tcp_flags' + '?beginning=' + beginning + '&end=' + end + '&aggregation=' + $('#aggregation').val() + '&filter=' + filter);
+    // Get Elasticsearch data
+    $.ajax({
+        async: true,
+        type: 'GET',
+        url: data_request,
+        success: function(raw) {
+            var response = jQuery.parseJSON(raw);
+            if (response.status == "Ok") {
+                generateHostTcp(response.data, response.host);
+            } else {
+                // Show error message
+                $(chartIdStatus).html(
+                    '<i class="fa fa-exclamation-circle fa-2x"></i>\
+                     <span>' + response.status + ': ' + response.data + '</span>'
+                )
+            }
+        }
+    });
+};
+
+
 // Load histogram chart, top statistics, and table with all attacks
 function loadAllCharts() {
     loadHeatmapChart();
     loadHostFlowChart();
+    loadHostTcpChart();
 };
 
 

@@ -156,14 +156,81 @@ def get_host_flows():
         data = "Timestamp,Number of flows,Number of packets,Number of bytes;"
         for record in result.aggregations.by_time.buckets:
             timestamp = record.key
-            number_of_flows = record.sum_of_flows.value
-            number_of_packets = record.sum_of_packets.value
-            number_of_bytes = record.sum_of_bytes.value
+            number_of_flows = int(record.sum_of_flows.value)
+            number_of_packets = int(record.sum_of_packets.value)
+            number_of_bytes = int(record.sum_of_bytes.value)
 
             data += str(timestamp) + "," + str(number_of_flows) + "," + str(number_of_packets) + "," + str(number_of_bytes) + ";"
 
-        json_response = '{"status": "Ok", "data": "' + data + '"}'
-        return json.dumps(json_response)
+        json_response = '{"status": "Ok", "host": "' + filter + '", "data": "' + data + '"}'
+        return (json_response)
+
+
+    except Exception as e:
+        json_response = '{"status": "Error", "data": "Elasticsearch query exception: ' + escape(str(e)) + '"}'
+        return json_response
+
+def get_host_tcp_flags():
+    """
+    Gets tcp flags statistics for a given host
+
+    Returns: JSON with status "ok" or "error" and requested data.
+
+    """
+
+    # Check login
+    if not session.logged:
+        json_response = '{"status": "Error", "data": "You must be logged!"}'
+        return json_response
+
+    # Check mandatory inputs
+    if not (request.get_vars.beginning and request.get_vars.end and request.get_vars.aggregation and request.get_vars.filter):
+        json_response = '{"status": "Error", "data": "Some mandatory argument is missing!"}'
+        return json_response
+
+    # Parse inputs and set correct format
+    beginning = escape(request.get_vars.beginning)
+    end = escape(request.get_vars.end)
+    aggregation = escape(request.get_vars.aggregation)
+    filter = escape(request.get_vars.filter)
+
+    try:
+        # Elastic query
+        client = elasticsearch.Elasticsearch(
+            [{'host': myconf.get('consumer.hostname'), 'port': myconf.get('consumer.port')}])
+        elastic_bool = []
+        elastic_bool.append({'range': {'@timestamp': {'gte': beginning, 'lte': end}}})
+        elastic_bool.append({'term': {'src_ipv4': filter}})
+
+        qx = Q({'bool': {'must': elastic_bool}})
+        s = Search(using=client, index='_all').query(qx)
+        s.aggs.bucket('by_time', 'date_histogram', field='@timestamp', interval=aggregation) \
+              .metric('sum_of_syn', 'sum', field='stats.tcp_flags.SYN') \
+              .metric('sum_of_ack', 'sum', field='stats.tcp_flags.ACK') \
+              .metric('sum_of_fin', 'sum', field='stats.tcp_flags.FIN') \
+              .metric('sum_of_psh', 'sum', field='stats.tcp_flags.PSH') \
+              .metric('sum_of_rst', 'sum', field='stats.tcp_flags.RST') \
+              .metric('sum_of_ece', 'sum', field='stats.tcp_flags.ECE') \
+              .metric('sum_of_urg', 'sum', field='stats.tcp_flags.URG')
+
+        result = s.execute()
+
+        data_raw = {}
+        data = "Timestamp,Sum of SYN, Sum of ACK, Sum of FIN, Sum of PSH, Sum of RST, Sum of ECE, Sum of URG;"
+        for record in result.aggregations.by_time.buckets:
+            timestamp = record.key
+            number_of_syn = int(record.sum_of_syn.value)
+            number_of_ack = int(record.sum_of_ack.value)
+            number_of_fin = int(record.sum_of_fin.value)
+            number_of_psh = int(record.sum_of_psh.value)
+            number_of_rst = int(record.sum_of_rst.value)
+            number_of_ece = int(record.sum_of_ece.value)
+            number_of_urg = int(record.sum_of_urg.value)
+
+            data += str(timestamp) + "," + str(number_of_syn) + "," + str(number_of_ack) + "," + str(number_of_fin) + "," + str(number_of_psh) + "," + str(number_of_rst) + "," + str(number_of_ece) + "," + str(number_of_urg) + ";"
+
+        json_response = '{"status": "Ok", "host": "' + filter + '", "data": "' + data + '"}'
+        return (json_response)
 
 
     except Exception as e:
