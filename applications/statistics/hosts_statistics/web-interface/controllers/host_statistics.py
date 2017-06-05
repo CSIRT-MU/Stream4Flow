@@ -12,7 +12,9 @@ import collections
 # Import JSON operations
 import json
 # Import IP address handling
-import ipaddress
+#import ipaddress
+# Import network operations
+from netaddr import IPNetwork
 
 #----------------- Main Functions -------------------#
 
@@ -67,15 +69,23 @@ def get_heatmap_statistics():
         return json_response
 
     # Check mandatory inputs
-    if not (request.get_vars.beginning and request.get_vars.end and request.get_vars.aggregation and request.get_vars.filter):
+    if not (request.get_vars.beginning and request.get_vars.end and request.get_vars.filter):
         json_response = '{"status": "Error", "data": "Some mandatory argument is missing!"}'
         return json_response
+
 
     # Parse inputs and set correct format
     beginning = escape(request.get_vars.beginning)
     end = escape(request.get_vars.end)
-    aggregation = escape(request.get_vars.aggregation)
     filter = escape(request.get_vars.filter)
+
+
+
+    # Get the first and last IP from given CIDR
+    cidr = IPNetwork(filter)
+    cidr_first = cidr[0]
+    cidr_last = cidr[-1]
+
 
     try:
         # Elastic query
@@ -92,20 +102,24 @@ def get_heatmap_statistics():
 
         result = s.execute()
 
-        # Prepare data matrix for heatmap
-        data_raw = heatmap_matrix(filter)
-
-        # Fill matrix with data
-        for record in result.aggregations.by_host.buckets:
-            host_c = int(record.key.split(".")[2])
-            host_d = int(record.key.split(".")[3])
-            number_of_flows = record.sum_of_flows.value
-            data_raw[host_c][host_d] = number_of_flows
-        json_response = {"status": "Ok", "data": data_raw}
+        # Generate zero values for all IP addresses
+        empty_data = ""
+        segment_first = str(cidr_first).split(".")
+        segment_last = str(cidr_last).split(".")
+        for c_segment in range(int(segment_first[2]), int(segment_last[2]) + 1):  # Do at least once
+            for d_segment in range(int(segment_first[3]), int(segment_last[3]) + 1):  # Do at least once
+                empty_data += str(d_segment) + "," + str(c_segment) + ",0;"
 
 
-        return json.dumps(json_response)
+        data = ""
+        for bucket in result.aggregations.by_host.buckets:
+            ip = bucket.key.split(".")
+            # switch D anc C segment of IP to correct view in the chart
+            data += ip[3] + "," + ip[2] + "," + str(bucket.sum_of_flows.value) + ";"
 
+        # Create JSON response (combine empty_data and add values)
+        json_response = '{"status": "Ok", "data": "' + empty_data + data + '"}'
+        return json_response
 
     except Exception as e:
         json_response = '{"status": "Error", "data": "Elasticsearch query exception: ' + escape(str(e)) + '"}'

@@ -83,6 +83,8 @@
     <div class="chart-status" id="chart-host-heatmap-status"></div>
     <!-- Main Chart -->
     <div id="chart-host-heatmap" class="zingchart"></div>
+
+    <div class="clearfix"> </div>
 </div>
 <!-- //Detections Histogram -->
 
@@ -110,6 +112,11 @@
 <!-- Custom Scripts -->
 <script src="{{=URL('static','js/custom/datetime_interval.js')}}"></script>
 <script src="{{=URL('static','js/custom/host_statistics.js')}}"></script>
+<script src="{{=URL('static','js/charts/highcharts.js')}}"></script>
+<script src="{{=URL('static','js/charts/highcharts.map.js')}}"></script>
+<script src="{{=URL('static','js/charts/highcharts.data.js')}}"></script>
+
+
 <style>
 /* Hack to see the whole watermark */
 #chart-flows-license-text, #chart-packets-license-text, #chart-bytes-license-text {
