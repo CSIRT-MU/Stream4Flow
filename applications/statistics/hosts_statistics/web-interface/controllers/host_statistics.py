@@ -250,3 +250,122 @@ def get_host_tcp_flags():
     except Exception as e:
         json_response = '{"status": "Error", "data": "Elasticsearch query exception: ' + escape(str(e)) + '"}'
         return json_response
+
+
+def get_host_distinct_ports():
+    """
+    Gets flows, packet and bytes time series for a given host
+
+    Returns: JSON with status "ok" or "error" and requested data.
+
+    """
+
+    # Check login
+    if not session.logged:
+        json_response = '{"status": "Error", "data": "You must be logged!"}'
+        return json_response
+
+    # Check mandatory inputs
+    if not (request.get_vars.beginning and request.get_vars.end and request.get_vars.aggregation and request.get_vars.filter):
+        json_response = '{"status": "Error", "data": "Some mandatory argument is missing!"}'
+        return json_response
+
+    # Parse inputs and set correct format
+    beginning = escape(request.get_vars.beginning)
+    end = escape(request.get_vars.end)
+    aggregation = escape(request.get_vars.aggregation)
+    filter = escape(request.get_vars.filter)
+
+    try:
+        # Elastic query
+        client = elasticsearch.Elasticsearch(
+            [{'host': myconf.get('consumer.hostname'), 'port': myconf.get('consumer.port')}])
+        elastic_bool = []
+        elastic_bool.append({'range': {'@timestamp': {'gte': beginning, 'lte': end}}})
+        elastic_bool.append({'term': {'src_ipv4': filter}})
+
+        qx = Q({'bool': {'must': elastic_bool}})
+        s = Search(using=client, index='_all').query(qx)
+        s.aggs.bucket('by_time', 'date_histogram', field='@timestamp', interval=aggregation) \
+              .metric('dport_avg', 'avg', field='stats.dport_count') \
+              .metric('dport_max', 'max', field='stats.dport_count') \
+              .metric('dport_min', 'min', field='stats.dport_count')
+
+        result = s.execute()
+
+        data_raw = {}
+        data = "Timestamp,Average, Maximum, Minimum;"
+        for record in result.aggregations.by_time.buckets:
+            timestamp = record.key
+            dport_avg = round(record.dport_avg.value,2)
+            dport_max = round(record.dport_max.value, 2)
+            dport_min = round(record.dport_min.value, 2)
+
+            data += str(timestamp) + "," + str(dport_avg) + "," + str(dport_max) + "," + str(dport_min) + ";"
+
+        json_response = '{"status": "Ok", "host": "' + filter + '", "data": "' + data + '"}'
+        return (json_response)
+
+
+    except Exception as e:
+        json_response = '{"status": "Error", "data": "Elasticsearch query exception: ' + escape(str(e)) + '"}'
+        return json_response
+
+def get_host_distinct_peers():
+    """
+    Gets flows, packet and bytes time series for a given host
+
+    Returns: JSON with status "ok" or "error" and requested data.
+
+    """
+
+    # Check login
+    if not session.logged:
+        json_response = '{"status": "Error", "data": "You must be logged!"}'
+        return json_response
+
+    # Check mandatory inputs
+    if not (request.get_vars.beginning and request.get_vars.end and request.get_vars.aggregation and request.get_vars.filter):
+        json_response = '{"status": "Error", "data": "Some mandatory argument is missing!"}'
+        return json_response
+
+    # Parse inputs and set correct format
+    beginning = escape(request.get_vars.beginning)
+    end = escape(request.get_vars.end)
+    aggregation = escape(request.get_vars.aggregation)
+    filter = escape(request.get_vars.filter)
+
+    try:
+        # Elastic query
+        client = elasticsearch.Elasticsearch(
+            [{'host': myconf.get('consumer.hostname'), 'port': myconf.get('consumer.port')}])
+        elastic_bool = []
+        elastic_bool.append({'range': {'@timestamp': {'gte': beginning, 'lte': end}}})
+        elastic_bool.append({'term': {'src_ipv4': filter}})
+
+        qx = Q({'bool': {'must': elastic_bool}})
+        s = Search(using=client, index='_all').query(qx)
+        s.aggs.bucket('by_time', 'date_histogram', field='@timestamp', interval=aggregation) \
+              .metric('peer_avg', 'avg', field='stats.peer_number') \
+              .metric('peer_max', 'max', field='stats.peer_number') \
+              .metric('peer_min', 'min', field='stats.peer_number')
+
+        result = s.execute()
+
+        data_raw = {}
+        data = "Timestamp,Average, Maximum, Minimum;"
+        for record in result.aggregations.by_time.buckets:
+            timestamp = record.key
+            peer_avg = round(record.peer_avg.value,2)
+            peer_max = round(record.peer_max.value, 2)
+            peer_min = round(record.peer_min.value, 2)
+
+            data += str(timestamp) + "," + str(peer_avg) + "," + str(peer_max) + "," + str(peer_min) + ";"
+
+        json_response = '{"status": "Ok", "host": "' + filter + '", "data": "' + data + '"}'
+        return (json_response)
+
+
+    except Exception as e:
+        json_response = '{"status": "Error", "data": "Elasticsearch query exception: ' + escape(str(e)) + '"}'
+        return json_response

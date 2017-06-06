@@ -98,7 +98,7 @@
 </div>
 <!-- //Flow Charts -->
 
-<!-- Flow Charts-->
+<!-- TCP flags Charts-->
 <div class="panel-info widget-shadow general chart-host-flags">
     <h4 class="title2">TCP Flags</h4>
     <!-- Status -->
@@ -106,8 +106,27 @@
     <!-- Main Chart -->
     <div id="chart-host-flags" class="zingchart"></div>
 </div>
-<!-- //Flow Charts -->
+<!-- //TCP flags Charts -->
 
+<!-- Average Distinct Ports Charts-->
+<div class="panel-info widget-shadow general chart-host-ports">
+    <h4 class="title2">Distinct Destination Ports</h4>
+    <!-- Status -->
+    <div class="chart-status" id="chart-host-distinct-ports-status"></div>
+    <!-- Main Chart -->
+    <div id="chart-host-distinct-ports" class="zingchart"></div>
+</div>
+<!-- //Average Distinct Ports Charts-->
+
+<!-- Average Distinct Peers Charts-->
+<div class="panel-info widget-shadow general chart-host-ports">
+    <h4 class="title2">Distinct Destination Peers</h4>
+    <!-- Status -->
+    <div class="chart-status" id="chart-host-distinct-peers-status"></div>
+    <!-- Main Chart -->
+    <div id="chart-host-distinct-peers" class="zingchart"></div>
+</div>
+<!-- //Average Distinct Peers Charts-->
 
 <!-- Custom Scripts -->
 <script src="{{=URL('static','js/custom/datetime_interval.js')}}"></script>
