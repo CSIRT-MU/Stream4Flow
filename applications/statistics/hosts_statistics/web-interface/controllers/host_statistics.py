@@ -293,18 +293,22 @@ def get_host_distinct_ports():
 
         result = s.execute()
 
-        data_raw = {}
-        data = "Timestamp,Average, Maximum, Minimum;"
+        data_avg = []
+        data_min_max = []
+        data_max = []
+        data_min = []
         for record in result.aggregations.by_time.buckets:
             timestamp = record.key
-            dport_avg = round(record.dport_avg.value,2)
-            dport_max = round(record.dport_max.value, 2)
-            dport_min = round(record.dport_min.value, 2)
+            maximum = round(record.dport_max.value, 2)
+            minimum = round(record.dport_min.value, 2)
+            data_avg.append([timestamp,round(record.dport_avg.value,2)])
+            data_min_max.append([timestamp,[minimum, maximum ]])
+            data_max.append(maximum)
+            data_min.append(minimum)
 
-            data += str(timestamp) + "," + str(dport_avg) + "," + str(dport_max) + "," + str(dport_min) + ";"
 
-        json_response = '{"status": "Ok", "host": "' + filter + '", "data": "' + data + '"}'
-        return (json_response)
+        json_response = {"status": "Ok", "host": filter, "data":{ "data_avg": data_avg, "data_min_max": data_min_max, "data_min": data_min, "data_max": data_max}}
+        return (json.dumps(json_response))
 
 
     except Exception as e:
@@ -352,18 +356,22 @@ def get_host_distinct_peers():
 
         result = s.execute()
 
-        data_raw = {}
-        data = "Timestamp,Average, Maximum, Minimum;"
+        data_avg = []
+        data_min_max=[]
+        data_max = []
+        data_min = []
         for record in result.aggregations.by_time.buckets:
             timestamp = record.key
-            peer_avg = round(record.peer_avg.value,2)
-            peer_max = round(record.peer_max.value, 2)
-            peer_min = round(record.peer_min.value, 2)
+            maximum = round(record.peer_max.value, 2)
+            minimum = round(record.peer_min.value, 2)
+            data_avg.append([timestamp,round(record.peer_avg.value,2)])
+            data_min_max.append([timestamp,[minimum, maximum ]])
+            data_max.append(maximum)
+            data_min.append(minimum)
 
-            data += str(timestamp) + "," + str(peer_avg) + "," + str(peer_max) + "," + str(peer_min) + ";"
 
-        json_response = '{"status": "Ok", "host": "' + filter + '", "data": "' + data + '"}'
-        return (json_response)
+        json_response = {"status": "Ok", "host": filter, "data":{ "data_avg": data_avg, "data_min_max": data_min_max, "data_min": data_min, "data_max": data_max}}
+        return (json.dumps(json_response))
 
 
     except Exception as e:

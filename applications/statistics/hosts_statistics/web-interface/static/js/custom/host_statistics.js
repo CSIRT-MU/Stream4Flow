@@ -496,7 +496,7 @@ function generateHostDistinctPorts(data, host) {
 
     // ZingChart configuration
     var myConfig = {
-        type: 'line',
+        type: 'mixed',
         backgroundColor:'#fff',
         title:{
             text: 'Distinct Destination Ports for a Host ' + host,
@@ -527,7 +527,9 @@ function generateHostDistinctPorts(data, host) {
             marker:{
                 borderWidth: 0,
                 size: 3
-            }
+            },
+            "data-min": data.data_min,
+            "data-max": data.data_max,
         },
         scaleX:{
             lineColor: '#444444',
@@ -579,50 +581,46 @@ function generateHostDistinctPorts(data, host) {
             }
         },
         crosshairX:{
-            plotLabel:{
-                multiple: true,
-                borderRadius: 3
+              scaleLabel:{
+                backgroundColor:"#7CB5EC"
+              },
+              plotLabel:{
+                backgroundColor:"white",
+                multiple:false,
+                borderRadius:3,
+                text: "<span style='color:#29a2cc;font-weight:bold;'>Avg</span>: %v Ports \n<span style='color:#abd1f2;font-weight:bold;'>Range</span>: %data-min - %data-max Ports"
+              }
             },
-            scaleLabel:{
-                backgroundColor:'#373f47',
-                borderRadius: 3
-            },
-            marker:{
-                size: 7,
-                alpha: 0.5
-            }
-        },
-        csv:{
-            dataString: data,
-            rowSeparator: ';',
-            separator: ',',
-            verticalLabels: true
-        },
         series:[
-            {
-             //average line color
-             "line-color":"#29a2cc",
-             "marker":{
-                "background-color":"#29a2cc",
-                "border-color":"#29a2cc"
-             }
-            },
-            {
-             //maximum line color
-             "line-color":"#d31e1e",
-             "marker":{
-                "background-color":"#d31e1e",
-                "border-color":"#d31e1e"
-             }
-            },
-            {
-             //minimum line color
-             "line-color":"#d31e1e",
-             "marker":{
-                "background-color":"#d31e1e",
-                "border-color":"#d31e1e"
-             }
-            }
+          {
+	        type:"line",
+	        values:data.data_avg,
+	        text : "Average",
+            lineWidth:1,
+            shadow:false,
+            lineColor:"#29a2cc",
+        	tooltip:{
+			  visible:false
+			}
+
+          },
+    	  {
+		  type:"range",
+			values : data.data_min_max,
+			text: "Min-max range",
+			backgroundColor:"#abd1f2",
+			lineColor:"#abd1f2",
+			lineWidth:0,
+			marker:{
+			  visible:false
+			},
+			tooltip:{
+			  visible:false
+			},
+			guideLabel:{
+			  visible:false
+			}
+		}
         ]
 
     };
@@ -694,9 +692,10 @@ function generateHostDistinctPeers(data, host) {
     // Show chart element
     $('#' + chartId).show();
 
+
     // ZingChart configuration
     var myConfig = {
-        type: 'line',
+        type: 'mixed',
         backgroundColor:'#fff',
         title:{
             text: 'Distinct Peers for a Host ' + host,
@@ -727,7 +726,9 @@ function generateHostDistinctPeers(data, host) {
             marker:{
                 borderWidth: 0,
                 size: 3
-            }
+            },
+            "data-min": data.data_min,
+            "data-max": data.data_max,
         },
         scaleX:{
             lineColor: '#444444',
@@ -779,50 +780,46 @@ function generateHostDistinctPeers(data, host) {
             }
         },
         crosshairX:{
-            plotLabel:{
-                multiple: true,
-                borderRadius: 3
+              scaleLabel:{
+                backgroundColor:"#7CB5EC"
+              },
+              plotLabel:{
+                backgroundColor:"white",
+                multiple:false,
+                borderRadius:3,
+                text: "<span style='color:#29a2cc;font-weight:bold;'>Avg</span>: %v Peers \n<span style='color:#abd1f2;font-weight:bold;'>Range</span>: %data-min - %data-max Peers"
+              }
             },
-            scaleLabel:{
-                backgroundColor:'#373f47',
-                borderRadius: 3
-            },
-            marker:{
-                size: 7,
-                alpha: 0.5
-            }
-        },
-        csv:{
-            dataString: data,
-            rowSeparator: ';',
-            separator: ',',
-            verticalLabels: true
-        },
         series:[
-            {
-             //average line color
-             "line-color":"#29a2cc",
-             "marker":{
-                "background-color":"#29a2cc",
-                "border-color":"#29a2cc"
-             }
-            },
-            {
-             //maximum line color
-             "line-color":"#d31e1e",
-             "marker":{
-                "background-color":"#d31e1e",
-                "border-color":"#d31e1e"
-             }
-            },
-            {
-             //minimum line color
-             "line-color":"#d31e1e",
-             "marker":{
-                "background-color":"#d31e1e",
-                "border-color":"#d31e1e"
-             }
-            }
+          {
+	        type:"line",
+	        values:data.data_avg,
+	        text : "Average",
+            lineWidth:1,
+            shadow:false,
+            lineColor:"#29a2cc",
+        	tooltip:{
+			  visible:false
+			}
+
+          },
+    	  {
+		  type:"range",
+			values : data.data_min_max,
+			text: "Min-max range",
+			backgroundColor:"#abd1f2",
+			lineColor:"#abd1f2",
+			lineWidth:0,
+			marker:{
+			  visible:false
+			},
+			tooltip:{
+			  visible:false
+			},
+			guideLabel:{
+			  visible:false
+			}
+		}
         ]
 
     };
