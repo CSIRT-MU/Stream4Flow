@@ -123,7 +123,7 @@ def process_results(json_rdd, n=10):
         json_dst_host_list = map(lambda ip_logs: {"dst_host": ip_logs.host, "flows": ip_logs.flows}, dst_host_data_sorted_top_n)
 
         # construct the output object in predefined format
-        result_dict = {"@type": "top_n_host_destinations", "src_ipv4": ip, "stats": json_dst_host_list}
+        result_dict = {"@type": "top_n_destination_hosts", "src_ipv4": ip, "stats": json_dst_host_list}
 
         # send the processed data in json form
         send_data(json.dumps(result_dict), args.output_host)
