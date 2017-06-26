@@ -30,12 +30,13 @@ for each host each window contain:
     - a list of top n most active ports as sorted by a number of flows on a given port
 
 Usage:
-  top_n_host_stats.py -iz <input-zookeeper-hostname>:<input-zookeeper-port> -it <input-topic> -oh
-    <output-hostname>:<output-port> -net <CIDR network range>
+  top_n_host_ports.py -iz <input-zookeeper-hostname>:<input-zookeeper-port> -it <input-topic> -oh
+    <output-hostname>:<output-port> -n <max. # of ports for host> -net <CIDR network range>
 
   To run this on the Stream4Flow, you need to receive flows by IPFIXCol and make them available via Kafka topic. Then
   you can run the example
-    $ ./run-application.sh ./statistics/hosts_statistics/spark/top_n_host_stats.py -iz producer:2181 -it ipfix.entry -oh consumer:20101 -net "10.0.0.0/24"
+    $ ./run-application.sh ./statistics/hosts_statistics/spark/top_n_host_ports.py -iz producer:2181 -it ipfix.entry
+    -oh consumer:20101 -n 5 -net "10.0.0.0/24"
 
 """
 
@@ -65,6 +66,7 @@ def send_data(data, output_host):
     :param data: data to send
     :param output_host: data receiver in the "hostname:port" format
     """
+    print data
 
     # Split outputHost hostname and port
     host = output_host.split(':')
@@ -108,6 +110,10 @@ def process_results(json_rdd, n=10):
     :return: json with selected TOP n ports by # of flows for each src IP
     """
 
+    # fill in n from input params
+    if args.top_n is not None:
+        n = int(args.top_n)
+
     for ip, port_data in json_rdd.iteritems():
         # sort the IP's ports traffic by a number of flows in descending order
         port_data_sorted = sorted(port_data, key=lambda entry: entry.flows, reverse=True)
@@ -117,7 +123,7 @@ def process_results(json_rdd, n=10):
         json_port_list = map(lambda ip_logs: {"port": ip_logs.port, "flows": ip_logs.flows}, port_data_sorted_top_n)
 
         # construct the output object in predefined format
-        result_dict = {"@type": "top_n_host_stats", "src_ipv4": ip, "stats": json_port_list}
+        result_dict = {"@type": "top_n_host_ports", "src_ipv4": ip, "stats": json_port_list}
 
         # send the processed data in json form
         send_data(json.dumps(result_dict), args.output_host)
@@ -158,6 +164,7 @@ if __name__ == "__main__":
     parser.add_argument("-it", "--input_topic", help="input kafka topic", type=str, required=True)
     parser.add_argument("-oh", "--output_host", help="output hostname:port", type=str, required=True)
     parser.add_argument("-net", "--network_range", help="network range to watch", type=str, required=True)
+    parser.add_argument("-n", "--top_n", help="max. number of ports for a host to retrieve", type=int, required=False)
 
     # Parse arguments.
     args = parser.parse_args()
