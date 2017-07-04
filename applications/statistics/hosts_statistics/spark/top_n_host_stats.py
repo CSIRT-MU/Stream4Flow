@@ -162,7 +162,7 @@ def process_results(json_rdd, n=10):
                        "stats": port_data_dict}
 
         # send the processed data in json form
-        send_data(json.dumps(result_dict), args.output_host)
+        send_data(json.dumps(result_dict)+"\n", args.output_host)
 
 
 def count_host_stats(flow_json):
@@ -216,6 +216,7 @@ def count_host_stats(flow_json):
     # join the gathered stats on a shared keys (=srcIPs)
     port_host_stats_joined = flows_for_ip_ports.join(flows_for_ip_dst_hosts)
     port_host_stats_joined = port_host_stats_joined.join(flows_for_ip_http_hosts)
+    # cast the joined stats to IPStats objects
     port_host_stats_joined_obj = port_host_stats_joined.mapValues(lambda values: IPStats(values[0][0], values[0][1], values[1]))
 
     return port_host_stats_joined_obj
