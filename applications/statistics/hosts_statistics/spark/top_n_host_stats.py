@@ -90,7 +90,7 @@ def send_data(data, output_host):
         sock.close()
 
 
-def _sorted(stats_values):
+def _sort_by_flows(stats_values):
     """
     Sorts the list of StatsItem by flows attribute
     :param stats_values: list of StatsItem
@@ -105,7 +105,14 @@ def _parse_stats_items_list(stats_values):
     :param stats_values: list of StatsItem
     :return: dict in output JSON format
     """
-    return map(lambda stats_item: {stats_item.type: stats_item.key, "flows": stats_item.flows}, stats_values)
+    item_list = map(lambda stats_item: {stats_item.type: stats_item.key, "flows": stats_item.flows}, stats_values)
+
+    # format the list of parsed StatsItems to a dict with keys of items' ordering
+    labeled_item_dict = {}
+    for order, item in map(lambda order: (order, item_list[order]), range(len(item_list))):
+        labeled_item_dict[int(order)] = item
+
+    return labeled_item_dict
 
 
 def process_results(json_rdd, n=10):
@@ -117,23 +124,23 @@ def process_results(json_rdd, n=10):
      "@type":"host_stats_topn_ports",
      "stats":{
         "top_n_dst_ports":
-            [
-                {"port":<port #1>, "flows":# of flows},
+            {
+                "0": {"port":<port #1>, "flows":# of flows},
                 ...
-                {"port":<port #n>, "flows":# of flows}
-            ],
+                "n": {"port":<port #n>, "flows":# of flows}
+            },
             "top_n_dst_hosts":
-            [
-                {"dst_host":<dst_host #1>, "flows":# of flows},
+            {
+                "0": {"dst_host":<dst_host #1>, "flows":# of flows},
                 ...
-                {"dst_host":<dst_host #n>, "flows":# of flows}
-            ]
+                "n": {"dst_host":<dst_host #n>, "flows":# of flows}
+            }
             "top_n_http_dst":
-            [
-                {"dst_host":<dst_host #1>, "flows":# of flows},
+            {
+                "0": {"dst_host":<dst_host #1>, "flows":# of flows},
                 ...
-                {"dst_host":<dst_host #n>, "flows":# of flows}
-            ]
+                "n": {"dst_host":<dst_host #n>, "flows":# of flows}
+            }
         }
     }
 
@@ -152,7 +159,7 @@ def process_results(json_rdd, n=10):
                           "top_n_http_dst": ip_stats.http_hosts}
 
         # take top n entries from IP's particular stats sorted by flows param
-        port_data_dict = {key: _sorted(val_list)[:n] for (key, val_list) in port_data_dict.iteritems()}
+        port_data_dict = {key: _sort_by_flows(val_list)[:n] for (key, val_list) in port_data_dict.iteritems()}
         # parse the stats from StatsItem to a desirable form
         port_data_dict = {key: _parse_stats_items_list(val_list) for (key, val_list) in port_data_dict.iteritems()}
 
