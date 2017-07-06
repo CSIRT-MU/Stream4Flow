@@ -8,7 +8,7 @@
     host: consumer
     state: present
     delay: 10
-    timeout: 15
+    timeout: {{ time_sending }}
 
 - name: Run query test
   command: python /tmp/query_for_data.py
