@@ -31,13 +31,13 @@ responses significantly greater than a size of the requests. The method is aimed
 network infrastructure (only DNS traffic on UDP is considered)
 
 Usage:
-  detection_reflectddos.py -iz <input-zookeeper-hostname>:<input-zookeeper-port> -it <input-topic> -oh
-    <output-hostname>:<output-port> -dns <comma separated list of DNS servers IP addresses>
+  detection_reflectddos.py -iz <input-zookeeper-hostname>:<input-zookeeper-port> -it <input-topic>
+  -b <broker-address:broker-port> -t <output-topic> -dns <comma separated list of DNS servers IP addresses>
 
   To run this on the Stream4Flow, you need to receive flows by IPFIXCol and make them available via Kafka topic. Then
   you can run the example
     $ /home/spark/applications/run-application.sh  detection/reflected_ddos/spark/detection_reflectddos.py
-    -iz producer:2181 -it ipfix.entry -oh consumer:20101 -dns "10.10.0.1,10.10.0.2
+    -iz producer:2181 -it ipfix.entry -b producer:9092 -t spark.output -dns "10.10.0.1,10.10.0.2"
 
 """
 
@@ -53,32 +53,22 @@ from pyspark import SparkContext  # Spark API
 from pyspark.streaming import StreamingContext  # Spark streaming API
 from pyspark.streaming.kafka import KafkaUtils  # Spark streaming Kafka receiver
 
+from kafka import KafkaProducer  # Kafka Python client
 
-def send_data(data, output_host):
+
+def send_to_kafka(data, producer, topic):
     """
-    Send given data to the specified host using standard socket interface.
+    Send given data to the specified kafka topic.
 
     :param data: data to send
-    :param output_host: data receiver in the "hostname:port" format
+    :param producer: producer that sends the data
+    :param topic: name of the receiving kafka topic
     """
-
-    # Split outputHost hostname and port
-    host = output_host.split(':')
-
-    # Prepare a TCP socket.
-    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-
-    # Connect to the outputHost and send given data
-    try:
-        sock.connect((host[0], int(host[1])))
-        sock.send(data)
-    except socket.error:
-        cprint("[warning] Unable to connect to host " + output_host, "blue")
-    finally:
-        sock.close()
+    producer.send(topic, str(data))
+    producer.flush()
 
 
-def print_and_send(rdd, output_host):
+def print_and_send(rdd, producer, topic):
     """
     Transform given computation results into the JSON format and send them to the specified host.
 
@@ -88,9 +78,9 @@ def print_and_send(rdd, output_host):
          "src_ipv4": <list of attack targets>, "dns_ip": <IP address of attacked DNS server>}
     
     :param rdd: map of detected dns servers
-    :param output_host: results receiver in the "hostname:port" format
-
-    """  
+    :param producer: producer that sends the data
+    :param topic: name of the receiving kafka topic
+    """
 
     results = ""
     dns_transfers = rdd.collectAsMap()
@@ -112,8 +102,8 @@ def print_and_send(rdd, output_host):
     # Print results to stdout
     print("sending json: \n%s" % results)
 
-    # Send results to the given host.
-    send_data(results, output_host)
+    # Send results to the specified kafka topic
+    send_to_kafka(results, producer, topic)
 
 
 def inspect_reflectdos(stream_data):
@@ -174,7 +164,10 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("-iz", "--input_zookeeper", help="input zookeeper hostname:port", type=str, required=True)
     parser.add_argument("-it", "--input_topic", help="input kafka topic", type=str, required=True)
-    parser.add_argument("-oh", "--output_host", help="output hostname:port", type=str, required=True)
+    parser.add_argument("-b", "--output_broker", help="address:port of broker to which output is sent",
+                        type=str, required=True)
+    parser.add_argument("-t", "--output_topic", help="name of the kafka topic to which output is sent",
+                        type=str, required=True)
     parser.add_argument("-dns", "--dns_servers", help="adreses of DNS servers to watch", type=str, required=True)
 
     # Parse arguments
@@ -211,8 +204,14 @@ if __name__ == "__main__":
     # Process data to the defined function.
     reflectdos_result = inspect_reflectdos(flows_json_windowed)
 
+    # Prepare producer
+    broker = args.output_broker
+    topic = args.output_topic
+    producer = KafkaProducer(bootstrap_servers=broker)
+    kvs = KafkaUtils.createDirectStream(ssc, [topic], {"metadata.broker.list": broker})
+
     # Process the results of the detection and send them to the specified host
-    reflectdos_result.foreachRDD(lambda rdd: print_and_send(rdd, args.output_host))
+    reflectdos_result.foreachRDD(lambda rdd: print_and_send(rdd, producer, topic))
 
     # Start input data processing
     ssc.start()
