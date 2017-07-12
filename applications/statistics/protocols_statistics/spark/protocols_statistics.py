@@ -28,11 +28,12 @@
  Counts number of flows, packets, and bytes for TCP, UDP, and other flows received from Kafka every 10 seconds.
 
  Usage:
-    protocols_statistics.py -iz <input-zookeeper-hostname>:<input-zookeeper-port> -it <input-topic> -b <broker-address:broker-port> -t <output-topic>
+    protocols_statistics.py -iz <input-zookeeper-hostname>:<input-zookeeper-port> -it <input-topic> -oz
+    <output-zookeeper-hostname>:<output-zookeeper-port> -ot <output-topic>
 
  To run this on the Stream4Flow, you need to receive flows by IPFIXCol and make them available via Kafka topic. Then
  you can run the example
-    $ ./run-application.sh ./examples/protocols_statistics.py -iz producer:2181 -it ipfix.entry -b producer:9092 -t spark.output
+    $ ./run-application.sh ./examples/protocols_statistics.py -iz producer:2181 -it ipfix.entry -oz producer:9092 -ot results.output
 """
 
 
@@ -145,10 +146,8 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("-iz", "--input_zookeeper", help="input zookeeper hostname:port", type=str, required=True)
     parser.add_argument("-it", "--input_topic", help="input kafka topic", type=str, required=True)
-    parser.add_argument("-b", "--output_broker", help="address:port of broker to which output is sent",
-                        type=str, required=True)
-    parser.add_argument("-t", "--output_topic", help="name of the kafka topic to which output is sent",
-                        type=str, required=True)
+    parser.add_argument("-oz", "--output_zookeeper", help="output zookeeper hostname:port", type=str, required=True)
+    parser.add_argument("-ot", "--output_topic", help="output kafka topic", type=str, required=True)
 
     # Parse obtained arguments
     args = parser.parse_args()
@@ -172,14 +171,12 @@ if __name__ == "__main__":
     # Count statistics of the UDP, TCP, and other protocols
     statistics = count_protocols_statistics(flows_json, window_duration, window_slide)
 
-    # Prepare producer
-    broker = args.output_broker
-    topic = args.output_topic
-    producer = KafkaProducer(bootstrap_servers=broker)
-    kvs = KafkaUtils.createDirectStream(ssc, [topic], {"metadata.broker.list": broker})
+    # Initialize kafka producer
+    kafka_producer = KafkaProducer(bootstrap_servers=args.output_zookeeper,
+                                   client_id="spark-producer-" + application_name)
 
     # Process computed statistics and send them to the specified host
-    statistics.foreachRDD(lambda rdd: process_results(rdd.collectAsMap(), producer, topic))
+    statistics.foreachRDD(lambda rdd: process_results(rdd.collectAsMap(), kafka_producer, args.output_topic))
 
     # Start Spark streaming context
     ssc.start()

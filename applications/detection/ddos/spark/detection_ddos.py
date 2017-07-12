@@ -31,12 +31,12 @@ the incoming/outgoing packet volume ratio and its variance to the long-time (lon
 
 Usage:
   detection_ddos.py -iz <input-zookeeper-hostname>:<input-zookeeper-port> -it <input-topic>
-  -b <broker-address:broker-port> -t <output-topic>
+  -oz <output-zookeeper-hostname>:<output-zookeeper-port> -ot <output-topic> -nf <regex for network range>
 
   To run this on the Stream4Flow, you need to receive flows by IPFIXCol and make them available via Kafka topic. Then
   you can run the example
     $ /home/spark/applications/run-application.sh detection/ddos/spark/detection_ddos.py
-     -iz producer:2181 -it ipfix.entry -b producer:9092 -t spark.output -nf "10\.10\..+"
+     -iz producer:2181 -it ipfix.entry -oz producer:9092 -ot results.output -nf "10\.10\..+"
 """
 
 import sys  # Common system functions
@@ -172,10 +172,8 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("-iz", "--input_zookeeper", help="input zookeeper hostname:port", type=str, required=True)
     parser.add_argument("-it", "--input_topic", help="input kafka topic", type=str, required=True)
-    parser.add_argument("-b", "--output_broker", help="address:port of broker to which output is sent",
-                        type=str, required=True)
-    parser.add_argument("-t", "--output_topic", help="name of the kafka topic to which output is sent",
-                        type=str, required=True)
+    parser.add_argument("-oz", "--output_zookeeper", help="output zookeeper hostname:port", type=str, required=True)
+    parser.add_argument("-ot", "--output_topic", help="output kafka topic", type=str, required=True)
     parser.add_argument("-nf", "--network_filter", help="regular expression filtering the watched IPs", type=str, required=True)
 
     # Parse arguments.
@@ -204,14 +202,12 @@ if __name__ == "__main__":
     # Run the detection of ddos
     ddos_result = inspect_ddos(input_stream)
 
-    # Prepare producer
-    broker = args.output_broker
-    topic = args.output_topic
-    producer = KafkaProducer(bootstrap_servers=broker)
-    kvs = KafkaUtils.createDirectStream(ssc, [topic], {"metadata.broker.list": broker})
+    # Initialize kafka producer
+    kafka_producer = KafkaProducer(bootstrap_servers=args.output_zookeeper,
+                                   client_id="spark-producer-" + application_name)
 
     # Process the results of the detection and send them to the specified host
-    ddos_result.foreachRDD(lambda rdd: print_and_send(rdd, producer, topic))
+    ddos_result.foreachRDD(lambda rdd: print_and_send(rdd, kafka_producer, args.output_topic))
 
     # Start input data processing
     ssc.start()

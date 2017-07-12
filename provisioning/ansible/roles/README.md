@@ -16,7 +16,7 @@ Install Elastic cluster on the consumer machine
 - elasticsearch_elasticsearch.yml.j2 - elasticsearch base configuration
 - elasticsearch_logging.yml.j2 - elasticsearch logging configuration
 - kibana.yml.j2 - Kibana configuration
-- logstash_spark-to-elastic.conf.j2 - Logstash configuration file
+- logstash_kafka-to-elastic.conf.j2 - Logstash configuration file
 - logstash_templates_spark-elasticsearch-template.json.j2 - Logstash template file
 
 ## Example-application

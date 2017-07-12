@@ -33,7 +33,7 @@ We have it all prepared for you. Everything is preconfigured. You have to only c
 - login: **Stream4Flow**
 
 #### Requirements
-- [Vagrant](https://www.vagrantup.com/) >= 1.8.4
+- [Vagrant](https://www.vagrantup.com/) >= 1.9.7
 - [ansible](https://www.ansible.com/) >= 2.1.0
 - python 2.7
 - Internet connection
@@ -77,7 +77,7 @@ _Note:  machines in cluster must run Debian OS with systemd_
 2. go to application directory
 `cd /home/spark/applications/`
 3. run example application
-`./run-application.sh ./protocols-statistics/protocols_statistics.py -iz producer:2181 -it ipfix.entry -b producer:9092 -t spark.output`
+`./run-application.sh ./protocols-statistics/protocols_statistics.py -iz producer:2181 -it ipfix.entry -oz producer:9092 -ot results.output`
  
 
 #### Send data to Stream4Flow

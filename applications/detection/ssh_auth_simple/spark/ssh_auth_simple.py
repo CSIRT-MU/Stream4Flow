@@ -39,16 +39,16 @@ Default values are:
 
 Default output parameters:
     * Address and port of the broker: 10.16.31.200:9092
-    * Kafka topic: spark.output
+    * Kafka topic: results.output
 
 Usage:
     ssh_auth_simple.py -iz <input-zookeeper-hostname>:<input-zookeeper-port> -it <input-topic>
-    -b <broker-address:broker-port> -t <output-topic>
+    -oz <output-zookeeper-hostname>:<output-zookeeper-port> -ot <output-topic>
 
 To run this on the Stream4Flow, you need to receive flows by IPFIXCol and make them available via Kafka topic. Then you
 can run the application
     $ ./run-application.sh ./detection/ssh_auth_simple/spark/ssh_auth_simple.py -iz producer:2181\
-    -it ipfix.entry -b producer:9092 -t spark.output
+    -it ipfix.entry -oz producer:9092 -ot results.output
 """
 
 
@@ -240,10 +240,8 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("-iz", "--input_zookeeper", help="input zookeeper hostname:port", type=str, required=True)
     parser.add_argument("-it", "--input_topic", help="input kafka topic", type=str, required=True)
-    parser.add_argument("-b", "--output_broker", help="address:port of broker to which output is sent",
-                        type=str, required=True)
-    parser.add_argument("-t", "--output_topic", help="name of the kafka topic to which output is sent",
-                        type=str, required=True)
+    parser.add_argument("-oz", "--output_zookeeper", help="output zookeeper hostname:port", type=str, required=True)
+    parser.add_argument("-ot", "--output_topic", help="output kafka topic", type=str, required=True)
     parser.add_argument("-w", "--window_size", help="window size (in seconds)", type=int, required=False, default=300)
 
     # Define Arguments for detection
@@ -284,14 +282,12 @@ if __name__ == "__main__":
     attacks = check_for_attacks_ssh(flows_json, args.min_packets, args.max_packets, args.min_bytes, args.max_bytes,
                                     args.max_duration, args.flows_threshold, window_duration, window_slide)
 
-    # Prepare producer
-    broker = args.output_broker
-    topic = args.output_topic
-    producer = KafkaProducer(bootstrap_servers=broker)
-    kvs = KafkaUtils.createDirectStream(ssc, [topic], {"metadata.broker.list": broker})
+    # Initialize kafka producer
+    kafka_producer = KafkaProducer(bootstrap_servers=args.output_zookeeper,
+                                   client_id="spark-producer-" + application_name)
 
     # Process computed statistics and send them to the standard output
-    attacks.foreachRDD(lambda rdd: process_results(rdd.collectAsMap(), producer, topic, window_duration))
+    attacks.foreachRDD(lambda rdd: process_results(rdd.collectAsMap(), kafka_producer, args.output_topic, window_duration))
 
     # Start Spark streaming context
     ssc.start()

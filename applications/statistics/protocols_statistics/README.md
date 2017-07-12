@@ -6,10 +6,10 @@ Counts number of flows, packets, and bytes for TCP, UDP, and other flows receive
 
 ### Usage:
 - General 
-` protocols_statistics.py -iz <input-zookeeper-hostname>:<input-zookeeper-port> -it <input-topic> -oh <output-hostname>:<output-port>`
+` protocols_statistics.py -iz <input-zookeeper-hostname>:<input-zookeeper-port> -it <input-topic> -oz <output-zookeeper-hostname>:<output-zookeeper-port> -ot <output-topic>`
 
 - To run this on the Stream4Flow, you need to receive flows by IPFIXCol and make them available via Kafka topic. Then
  you can run the example
-`/home/spark/applications/run-application.sh /home/spark/applications//examples/protocols_statistics.py -iz producer:2181 -it ipfix.entry -oh consumer:20101"`
+`/home/spark/applications/run-application.sh /home/spark/applications/examples/protocols_statistics.py -iz producer:2181 -it ipfix.entry -oz producer:9092 -ot results.output`
 
 
