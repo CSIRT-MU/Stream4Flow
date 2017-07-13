@@ -2,7 +2,7 @@ input {
 	kafka{
 	    topics => ["results.output"]
         bootstrap_servers => "{{  producerIP  }}:9092"
-        codec => "json"
+        codec => "json_lines"
     }
 }
 output{
