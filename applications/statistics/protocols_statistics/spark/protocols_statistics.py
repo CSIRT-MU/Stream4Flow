@@ -60,7 +60,6 @@ def send_to_kafka(data, producer, topic):
     :param topic: name of the receiving kafka topic
     """
     producer.send(topic, str(data))
-    producer.flush()
 
 
 def process_results(results, producer, topic):
@@ -177,6 +176,9 @@ if __name__ == "__main__":
 
     # Process computed statistics and send them to the specified host
     statistics.foreachRDD(lambda rdd: process_results(rdd.collectAsMap(), kafka_producer, args.output_topic))
+
+    # Send any remaining buffered records
+    kafka_producer.flush()
 
     # Start Spark streaming context
     ssc.start()

@@ -5,9 +5,10 @@
   with_items:
   - python-pip
   - git
-# Instal ujson and termcolor modules for application
+# Instal ujson, termcolor and kafka modules for application
 - name: Install python modules
   pip: name={{item}} executable=pip
   with_items:
   - ujson
   - termcolor
+  - kafka

@@ -65,7 +65,6 @@ def send_to_kafka(data, producer, topic):
     :param topic: name of the receiving kafka topic
     """
     producer.send(topic, str(data))
-    producer.flush()
 
 
 def print_and_send(rdd, producer, topic):
@@ -208,6 +207,9 @@ if __name__ == "__main__":
 
     # Process the results of the detection and send them to the specified host
     reflectdos_result.foreachRDD(lambda rdd: print_and_send(rdd, kafka_producer, args.output_topic))
+
+    # Send any remaining buffered records
+    kafka_producer.flush()
 
     # Start input data processing
     ssc.start()

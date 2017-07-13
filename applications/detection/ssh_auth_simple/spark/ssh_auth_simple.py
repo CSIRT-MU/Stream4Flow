@@ -76,7 +76,6 @@ def send_to_kafka(data, producer, topic):
     :param topic: name of the receiving kafka topic
     """
     producer.send(topic, str(data))
-    producer.flush()
 
 
 # Saves attacks in dictionary, so 1 attack is not reported multiple times
@@ -288,6 +287,9 @@ if __name__ == "__main__":
 
     # Process computed statistics and send them to the standard output
     attacks.foreachRDD(lambda rdd: process_results(rdd.collectAsMap(), kafka_producer, args.output_topic, window_duration))
+
+    # Send any remaining buffered records
+    kafka_producer.flush()
 
     # Start Spark streaming context
     ssc.start()
