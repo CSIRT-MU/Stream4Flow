@@ -37,14 +37,18 @@ Default values are:
     * min amount of flows: 10
     * windows size: 300
 
+Default output parameters:
+    * Address and port of the broker: 10.16.31.200:9092
+    * Kafka topic: results.output
+
 Usage:
     ssh_auth_simple.py -iz <input-zookeeper-hostname>:<input-zookeeper-port> -it <input-topic>
-    -oh <output-hostname>:<output-port>
+    -oz <output-zookeeper-hostname>:<output-zookeeper-port> -ot <output-topic>
 
 To run this on the Stream4Flow, you need to receive flows by IPFIXCol and make them available via Kafka topic. Then you
 can run the application
     $ ./run-application.sh ./detection/ssh_auth_simple/spark/ssh_auth_simple.py -iz producer:2181\
-    -it ipfix.entry -oh consumer:20101
+    -it ipfix.entry -oz producer:9092 -ot results.output
 """
 
 
@@ -52,7 +56,6 @@ import sys  # Common system functions
 import os  # Common operating system functions
 import argparse  # Arguments parser
 import ujson as json  # Fast JSON parser
-import socket  # Socket interface
 import time  # Unix time to timestamp conversion
 
 from termcolor import cprint  # Colors in the console output
@@ -61,29 +64,18 @@ from pyspark import SparkContext  # Spark API
 from pyspark.streaming import StreamingContext  # Spark streaming API
 from pyspark.streaming.kafka import KafkaUtils  # Spark streaming Kafka receiver
 
+from kafka import KafkaProducer  # Kafka Python client
 
-def send_data(data, output_host):
+
+def send_to_kafka(data, producer, topic):
     """
-    Send given data to the specified host using standard socket interface.
+    Send given data to the specified kafka topic.
 
     :param data: data to send
-    :param output_host: data receiver in the "hostname:port" format
+    :param producer: producer that sends the data
+    :param topic: name of the receiving kafka topic
     """
-
-    # Split outputHost hostname and port
-    host = output_host.split(':')
-
-    # Prepare a TCP socket.
-    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-
-    # Connect to the outputHost and send given data
-    try:
-        sock.connect((host[0], int(host[1])))
-        sock.send(data)
-    except socket.error:
-        cprint("[warning] Unable to connect to host " + output_host, "blue")
-    finally:
-        sock.close()
+    producer.send(topic, str(data))
 
 
 # Saves attacks in dictionary, so 1 attack is not reported multiple times
@@ -132,12 +124,13 @@ def get_output_json(key, value, flows_increment):
     return output_json
 
 
-def process_results(results, output_host, s_window_duration):
+def process_results(results, producer, topic, s_window_duration):
     """
     Check if attack was reported, or additional flows were detected in same attack and report it.
 
     :param results: flows that should be reported as attack
-    :param output_host: where to send processed data
+    :param producer: producer that sends the data
+    :param topic: name of the receiving kafka topic
     :param s_window_duration: window size (in seconds)
     """
 
@@ -163,8 +156,8 @@ def process_results(results, output_host, s_window_duration):
         # Check if dictionary cleaning is necessary
         clean_old_data_from_dictionary(s_window_duration)
 
-        # Send results to the specified host
-        send_data(output_json, output_host)
+        # Send results to the specified kafka topic
+        send_to_kafka(output_json, producer, topic)
 
 
 def get_key_with_ip_version(record, wanted_key):
@@ -246,7 +239,8 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("-iz", "--input_zookeeper", help="input zookeeper hostname:port", type=str, required=True)
     parser.add_argument("-it", "--input_topic", help="input kafka topic", type=str, required=True)
-    parser.add_argument("-oh", "--output_host", help="output hostname:port", type=str, required=True)
+    parser.add_argument("-oz", "--output_zookeeper", help="output zookeeper hostname:port", type=str, required=True)
+    parser.add_argument("-ot", "--output_topic", help="output kafka topic", type=str, required=True)
     parser.add_argument("-w", "--window_size", help="window size (in seconds)", type=int, required=False, default=300)
 
     # Define Arguments for detection
@@ -287,8 +281,15 @@ if __name__ == "__main__":
     attacks = check_for_attacks_ssh(flows_json, args.min_packets, args.max_packets, args.min_bytes, args.max_bytes,
                                     args.max_duration, args.flows_threshold, window_duration, window_slide)
 
+    # Initialize kafka producer
+    kafka_producer = KafkaProducer(bootstrap_servers=args.output_zookeeper,
+                                   client_id="spark-producer-" + application_name)
+
     # Process computed statistics and send them to the standard output
-    attacks.foreachRDD(lambda rdd: process_results(rdd.collectAsMap(), args.output_host, window_duration))
+    attacks.foreachRDD(lambda rdd: process_results(rdd.collectAsMap(), kafka_producer, args.output_topic, window_duration))
+
+    # Send any remaining buffered records
+    kafka_producer.flush()
 
     # Start Spark streaming context
     ssc.start()

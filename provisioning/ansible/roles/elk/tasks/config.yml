@@ -22,8 +22,8 @@
   service: name=kibana state=restarted enabled=yes
 
 # Logstash files
-- name: Copy spark-to-elastic.conf (logstash)
-  template: src=templates/logstash_spark-to-elastic.conf.j2 dest=/etc/logstash/conf.d/spark-to-elastic.conf mode=0664 owner=logstash group=logstash
+- name: Copy kafka-to-elastic.conf (logstash)
+  template: src=templates/logstash_kafka-to-elastic.conf.j2 dest=/etc/logstash/conf.d/kafka-to-elastic.conf mode=0664 owner=logstash group=logstash
 
 - name: Create 'templates' directory
   file: path=/etc/logstash/conf.d/templates state=directory owner=logstash group=logstash mode=0755

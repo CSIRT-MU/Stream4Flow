@@ -9,15 +9,28 @@
 - name: Wait untill Kafka server starts
   pause: seconds=5
 
-- name: Check if topic was already added
+- name: Check if input topic was already added
   shell: /opt/kafka/bin/kafka-topics.sh --list --zookeeper localhost:2181 | grep ipfix.entry
-  register: result
-  failed_when: result.rc not in [0,1]
+  register: resultin
+  failed_when: resultin.rc not in [0,1]
+
+- name: Check if output topic was already added
+  shell: /opt/kafka/bin/kafka-topics.sh --list --zookeeper localhost:2181 | grep results.output
+  register: resultout
+  failed_when: resultout.rc not in [0,1]
 
 - name: Add Kafka topic "ipfix.entry"
   shell: /opt/kafka/bin/kafka-topics.sh --zookeeper localhost:2181 --create --topic ipfix.entry --partitions 1 --replication-factor 1
-  when: result|failed
+  when: resultin|failed
 
-- name: Set retention on the topic
+- name: Set retention on the input topic
   shell: /opt/kafka/bin/kafka-topics.sh --zookeeper localhost:2181 --alter --topic ipfix.entry --config retention.ms={{ retention }}
-  when: result|failed
+  when: resultin|failed
+
+- name: Add Kafka topic "results.output"
+  shell: /opt/kafka/bin/kafka-topics.sh --zookeeper localhost:2181 --create --topic results.output --partitions 1 --replication-factor 1
+  when: resultout|failed
+
+- name: Set retention on the output topic
+  shell: /opt/kafka/bin/kafka-topics.sh --zookeeper localhost:2181 --alter --topic results.output --config retention.ms={{ retention }}
+  when: resultout|failed
