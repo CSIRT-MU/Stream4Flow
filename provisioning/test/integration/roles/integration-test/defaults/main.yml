@@ -4,3 +4,5 @@ consumer_ip: 192.168.0.3
 consumer_port: 9200
 producer_ip: 192.168.0.2
 producer_port: 4739
+time_app_start: 25
+time_sending: 35
