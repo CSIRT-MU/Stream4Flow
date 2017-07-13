@@ -1,0 +1,19 @@
+input {
+	kafka{
+	    topics => ["results.output"]
+        bootstrap_servers => "{{  producerIP  }}:9092"
+        codec => "json"
+    }
+}
+output{
+	elasticsearch{
+                hosts => "{{  ansible_host  }}:9200"
+                codec => json
+                index => "spark-%{+YYYY.MM.dd}"
+		template => "/etc/logstash/conf.d/templates/spark-elasticsearch-template.json"
+		template_name => "spark"
+        }
+	stdout{
+		codec => rubydebug
+	}
+}
