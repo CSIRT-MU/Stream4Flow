@@ -88,7 +88,7 @@ def print_and_send(rdd, producer, topic):
         attackers = list(stats[0][2])
 
         new_entry = {"@type": "detection.ddos",
-                     "dst_ipv4": host,
+                     "dst_ip": host,
                      "shortratio": short_ratio,
                      "longratio": long_ratio,
                      "attackers": attackers}
