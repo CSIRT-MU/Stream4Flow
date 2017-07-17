@@ -56,6 +56,8 @@ from pyspark import SparkContext  # Spark API
 from pyspark.streaming import StreamingContext  # Spark streaming API
 from pyspark.streaming.kafka import KafkaUtils  # Spark streaming Kafka receiver
 
+from kafka import KafkaProducer  # Kafka Python client
+
 
 def map_tcp_flags(bitmap):
     """
@@ -87,38 +89,20 @@ def decimal_to_bitmap(decimal):
     return bitmap
 
 
-def send_data(data, output_host):
+def send_to_kafka(data, producer, topic):
     """
-    Send given data to the specified host using standard socket interface.
+    Send given data to the specified kafka topic.
 
     :param data: data to send
-    :param output_host: data receiver in the "hostname:port" format
+    :param producer: producer that sends the data
+    :param topic: name of the receiving kafka topic
     """
-
-    # Split outputHost hostname and port
-    host = output_host.split(':')
-
-    # Prepare a TCP socket.
-    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-
-    # Connect to the outputHost and send given data
-    try:
-        sock.connect((host[0], int(host[1])))
-        sock.send(data)
-
-        # Print message of sent
-        now = time.strftime("%c")
-        print("Data sent at: %s" % now)
-
-    except socket.error:
-        cprint("[warning] Unable to connect to host " + output_host, "blue")
-    finally:
-        sock.close()
+    producer.send(topic, str(data))
 
 
-def process_results(json_rrd, output_host):
+def process_results(json_rrd, producer, topic):
     """
-    Transform given computation results into the JSON format and send them to the specified host.
+    Transform given computation results into the JSON format and send them to the specified kafka instance.
 
     JSON format:
     {"src_ipv4":"<host src IPv4 address>",
@@ -171,9 +155,11 @@ def process_results(json_rrd, output_host):
 
         results += json.dumps(result_dict) + "\n"
 
-    # Sent results to a given socket
-    # print(results)  # Controll print
-    send_data(results, output_host)
+    # send the processed data in json format to the given kafka producer under given topic
+    send_to_kafka(json.dumps(results) + "\n", producer, topic)
+
+    # logging terminal output
+    print("%s: Stats of %s IPs parsed and sent" % (time.strftime("%c"), len(json_rrd.keys())))
 
 
 def count_host_stats(flow_json):
@@ -285,7 +271,10 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("-iz", "--input_zookeeper", help="input zookeeper hostname:port", type=str, required=True)
     parser.add_argument("-it", "--input_topic", help="input kafka topic", type=str, required=True)
-    parser.add_argument("-oh", "--output_host", help="output hostname:port", type=str, required=True)
+
+    parser.add_argument("-oz", "--output_zookeeper", help="output zookeeper hostname:port", type=str, required=True)
+    parser.add_argument("-ot", "--output_topic", help="output kafka topic", type=str, required=True)
+
     parser.add_argument("-net", "--network_range", help="network range to watch", type=str, required=True)
 
     # Parse arguments.
@@ -325,8 +314,11 @@ if __name__ == "__main__":
     # Process data to the defined function.
     host_statistics = count_host_stats(input_stream_json)
 
+    kafka_producer = KafkaProducer(bootstrap_servers=args.output_zookeeper,
+                                   client_id="spark-producer-" + application_name)
+
     # Process computed statistics and send them to the specified host
-    host_statistics.foreachRDD(lambda rdd: process_results(rdd.collectAsMap(), args.output_host))
+    host_statistics.foreachRDD(lambda rdd: process_results(rdd.collectAsMap(), kafka_producer, args.output_topic))
 
     # Start input data processing
     ssc.start()

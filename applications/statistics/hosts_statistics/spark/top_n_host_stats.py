@@ -54,40 +54,23 @@ from pyspark import SparkContext  # Spark API
 from pyspark.streaming import StreamingContext  # Spark streaming API
 from pyspark.streaming.kafka import KafkaUtils  # Spark streaming Kafka receiver
 
+from kafka import KafkaProducer  # Kafka Python client
+
 from collections import namedtuple
 
 IPStats = namedtuple('IPStats', 'ports dst_ips http_hosts')
 StatsItem = namedtuple('StatsItem', 'key flows type')
 
 
-def send_data(data, output_host):
+def send_to_kafka(data, producer, topic):
     """
-    Send given data to the specified host using standard socket interface.
+    Send given data to the specified kafka topic.
 
     :param data: data to send
-    :param output_host: data receiver in the "hostname:port" format
+    :param producer: producer that sends the data
+    :param topic: name of the receiving kafka topic
     """
-    print data
-
-    # Split outputHost hostname and port
-    host = output_host.split(':')
-
-    # Prepare a TCP socket.
-    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-
-    # Connect to the outputHost and send given data
-    try:
-        sock.connect((host[0], int(host[1])))
-        sock.send(data)
-
-        # Print message of sent
-        now = time.strftime("%c")
-        print("Data sent at: %s" % now)
-
-    except socket.error:
-        cprint("[warning] Unable to connect to host " + output_host, "blue")
-    finally:
-        sock.close()
+    producer.send(topic, str(data))
 
 
 def _sort_by_flows(stats_values):
@@ -115,9 +98,9 @@ def _parse_stats_items_list(stats_values):
     return labeled_item_dict
 
 
-def process_results(json_rdd, n=10):
+def process_results(json_rdd, producer, topic, n=10):
     """
-    Transform given computation results into the JSON format and send them to the specified host.
+    Transform given computation results into the JSON format and send them to the specified kafka instance.
 
     JSON format:
     {"src_ipv4":"<host src IPv4 address>",
@@ -168,8 +151,11 @@ def process_results(json_rdd, n=10):
                        "src_ipv4": ip,
                        "stats": port_data_dict}
 
-        # send the processed data in json form
-        send_data(json.dumps(result_dict)+"\n", args.output_host)
+        # send the processed data in json format to the given kafka producer under given topic
+        send_to_kafka(json.dumps(result_dict)+"\n", producer, topic)
+
+    # logging terminal output
+    print("%s: Stats of %s IPs parsed and sent" % (time.strftime("%c"), len(json_rdd.keys())))
 
 
 def count_host_stats(flow_json):
@@ -179,19 +165,24 @@ def count_host_stats(flow_json):
     :type flow_json: Initialized spark streaming context, windowed, json_loaded.
     """
 
-    # flow_json.pprint(200)
-
     # Filter flows with required data, in a given address range
     flow_with_keys = flow_json.filter(lambda json_rdd: ("ipfix.sourceIPv4Address" in json_rdd.keys()) and
-                                                       ("ipfix.destinationTransportPort" in json_rdd.keys()) and
-                                                       (ipaddress.ip_address(json_rdd["ipfix.sourceIPv4Address"]) in network_filter)
-                                      )
+                                                       ("ipfix.destinationTransportPort" in json_rdd.keys()))
+
+    # if IP network range input parameter is filled, filter the flows respectively
+    if args.network_range is not None:
+        # Filter for network for detection (regex filtering), e.g. "10\.10\..+"
+        network_filter = ipaddress.ip_network(unicode(args.network_range, "utf8"))
+
+        flow_with_keys = flow_with_keys.filter(
+            lambda json_rdd: (ipaddress.ip_address(json_rdd["ipfix.sourceIPv4Address"]) in network_filter))
+
     # Set window and slide duration for flows analysis
-    flow_with_keys_windowed = flow_with_keys.window(window_duration, window_slide)
+    flows_with_keys_windowed = flow_with_keys.window(window_duration, window_slide)
 
     # Destination ports stats
     # Aggregate the number of flows for all IP-port tuples
-    flows_by_ip_port = flow_with_keys_windowed\
+    flows_by_ip_port = flows_with_keys_windowed\
         .map(lambda json_rdd: ((json_rdd["ipfix.sourceIPv4Address"], json_rdd["ipfix.destinationTransportPort"]), 1))\
         .reduceByKey(lambda actual, update: (actual + update))
     # Aggregate the (port: <# of flows>) logs for all IPs
@@ -201,7 +192,7 @@ def count_host_stats(flow_json):
 
     # Destination IP stats
     # Aggregate the number of flows for src_IP-dst_IP tuples
-    flows_by_ip_dst_host = flow_with_keys_windowed\
+    flows_by_ip_dst_host = flows_with_keys_windowed\
         .map(lambda json_rdd: ((json_rdd["ipfix.sourceIPv4Address"], json_rdd["ipfix.destinationIPv4Address"]), 1)) \
         .reduceByKey(lambda actual, update: (actual + update))
     # Aggregate the (dst_host: <# of flows>) logs for IPs
@@ -211,7 +202,7 @@ def count_host_stats(flow_json):
 
     # HTTP destination stats
     # Aggregate (http_address: <# of flows>) logs for all IPs
-    flow_with_http_keys = flow_with_keys_windowed.filter(lambda json_rdd: "ipfix.HTTPRequestHost" in json_rdd.keys())
+    flow_with_http_keys = flows_with_keys_windowed.filter(lambda json_rdd: "ipfix.HTTPRequestHost" in json_rdd.keys())
     flows_by_ip_http_host = flow_with_http_keys\
         .map(lambda json_rdd: ((json_rdd["ipfix.sourceIPv4Address"], json_rdd["ipfix.HTTPRequestHost"]), 1)) \
         .reduceByKey(lambda actual, update: (actual + update))
@@ -234,8 +225,11 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("-iz", "--input_zookeeper", help="input zookeeper hostname:port", type=str, required=True)
     parser.add_argument("-it", "--input_topic", help="input kafka topic", type=str, required=True)
-    parser.add_argument("-oh", "--output_host", help="output hostname:port", type=str, required=True)
-    parser.add_argument("-net", "--network_range", help="network range to watch", type=str, required=True)
+
+    parser.add_argument("-oz", "--output_zookeeper", help="output zookeeper hostname:port", type=str, required=True)
+    parser.add_argument("-ot", "--output_topic", help="output kafka topic", type=str, required=True)
+
+    parser.add_argument("-net", "--network_range", help="network range to watch", type=str, required=False)
     parser.add_argument("-n", "--top_n", help="max. number of ports for a host to retrieve", type=int, required=False)
 
     # Parse arguments.
@@ -244,10 +238,8 @@ if __name__ == "__main__":
     # Set variables
     application_name = os.path.basename(sys.argv[0])  # Application name used as identifier
     kafka_partitions = 1  # Number of partitions of the input Kafka topic
-    window_duration = 10  # Analysis window duration (10 seconds)
-    window_slide = 10  # Slide interval of the analysis window (10 seconds)
-    # Filter for network for detection (regex filtering), e.g. "10\.10\..+"
-    network_filter = ipaddress.ip_network(unicode(args.network_range, "utf8"))
+    window_duration = 30  # Analysis window duration (10 seconds)
+    window_slide = 30  # Slide interval of the analysis window (10 seconds)
 
     # Spark context initialization
     sc = SparkContext(appName=application_name + " " + " ".join(sys.argv[1:]))  # Application name used as the appName
@@ -263,8 +255,12 @@ if __name__ == "__main__":
     # Process data to the defined function.
     host_statistics = count_host_stats(input_stream_json)
 
+    # Initialize kafka producer
+    kafka_producer = KafkaProducer(bootstrap_servers=args.output_zookeeper,
+                                   client_id="spark-producer-" + application_name)
+
     # Transform computed statistics into desired json format and send it to output_host as given in -oh input param
-    stats_json = host_statistics.foreachRDD(lambda rdd: process_results(rdd.collectAsMap()))
+    stats_json = host_statistics.foreachRDD(lambda rdd: process_results(rdd.collectAsMap(), kafka_producer, args.output_topic))
 
     # Start input data processing
     ssc.start()
