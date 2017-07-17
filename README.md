@@ -94,9 +94,34 @@ Stream4Flow is compatible with any Netflow v5/9 or IPFIX network probe. To measu
       `softflowd -i <your interface> -D -n <IP address of producer>:4739`
     - for more softflowd options see [man pages](http://manpages.ubuntu.com/manpages/precise/man8/softflowd.8.html)
     
+
 # Acknowledgement
    
 The SecurityCloud project is supported by the [Technology Agency of the Czech Republic](https://www.tacr.cz/) under No. TA04010062 Technology for processing and analysis of network data in big data concept.
+
+## How to reference
+
+**Bibtex**
+
+````bibtex
+@ARTICLE{jirsik-2017-toward, 
+author={T. Jirsik and M. Cermak and D. Tovarnak and P. Celeda}, 
+journal={IEEE Communications Magazine}, 
+title={Toward Stream-Based IP Flow Analysis}, 
+year={2017}, 
+volume={55}, 
+number={7}, 
+pages={70-76}, 
+doi={10.1109/MCOM.2017.1600972}, 
+ISSN={0163-6804}, 
+month={},}
+````
+
+**Plain text**
+```
+T. Jirsik, M. Cermak, D. Tovarnak and P. Celeda, "Toward Stream-Based IP Flow Analysis," in IEEE Communications Magazine, vol. 55, no. 7, pp. 70-76, 2017.
+doi: 10.1109/MCOM.2017.1600972
+```
 
 #### Project partners
 
