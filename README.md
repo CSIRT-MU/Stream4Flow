@@ -22,7 +22,7 @@ The basis of the Stream4Flow framework is formed by the IPFIXCol collector, Kafk
 - **Host Profiling**: Apart from monitoring of the whole network, the monitoring can be focused on individual hosts. No host agents are needed, and the monitoring is transparent. You can get a long-term profile for each host connected to your network and explore its behavior.
 - **Situational Awareness**: Data from network monitoring, attack detection, and host profiling can be gathered together to provide complex situational awareness over your network. The advanced analysis of the collected data can reveal information important both from security and business perspective.
 
-**More on stream-based IP flow analysis is described in our paper titled [Toward Stream-based IP Flow Analysis](https://doi.org/10.1109/MCOM.2017.1600972).**
+**More on stream-based IP flow analysis is described in our paper titled [Toward Stream-Based IP Flow Analysis](https://doi.org/10.1109/MCOM.2017.1600972).**
 
 ## Getting started
 We have it all prepared for you. Everything is preconfigured. You have to only choose the deployment variant.
@@ -131,7 +131,7 @@ doi: 10.1109/MCOM.2017.1600972
 
 **Related Publication**
 
-[Toward Stream-based IP Flow Analysis](https://doi.org/10.1109/MCOM.2017.1600972)
+[Toward Stream-Based IP Flow Analysis](https://doi.org/10.1109/MCOM.2017.1600972)
 
 # Acknowledgement
    
