@@ -4,15 +4,25 @@ A framework for the real-time IP flow data analysis built on Apache Spark Stream
 
 ## About Stream4Flow
 
-The basis of the Stream4Flow framework is formed by the IPFIXCol collector, Kafka messaging system, Apache Spark, and Elastic Stack. IPFIXCol is able to receive IP flows from majority of network Netflow/IPFIX probes (e.g. Flowmon Probe, softflowd, etc. ). IPFIXCol enables incoming IP flow records to be transformed into the JSON format provided to the Kafka messaging system. The selection of Kafka was based on its scalability and partitioning possibilities, which provide sufficient data throughput. Apache Spark was selected as the data stream processing framework for its quick IP flow data throughput, available programming languages (Scala, Java, or Python) and MapReduce programming model. The analysis results are stored in Elastic Stack containing Logstash, Elasticsearch, and Kibana, which enable storage, querying, and visualizing the results. The Stream4Flow framework also contains the additional web interface in order to make administration easier and visualize complex results of the analysis.
+The basis of the Stream4Flow framework is formed by the IPFIXCol collector, Kafka messaging system, Apache Spark, and Elastic Stack. IPFIXCol is able to receive IP flows from majority of network Netflow/IPFIX probes (e.g. Flowmon Probe, softflowd, etc.). IPFIXCol enables incoming IP flow records to be transformed into the JSON format provided to the Kafka messaging system. The selection of Kafka was based on its scalability and partitioning possibilities, which provide sufficient data throughput. Apache Spark was selected as the data stream processing framework for its quick IP flow data throughput, available programming languages (Scala, Java, or Python) and MapReduce programming model. The analysis results are stored in Elastic Stack containing Logstash, Elasticsearch, and Kibana, which enable storage, querying, and visualizing the results. The Stream4Flow framework also contains the additional web interface in order to make administration easier and visualize complex results of the analysis.
 
 ![architecture](https://stream4flow.ics.muni.cz/images/architecture.png?)
 
+
+
+### Framework Features
+- **Full Stack Solution**: The framework provides full stack solution for IP flow analysis prototyping. It is possible to connect to majority of IP flow network probes. The framework integrates tools for data collection, data processing, manipulation, storage, and presentation. It is compatible with common network probes for IP flow monitoring and export.
+- **Easy Deployment**: The deployment of the framework is fully automated for cloud deployment using cutting edge technologies for software orchestration. The deployment comes with example prototype applications and initial tests to further ease the prototype development.
+- **High Performance**: Thanks to the scalability of the framework, it is fitted for processing network traffic in a wide range of networks from small company network to large-scale, high-speed networks of ISPs. Its distributed nature enables computationally intensive analyses.
+- **Real-time Analysis**: The stream-based approach provides results of IP flow analysis prototype with only a few seconds delay. The results can be explored in various ways in a user interface in real time. IP analysis prototype can be immediately improved according to provided results.
+
 ### Use-cases
-- **Stream-Based Network Monitoring**: Thanks to the scalability of the framework, it is fitted for deployment in a wide range of networks from small company network to large-scale, high-speed networks of ISPs. It is compatible with common network probes for IP flow monitoring and export.
+- **Stream-Based Network Monitoring**: The framework enables to run analyses in data streams. It is suitable for various data pre-processing, continuous queries.
 - **Real-time Attack Detection**: The stream-based approach enables to detect attacks with only a few seconds delay. An instant attack detection provides time to set up a defense and lowers harms caused by an attack. A sample detections are provided, and you can easily create custom detection method.
 - **Host Profiling**: Apart from monitoring of the whole network, the monitoring can be focused on individual hosts. No host agents are needed, and the monitoring is transparent. You can get a long-term profile for each host connected to your network and explore its behavior.
 - **Situational Awareness**: Data from network monitoring, attack detection, and host profiling can be gathered together to provide complex situational awareness over your network. The advanced analysis of the collected data can reveal information important both from security and business perspective.
+
+**More on stream-based IP flow analysis is described in our paper titled [Toward Stream-based IP Flow Analysis](https://doi.org/10.1109/MCOM.2017.1600972).**
 
 ## Getting started
 We have it all prepared for you. Everything is preconfigured. You have to only choose the deployment variant.
@@ -118,6 +128,10 @@ month={},}
 T. Jirsik, M. Cermak, D. Tovarnak and P. Celeda, "Toward Stream-Based IP Flow Analysis," in IEEE Communications Magazine, vol. 55, no. 7, pp. 70-76, 2017.
 doi: 10.1109/MCOM.2017.1600972
 ```
+
+**Related Publication**
+
+[Toward Stream-based IP Flow Analysis](https://doi.org/10.1109/MCOM.2017.1600972)
 
 # Acknowledgement
    
