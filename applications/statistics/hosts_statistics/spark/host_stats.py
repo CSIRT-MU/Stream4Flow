@@ -49,6 +49,7 @@ import ujson as json  # Fast JSON parser
 import socket  # Socket interface
 import re  # Parsing and matching regular expression
 import time  # Time handling
+import ipaddress  # IP address handling
 
 from termcolor import cprint  # Colors in the console output
 
@@ -169,17 +170,17 @@ def count_host_stats(flow_json):
     :type flow_json: Initialized spark streaming context, windowed, json_loaded.
     """
 
-    # Create regex for monitored network
-    local_ip_pattern = re.compile(network_filter)
-
-    # Filter flows with relevant keys
+    # Filter flows with required data, in a given address range
     flow_with_keys = flow_json.filter(lambda json_rdd: ("ipfix.sourceIPv4Address" in json_rdd.keys()) and
-                                                       ("ipfix.destinationTransportPort" in json_rdd.keys()) and
-                                                       ("ipfix.flowStartMilliseconds" in json_rdd.keys()) and
-                                                       ("ipfix.flowEndMilliseconds" in json_rdd.keys()) and
-                                                       ("ipfix.protocolIdentifier" in json_rdd.keys()) and
-                                                       (re.match(local_ip_pattern, json_rdd["ipfix.sourceIPv4Address"]))
-                                      )
+                                                       ("ipfix.destinationTransportPort" in json_rdd.keys()))
+
+    # if IP network range input parameter is filled, filter the flows respectively
+    if args.network_range is not None:
+        # Filter for network for detection (regex filtering), e.g. "10\.10\..+"
+        network_filter = ipaddress.ip_network(unicode(args.network_range, "utf8"))
+
+        flow_with_keys = flow_with_keys.filter(
+            lambda json_rdd: (ipaddress.ip_address(json_rdd["ipfix.sourceIPv4Address"]) in network_filter))
 
     # Set window and slide duration for flows analysis
     flow_with_keys_windowed = flow_with_keys.window(window_duration, window_slide)
