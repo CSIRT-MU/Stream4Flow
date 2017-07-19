@@ -3,7 +3,7 @@
 #
 # MIT License
 #
-# Copyright (c) 2016  Tomas Jirsik <jirsik@ics.muni.cz>
+# Copyright (c) 2016  Tomas Jirsik <jirsik@ics.muni.cz>, Michal Stefanik <stefanik dot m@mail.muni.cz>
 # Institute of Computer Science, Masaryk University
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -154,10 +154,8 @@ def process_results(json_rrd, producer, topic):
         if data[statistics_position["tcp_flags"]]:  # if exists statistics for a given host
             stats_dict["tcp_flags"] = map_tcp_flags(data[statistics_position["tcp_flags"]][tcp_flags_position["tcp_flags_array"]])
 
-        results += json.dumps(result_dict) + "\n"
-
-    # send the processed data in json format to the given kafka producer under given topic
-    send_to_kafka(json.dumps(results) + "\n", producer, topic)
+        # send the processed data in json format to the given kafka producer under given topic
+        send_to_kafka(json.dumps(result_dict) + "\n", producer, topic)
 
     # logging terminal output
     print("%s: Stats of %s IPs parsed and sent" % (time.strftime("%c"), len(json_rrd.keys())))
