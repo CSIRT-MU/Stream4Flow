@@ -20,8 +20,8 @@
 # YOU CAN COPY THIS FILE TO ANY APPLICATION'S ROOT DIRECTORY WITHOUT CHANGES!
 # ----------------------------------------------------------------------------------------------------------------------
 
-from fileutils import abspath
-from languages import read_possible_languages
+from gluon.fileutils import abspath
+from gluon.languages import read_possible_languages
 
 # ----------------------------------------------------------------------------------------------------------------------
 # NOTE! app - is an application based router's parameter with name of an application. E.g.'welcome'
