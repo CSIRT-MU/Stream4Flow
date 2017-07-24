@@ -57,6 +57,8 @@ from pyspark import SparkContext  # Spark API
 from pyspark.streaming import StreamingContext  # Spark streaming API
 from pyspark.streaming.kafka import KafkaUtils  # Spark streaming Kafka receiver
 
+from kafka import KafkaProducer  # Kafka Python client
+
 from collections import namedtuple
 
 
@@ -67,8 +69,8 @@ StatsItem = namedtuple('StatsItem', 'packets bytes flows')
 ZERO_ITEM = StatsItem(0, 0, 0)  # neutral item used if no new data about the IP was collected in recent interval
 
 # temporal constants
-HOURLY_INTERVAL = 10  # aggregation interval for one item of temporal output array
-DAILY_INTERVAL = 40   # collection interval of aggregations as items in output array
+HOURLY_INTERVAL = 5  # aggregation interval for one item of temporal output array
+DAILY_INTERVAL = 120   # collection interval of aggregations as items in output array
 
 TIME_DIMENSION = DAILY_INTERVAL / HOURLY_INTERVAL
 print("Time dimension: %s" % TIME_DIMENSION)
@@ -151,116 +153,57 @@ def merge_init_arrays(a1, a2):
     return merge
 
 
-def send_data(data, output_host):
+def send_to_kafka(data, producer, topic):
     """
-    Send given data to the specified host using standard socket interface.
-
+    Send given data to the specified kafka topic.
     :param data: data to send
-    :param output_host: data receiver in the "hostname:port" format
+    :param producer: producer that sends the data
+    :param topic: name of the receiving kafka topic
     """
-    print data
-
-    # Split outputHost hostname and port
-    host = output_host.split(':')
-
-    # Prepare a TCP socket.
-    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-
-    # Connect to the outputHost and send given data
-    try:
-        sock.connect((host[0], int(host[1])))
-        sock.send(data)
-
-        # Print message of sent
-        now = time.strftime("%c")
-        print("Data sent at: %s" % now)
-
-    except socket.error:
-        cprint("[warning] Unable to connect to host " + output_host, "blue")
-    finally:
-        sock.close()
+    producer.send(topic, str(data))
 
 
-def _sort_by_flows(stats_values):
+def process_results(json_rdd, producer, topic):
     """
-    Sorts the list of StatsItem by flows attribute
-    :param stats_values: list of StatsItem
-    :return: sorted list
-    """
-    return sorted(stats_values, key=lambda entry: entry.flows, reverse=True)
-
-
-def _parse_stats_items_list(stats_values):
-    """
-    Parses the list of StatsItem into a dict of object for output JSON fromat
-    :param stats_values: list of StatsItem
-    :return: dict in output JSON format
-    """
-    item_list = map(lambda stats_item: {stats_item.type: stats_item.key, "flows": stats_item.flows}, stats_values)
-
-    # format the list of parsed StatsItems to a dict with keys of items' ordering
-    labeled_item_dict = {}
-    for order, item in map(lambda order: (order, item_list[order]), range(len(item_list))):
-        labeled_item_dict[int(order)] = item
-
-    return labeled_item_dict
-
-
-def process_results(json_rdd, n=10):
-    """
-    Transform given computation results into the JSON format and send them to the specified host.
+    Transform given computation results into the JSON format and send them to the specified kafka instance.
 
     JSON format:
     {"src_ipv4":"<host src IPv4 address>",
-     "@type":"host_stats_topn_ports",
+     "@type":"host_stats_profile_24h",
      "stats":{
-        "top_n_dst_ports":
-            {
-                "0": {"port":<port #1>, "flows":# of flows},
-                ...
-                "n": {"port":<port #n>, "flows":# of flows}
-            },
-            "top_n_dst_hosts":
-            {
-                "0": {"dst_host":<dst_host #1>, "flows":# of flows},
-                ...
-                "n": {"dst_host":<dst_host #n>, "flows":# of flows}
-            }
-            "top_n_http_dst":
-            {
-                "0": {"dst_host":<dst_host #1>, "flows":# of flows},
-                ...
-                "n": {"dst_host":<dst_host #n>, "flows":# of flows}
-            }
+        {
+            <t=1>: {"packets": <val>, "bytes": <val>, "flows": <val>},
+            <t=2>: {"packets": <val>, "bytes": <val>, "flows": <val>},
+            ...
+            <t=TIME_DIMENSION>: {"port":<port #n>, "flows":# of flows}
         }
     }
 
-    :param json_rrd: Map in a format: (src IP , IPStats([PortStats], [DstIPStats], [HTTPHostStats]))
-    :return: json with selected TOP n ports by # of flows for each src IP
+    Where <val> is aggregated sum of the specified attribute in an interval of HOURLY_INTERVAL length
+    that has ended in time: <current time> - (<entry's t> * HOURLY_INTERVAL)
+
+    :param json_rrd: Map in a format: (src IP , [ IPStats(packets, bytes, flows), ..., IPStats(packets, bytes, flows) ])
+    :return:
     """
 
-    # fill in n from input params
-    if args.top_n is not None:
-        n = int(args.top_n)
-
     for ip, ip_stats in json_rdd.iteritems():
-        # define output keys for particular stats in X_Stats named tuples
-        port_data_dict = {"top_n_dst_ports": ip_stats.ports,
-                          "top_n_dst_hosts": ip_stats.dst_ips,
-                          "top_n_http_dst": ip_stats.http_hosts}
-
-        # take top n entries from IP's particular stats sorted by flows param
-        port_data_dict = {key: _sort_by_flows(val_list)[:n] for (key, val_list) in port_data_dict.iteritems()}
-        # parse the stats from StatsItem to a desirable form
-        port_data_dict = {key: _parse_stats_items_list(val_list) for (key, val_list) in port_data_dict.iteritems()}
+        stats_dict = dict()
+        for stat_idx in range(len(ip_stats)):
+            temporal_stats = {"packets": ip_stats[stat_idx].packets,
+                              "bytes": ip_stats[stat_idx].bytes,
+                              "flows": ip_stats[stat_idx].flows}
+            stats_dict[stat_idx] = temporal_stats
 
         # construct the output object in predefined format
         result_dict = {"@type": "top_n_host_stats",
                        "src_ipv4": ip,
-                       "stats": port_data_dict}
+                       "stats": stats_dict}
 
         # send the processed data in json form
-        send_data(json.dumps(result_dict)+"\n", args.output_host)
+        send_to_kafka(json.dumps(result_dict)+"\n", producer, topic)
+
+    # logging terminal output
+    print("%s: Stats of %s IPs parsed and sent" % (time.strftime("%c"), len(json_rdd.keys())))
 
 
 def collect_hourly_stats(stats_json):
@@ -313,7 +256,7 @@ def collect_daily_stats(hourly_stats):
 
     # current position counter update should keep consistent with small window counter - increment on each new data
     long_window_data_stream.reduce(lambda current, update: 1).foreachRDD(lambda rdd: increment())
-    
+
     # Debug print in interval of a small window
     # long_window_data_stream.pprint(5)
 
@@ -354,10 +297,11 @@ if __name__ == "__main__":
     hourly_host_statistics = collect_hourly_stats(input_stream_json)
     daily_host_statistics = collect_daily_stats(hourly_host_statistics)
 
-    daily_host_statistics.pprint(20)
+    kafka_producer = KafkaProducer(bootstrap_servers=args.output_zookeeper,
+                                   client_id="spark-producer-" + application_name)
 
     # Transform computed statistics into desired json format and send it to output_host as given in -oh input param
-    # hourly_host_statistics.foreachRDD(lambda rdd: rdd.pprint())
+    daily_host_statistics.foreachRDD(lambda rdd: process_results(rdd.collectAsMap(), kafka_producer, args.output_topic))
     # daily_host_statistics.pprint(100)
 
     # Start input data processing
