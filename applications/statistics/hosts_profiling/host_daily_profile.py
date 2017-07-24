@@ -59,16 +59,6 @@ from pyspark.streaming.kafka import KafkaUtils  # Spark streaming Kafka receiver
 
 from collections import namedtuple
 
-# TODO: check these initial requirements in the end:
-
-# TODO: in the selected big window (supposedly 24h) is suggested to compute
-# * average number of communication partners for given hosts
-# * distinct ports for host, sorted by the frequency of activity
-# * frequency of communication times for host
-# * probability of the host being the server/client machine/network infrastructure based on
-# the distance of the selected attributes' values to mean values of the selected categories
-# stats_json.pprint(200)
-
 
 # casting structures
 IPStats = namedtuple('IPStats', 'ports dst_ips http_hosts')
@@ -287,8 +277,8 @@ def collect_hourly_stats(stats_json):
                                                                  json_rdd["stats"]["total"]["flow"])
                                                                 ))
     ip_stats_sumed = stats_windowed_keyed.reduceByKey(lambda current, update: (current[0] + update[0],
-                                                                            current[1] + update[1],
-                                                                            current[2] + update[2]))
+                                                                               current[1] + update[1],
+                                                                               current[2] + update[2]))
 
     ip_stats_objected = ip_stats_sumed.mapValues(lambda avg_vals: (StatsItem(*avg_vals), INCREMENT))
 
@@ -297,10 +287,10 @@ def collect_hourly_stats(stats_json):
 
 def collect_daily_stats(hourly_stats):
     """
-    aggregation of the time stats of _small_window_data_ in a tuple format (data, timestamp) into a default log vector
-    in format [0, 0, ... , 0, 0, 0] containing the newest data at the beginning
-    appends a result of the new small window at the beginning of the time log for each IP address
-    :param hourly_stats: _hourly_stats_
+    Aggregation of the time stats of _small_window_data_ in a tuple format (data, timestamp) into a log vector
+    in format [data_t_n, data_t_n-1, ... , data_t_n-k] containing the entries of the most k recent
+    _small_window_data_ rdd-s where k = TIME_DIMENSION (= DAILY_INTERVAL/HOURLY_INTERVAL)
+    :param hourly_stats: _hourly_stats_ aggregated in HOURLY_INTERVAL window
     """
     global INCREMENT
 
@@ -313,21 +303,21 @@ def collect_daily_stats(hourly_stats):
     #                                                           "current_inc": INCREMENT,
     #                                                           "mod_pos": modulate_position(int(rdd[1][1])),
     #                                                           "value": rdd[1][0]})
-    # long_window_debug.pprint(17)
+    # long_window_debug.pprint()
 
-    # log for each key(IP) is reduced from sparse logs of aggregated volume of activity for each time unit (=hour)
-    # first logs of small window in format IP: (volume, timestamp) are mapped into sparse vector=[0, 0, .. , volume, 0]
-    # where vector has a size of TIME_DIMENSION and volume inserted on modulated position (see modulate_position())
+    # first logs of small window in format IP: (data, timestamp) are mapped into sparse vector=[0, 0, .. , volume, 0]
+    # where vector has a size of TIME_DIMENSION and data inserted on modulated position (see modulate_position())
     # then sparse vectors are combined by merge - "summing-up": nonzero positions (see merge_init_arrays())
     long_window_data_stream = long_window_base.map(lambda rdd: (rdd[0], initialize_array(rdd[1][0], rdd[1][1]))) \
         .reduceByKey(lambda current, update: merge_init_arrays(current, update))
 
     # current position counter update should keep consistent with small window counter - increment on each new data
     long_window_data_stream.reduce(lambda current, update: 1).foreachRDD(lambda rdd: increment())
+    
+    # Debug print in interval of a small window
+    # long_window_data_stream.pprint(5)
 
-    long_window_data_stream.pprint(100)
-
-    # gives the current log after every new batch from small window
+    # return the vector logs windowed in a daily interval
     return long_window_data_stream.window(HOURLY_INTERVAL, DAILY_INTERVAL)
 
 
@@ -363,6 +353,8 @@ if __name__ == "__main__":
     # Process data to the defined function.
     hourly_host_statistics = collect_hourly_stats(input_stream_json)
     daily_host_statistics = collect_daily_stats(hourly_host_statistics)
+
+    daily_host_statistics.pprint(20)
 
     # Transform computed statistics into desired json format and send it to output_host as given in -oh input param
     # hourly_host_statistics.foreachRDD(lambda rdd: rdd.pprint())
