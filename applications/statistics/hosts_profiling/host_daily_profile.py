@@ -1,5 +1,3 @@
-# TODO: placeholder application - see functionality suggestions in the main method
-
 # -*- coding: utf-8 -*-
 
 #
@@ -32,14 +30,13 @@ for each host each window contain:
     - a list of top n most active ports as sorted by a number of flows on a given port
 
 Usage:
-TODO
-  top_n_host_stats.py -iz <input-zookeeper-hostname>:<input-zookeeper-port> -it <input-topic> -oh
-    <output-hostname>:<output-port> -n <max. # of ports for host>
+  host_daily_profile.py -iz <input-zookeeper-hostname>:<input-zookeeper-port> -it <input-topic>
+                        -oz <output-zookeeper-hostname>:<output-zookeeper-port> -ot <output-topic>
 
   To run this on the Stream4Flow, you need to receive flows by IPFIXCol and make them available via Kafka topic. Then
   you can run the example
-    $ ./run-application.sh ./statistics/hosts_statistics/spark/top_n_host_stats.py -iz producer:2181 -it ipfix.entry
-    -oh consumer:20101 -n 5 -net "10.0.0.0/24"
+    $ ./run-application.sh .statistics/hosts_profiling/host_daily_profile.py -iz producer:2181 -it host.stats
+                                                                             -oz producer:9092 -ot results.daily
 
 """
 
