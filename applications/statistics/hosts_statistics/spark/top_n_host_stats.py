@@ -26,17 +26,18 @@
 #
 """
 Description: A method for computing statistics for hosts in network. Computed statistics
-for each host each window contain:
-    - a list of top n most active ports as sorted by a number of flows on a given port
+for each host contain:
+    - a list of top-n-most active ports as sorted by a number of flows on a given port
 
 Usage:
-  top_n_host_stats.py -iz <input-zookeeper-hostname>:<input-zookeeper-port> -it <input-topic> -oh
-    <output-hostname>:<output-port> -n <max. # of ports for host> -net <CIDR network range>
+  top_n_host_stats.py -iz <input-zookeeper-hostname>:<input-zookeeper-port> -it <input-topic>
+                      -oz <output-zookeeper-hostname>:<output-zookeeper-port> -ot <output-topic>
+                      -n <max. # of entries for host> -net <CIDR network range>
 
   To run this on the Stream4Flow, you need to receive flows by IPFIXCol and make them available via Kafka topic. Then
   you can run the example
     $ ./run-application.sh ./statistics/hosts_statistics/spark/top_n_host_stats.py -iz producer:2181 -it ipfix.entry
-    -oh consumer:20101 -n 5 -net "10.0.0.0/24"
+     -oz producer:9092 -ot results.output -n 5 -net "10.0.0.0/24"
 
 """
 

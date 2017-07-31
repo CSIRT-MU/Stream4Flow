@@ -33,8 +33,9 @@ for each host each window are following:
     - number of distinct communication peers
 
 Usage:
-  detection_ddos.py -iz <input-zookeeper-hostname>:<input-zookeeper-port> -it <input-topic> -oh
-    <output-hostname>:<output-port> -net <regex for network range>
+  host_stats.py -iz <input-zookeeper-hostname>:<input-zookeeper-port> -it <input-topic>
+                -oz <output-zookeeper-hostname>:<output-zookeeper-port> -ot <output-topic>
+                -net <CIDR network range>
 
   To run this on the Stream4Flow, you need to receive flows by IPFIXCol and make them available via Kafka topic. Then
   you can run the example
