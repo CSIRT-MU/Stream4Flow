@@ -23,6 +23,6 @@ fi
 
 echo -e "${GREEN}[info] Running application $APPLICATION...${NC}"
 
-export SPARK_MASTER_HOST=10.16.31.210
-export SPARK_LOCAL_IP=10.16.31.210
-/opt/spark/spark-bin/bin/spark-submit --master spark://10.16.31.210:7077 --conf spark.eventLog.enabled=false --conf spark.eventLog.dir="/opt/spark/spark-bin/logs/" --conf spark.executor.logs.rolling.maxRetainedFiles=3 --conf spark.executor.logs.rolling.maxSize=1G --conf spark.executor.logs.rolling.strategy=size --total-executor-cores 8 --executor-memory 4G --jars "../spark-streaming-kafka-assembly.jar"$PYFILES /home/spark/applications/$APPLICATION
+export SPARK_MASTER_HOST={{ masterIP }}
+export SPARK_LOCAL_HOST={{ masterIP }}
+{{ dir_spark }}/spark-bin/bin/spark-submit --master {{ spark_masterurl }} --conf spark.eventLog.enabled=true --conf spark.eventLog.dir="{{ dir_spark }}/spark-bin/logs/" --conf spark.executor.logs.rolling.maxRetainedFiles=3 --conf spark.executor.logs.rolling.maxSize=1G --conf spark.executor.logs.rolling.strategy=size --total-executor-cores {{ spark_worker_cores }} --executor-memory {{ (spark_worker_memory * 0.8)|int }}M --jars "./spark-streaming-kafka-assembly.jar"$PYFILES {{ dir_applications }}$APPLICATION
