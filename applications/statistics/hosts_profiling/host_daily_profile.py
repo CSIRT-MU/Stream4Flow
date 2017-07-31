@@ -66,18 +66,16 @@ StatsItem = namedtuple('StatsItem', 'packets bytes flows')
 ZERO_ITEM = StatsItem(0, 0, 0)  # neutral item used if no new data about the IP was collected in recent interval
 
 # temporal constants
-HOURLY_INTERVAL = 5  # aggregation interval for one item of temporal output array
-DAILY_INTERVAL = 120   # collection interval of aggregations as items in output array
+HOURLY_INTERVAL = 3600  # aggregation interval for one item of temporal array
+DAILY_INTERVAL = 86400  # collection interval of all aggregations as items in temporal array
 
-TIME_DIMENSION = DAILY_INTERVAL / HOURLY_INTERVAL
+TIME_DIMENSION = DAILY_INTERVAL / HOURLY_INTERVAL  # number of aggregation entries in temporal array
 print("Time dimension: %s" % TIME_DIMENSION)
-
-EMPTY_TIME_DIMENSIONS = [0] * TIME_DIMENSION
 
 INCREMENT = 0
 
-# temporal methods reassuring the temporal array consistency
 
+# temporal methods resolving the temporal array consistency and construction:
 
 def increment():
     """
@@ -119,25 +117,12 @@ def initialize_array(value, timestamp):
     return update_array(list([ZERO_ITEM] * TIME_DIMENSION), modulate_position(timestamp), value)
 
 
-def align_to_long_window(rdd_set):
-    """
-    transforms all RDDs from _rdd_set_ of a format (data, timestamp) into an initial log
-    of the size of the default log length (=TIME_DIMENSION)
-    the log contains TIME_DIMENSION of zeros except on a modulated timestamp position
-    filling zeros as missing values
-    :param rdd_set: _rdd_set_
-    """
-    return rdd_set.map(lambda rdd: (rdd[0], initialize_array(rdd[1][0], rdd[1][1])) \
-        if len(rdd[1]) == 2
-    else (rdd[0], rdd[1]))
-
-
 def merge_init_arrays(a1, a2):
     """ Merges the given arrays so that the output array contains either value of a1, or a2 for each nonzero value
     Arrays should be in disjunction append -1 when both arrays are filled, so the error is traceable
     :param a1 array of the size of a2
     :param a2 array of the size of a1
-    :return Merges arrays
+    :return Merged arrays
     """
     merge = []
     for i in range(len(a1)):
@@ -150,6 +135,8 @@ def merge_init_arrays(a1, a2):
     return merge
 
 
+# post-processing methods for resulting temporal arrays:
+
 def send_to_kafka(data, producer, topic):
     """
     Send given data to the specified kafka topic.
@@ -157,6 +144,9 @@ def send_to_kafka(data, producer, topic):
     :param producer: producer that sends the data
     :param topic: name of the receiving kafka topic
     """
+    # Debug print - data to be sent to kafka in resulting format
+    # print data
+
     producer.send(topic, str(data))
 
 
@@ -166,7 +156,7 @@ def process_results(json_rdd, producer, topic):
 
     JSON format:
     {"src_ipv4":"<host src IPv4 address>",
-     "@type":"host_stats_profile_24h",
+     "@type":"host_stats_temporal_profile",
      "stats":{
         {
             <t=1>: {"packets": <val>, "bytes": <val>, "flows": <val>},
@@ -177,9 +167,11 @@ def process_results(json_rdd, producer, topic):
     }
 
     Where <val> is aggregated sum of the specified attribute in an interval of HOURLY_INTERVAL length
-    that has ended in time: <current time> - (<entry's t> * HOURLY_INTERVAL)
+    that has started in time: <current time> - (<entry's t> * HOURLY_INTERVAL) and ended roughly in a time of send
 
     :param json_rrd: Map in a format: (src IP , [ IPStats(packets, bytes, flows), ..., IPStats(packets, bytes, flows) ])
+    :param producer: producer that sends the data
+    :param topic: name of the receiving kafka topic
     :return:
     """
 
@@ -192,7 +184,7 @@ def process_results(json_rdd, producer, topic):
             stats_dict[stat_idx] = temporal_stats
 
         # construct the output object in predefined format
-        result_dict = {"@type": "top_n_host_stats",
+        result_dict = {"@type": "host_stats_temporal_profile",
                        "src_ipv4": ip,
                        "stats": stats_dict}
 
@@ -203,9 +195,12 @@ def process_results(json_rdd, producer, topic):
     print("%s: Stats of %s IPs parsed and sent" % (time.strftime("%c"), len(json_rdd.keys())))
 
 
+# main computation methods:
+
 def collect_hourly_stats(stats_json):
     """
-    Performs a hourly aggregation on input data, whose result is to be collected in items of daily aggregation
+    Performs a hourly aggregation on input data, which result is to be collected as items of daily aggregation
+    :param stats_json: RDDs of stats in json format matching the output format of host_stats.py application
     :type stats_json: Initialized spark streaming context, with data in json format as in host_stats application
     """
 
@@ -216,11 +211,12 @@ def collect_hourly_stats(stats_json):
                                                                  json_rdd["stats"]["total"]["bytes"],
                                                                  json_rdd["stats"]["total"]["flow"])
                                                                 ))
-    ip_stats_sumed = stats_windowed_keyed.reduceByKey(lambda current, update: (current[0] + update[0],
-                                                                               current[1] + update[1],
-                                                                               current[2] + update[2]))
 
-    ip_stats_objected = ip_stats_sumed.mapValues(lambda avg_vals: (StatsItem(*avg_vals), INCREMENT))
+    ip_stats_summed = stats_windowed_keyed.reduceByKey(lambda current, update: (current[0] + update[0],
+                                                                                current[1] + update[1],
+                                                                                current[2] + update[2]))
+
+    ip_stats_objected = ip_stats_summed.mapValues(lambda summed_values: (StatsItem(*summed_values), INCREMENT))
 
     return ip_stats_objected
 
@@ -234,30 +230,30 @@ def collect_daily_stats(hourly_stats):
     """
     global INCREMENT
 
-    # set a window of DAY_WINDOW_INTERVAL upon small window RDDs
+    # set a window of DAY_WINDOW_INTERVAL on small-windowed RDDs
     long_window_base = hourly_stats.window(DAILY_INTERVAL, HOURLY_INTERVAL)
 
     # Debug print - see how recent incoming RDDs are transformed after each HOUR_WINDOW_INTERVAL
-    # long_window_debug = long_window_base.map(lambda rdd: {"ip": rdd[0],
+    # long_window_debug = long_window_base.map(lambda rdd: {"ip": rdd[0]
     #                                                           "rdd_timestamp": rdd[1][1],
     #                                                           "current_inc": INCREMENT,
     #                                                           "mod_pos": modulate_position(int(rdd[1][1])),
     #                                                           "value": rdd[1][0]})
     # long_window_debug.pprint()
 
-    # first logs of small window in format IP: (data, timestamp) are mapped into sparse vector=[0, 0, .. , volume, 0]
+    # Here, RDDs of small window in format (IP: (data, timestamp)) are mapped into sparse vector=[0, 0, .. , volume, 0]
     # where vector has a size of TIME_DIMENSION and data inserted on modulated position (see modulate_position())
-    # then sparse vectors are combined by merge - "summing-up": nonzero positions (see merge_init_arrays())
+    # then sparse vectors are combined/merged: "summing-up" nonzero positions (see merge_init_arrays())
     long_window_data_stream = long_window_base.map(lambda rdd: (rdd[0], initialize_array(rdd[1][0], rdd[1][1]))) \
         .reduceByKey(lambda current, update: merge_init_arrays(current, update))
 
-    # current position counter update should keep consistent with small window counter - increment on each new data
+    # position counter is consistent with small window length cycle - here increments on each new data from hourly_stats
     long_window_data_stream.reduce(lambda current, update: 1).foreachRDD(lambda rdd: increment())
 
-    # Debug print in interval of a small window
-    # long_window_data_stream.pprint(5)
+    # Debug print of target temporal arrays in interval of a small window
+    long_window_data_stream.pprint(5)
 
-    # return the vector logs windowed in a daily interval
+    # return the temporal arrays windowed in a daily interval
     return long_window_data_stream.window(HOURLY_INTERVAL, DAILY_INTERVAL)
 
 
@@ -276,12 +272,10 @@ if __name__ == "__main__":
     # Set variables
     application_name = os.path.basename(sys.argv[0])  # Application name used as identifier
     kafka_partitions = 1  # Number of partitions of the input Kafka topic
-    window_duration = 10  # Analysis window duration (10 seconds)
-    window_slide = 10  # Slide interval of the analysis window (10 seconds)
 
     # Spark context initialization
     sc = SparkContext(appName=application_name + " " + " ".join(sys.argv[1:]))  # Application name used as the appName
-    ssc = StreamingContext(sc, 1)  # Spark microbatch is 1 second
+    ssc = StreamingContext(sc, 1)  # Spark micro batch is 1 second
 
     # Initialize input DStream of flows from specified Zookeeper server and Kafka topic
     input_stream = KafkaUtils.createStream(ssc, args.input_zookeeper, "spark-consumer-" + application_name,
@@ -299,7 +293,9 @@ if __name__ == "__main__":
 
     # Transform computed statistics into desired json format and send it to output_host as given in -oh input param
     daily_host_statistics.foreachRDD(lambda rdd: process_results(rdd.collectAsMap(), kafka_producer, args.output_topic))
-    # daily_host_statistics.pprint(100)
+
+    # drop the processed RDDs to balance the memory usage
+    daily_host_statistics.foreachRDD(lambda rdd: rdd.unpersist())
 
     # Start input data processing
     ssc.start()
