@@ -11,11 +11,11 @@ An application for computing statistics for all hosts in network. Computed stati
 ### Usage
 - General:
  
-`  host_stats.py -iz <input-zookeeper-hostname>:<input-zookeeper-port> -it <input-topic> -oh <output-hostname>:<output-port> -net <network range>`
+`  host_stats.py -iz <input-zookeeper-hostname>:<input-zookeeper-port> -it <input-topic>  -oz <output-hostname>:<output-port> -ot <output-topic> -net <network range>`
 
 - Stream4Flow example (using network range 10.10.0.0/16):
 
-`/home/spark/applications/run-application.sh /home/spark/applications/host_statistics/host_stats.py -iz producer:2181 -it ipfix.entry -oh consumer:20101 -net "10.10.0.0/16"`
+`/home/spark/applications/run-application.sh /home/spark/applications/host_statistics/host_stats.py -iz producer:2181 -it ipfix.entry -oz producer:9092 -ot host.stats -net "10.10.0.0/16"`
 
 ## Top N Host statistics
 
@@ -29,8 +29,8 @@ An application for collecting the top N characteristics for all hosts, particula
 ## Usage
 - General:
 
-`  top_n_host_stats.py -iz <input-zookeeper-hostname>:<input-zookeeper-port> -it <input-topic> -oh <output-hostname>:<output-port> -n <number of Top results> -net <network range>`
+`  top_n_host_stats.py -iz <input-zookeeper-hostname>:<input-zookeeper-port> -it <input-topic> -oz <output-hostname>:<output-port> -ot <output-topic> -n <number of Top results> -net <network range>`
 
 - Stream4Flow example (using network range 10.10.0.0/16):
 
-`/home/spark/applications/run-application.sh /home/spark/applications/host_statistics/top_n_host_stats.py -iz producer:2181 -it ipfix.entry -oh consumer:20101 -n 10 -net "10.10.0.0/16"`
+`/home/spark/applications/run-application.sh /home/spark/applications/host_statistics/top_n_host_stats.py -iz producer:2181 -it ipfix.entry -oz producer:9092 -ot topn.stats -n 10 -net "10.10.0.0/16"`
