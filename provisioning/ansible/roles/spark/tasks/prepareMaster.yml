@@ -7,8 +7,3 @@
   template: src=run-application.sh.j2 dest={{ dir_applications }}/run-application.sh owner={{ user }} group={{ user }} mode=0750
   tags:
     - master
-
-- name: copy kafka assembly to the master
-  copy: src=/tmp/spark-streaming-kafka-assembly.jar dest={{ dir_applications }}/spark-streaming-kafka-assembly.jar owner={{ user }} group={{ user }}
-  tags:
-    - master
