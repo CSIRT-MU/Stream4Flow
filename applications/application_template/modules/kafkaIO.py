@@ -32,17 +32,6 @@ from pyspark.streaming.kafka import KafkaUtils  # Spark streaming Kafka receiver
 from kafka import KafkaProducer  # Kafka Python client
 
 
-def send_data_to_kafka(data, producer, topic):
-    """
-    Send given data to the specified kafka topic.
-
-    :param data: data to send
-    :param producer: producer that sends the data
-    :param topic: name of the receiving kafka topic
-    """
-    producer.send(topic, str(data))
-
-
 def initialize_and_parse_input_stream(input_zookeeper, input_topic, microbatch_duration):
     """
     Initialize spark context, streaming context, input DStream and parse json from DStream.
@@ -96,7 +85,23 @@ def process_data_and_send_result(processed_input, kafka_producer, output_topic, 
     kafka_producer.flush()
 
 
+def send_data_to_kafka(data, producer, topic):
+    """
+    Send given data to the specified kafka topic.
+
+    :param data: data to send
+    :param producer: producer that sends the data
+    :param topic: name of the receiving kafka topic
+    """
+    producer.send(topic, str(data))
+
+
 def spark_start(ssc):
-    # Start Spark streaming context
+    """
+    Start Spark streaming context
+
+    :param ssc: initialized streaming context
+    """
     ssc.start()
     ssc.awaitTermination()
+

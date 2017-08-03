@@ -33,6 +33,7 @@ def process_results(data_to_process, producer, output_topic):
     # Here you can format your results output and send it to the kafka topic
     results_output = data_to_process
 
+    # Send desired output to the output_topic
     kafkaIO.send_data_to_kafka(results_output, producer, output_topic)
 
 
@@ -58,8 +59,11 @@ if __name__ == "__main__":
     # Parse arguments
     args = parser.parse_args()
 
+    # Set microbatch duration to 1 second
+    microbatch_duration = 1
+
     # Initialize input stream and parse it into JSON
-    ssc, parsed_input_stream = kafkaIO.initialize_and_parse_input_stream(args.input_zookeeper, args.input_topic, 1)
+    ssc, parsed_input_stream = kafkaIO.initialize_and_parse_input_stream(args.input_zookeeper, args.input_topic, microbatch_duration)
 
     # Process input in the desired way
     processed_input = process_input(parsed_input_stream)
