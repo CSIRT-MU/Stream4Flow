@@ -219,9 +219,9 @@ function generateTopN(type, dataCsv) {
     } else if (type == "vertical-sources") {
         chart_title = "Top Scanning IPs";
     } else if (type == "horizontal-victims") {
-        chart_title = "Top Scanned IPs";
-    } else {
         chart_title = "Top Scanned Ports";
+    } else {
+        chart_title = "Top Scanned IPs";
     };
 
     // Parse data for the chart
@@ -330,6 +330,69 @@ function loadTopN(type, number) {
     });
 };
 
+function generateTable(data) {
+    // Elements ID
+    var tableId = '#table-ports-scan';
+    var tableIdStatus = tableId + '-status';
+
+    // Hide status element
+    $(tableIdStatus).hide();
+    // Show table element
+    $(tableId).show();
+
+    var indexCount = 0;
+    var array = data.split(",");
+
+    var table = $("#table");
+    // Empty current data in table
+    table.bootstrapTable('removeAll');
+
+    // Generate rows for table
+    for (var i = 0; i <= array.length-6; i+=6) {
+        table.bootstrapTable('insertRow', {
+            index: indexCount,
+            row: {
+                type: array[i],
+                timestamp: array[i+1],
+                src_ip: array[i+2],
+                dst: array[i+3],
+                scans_count: array[i+4],
+                duration: array[i+5]
+            }
+        });
+        indexCount++;
+    }
+};
+
+function loadTable() {
+
+    // Convert times to UTC in ISO format
+    var beginning = new Date( $('#datetime-beginning').val()).toISOString();
+    var end = new Date( $('#datetime-end').val()).toISOString();
+
+    var data_request = encodeURI( './get_scans_list' + '?beginning=' + beginning + '&end=' + end + '&filter=' + filter);
+
+    // Get Elasticsearch data
+    $.ajax({
+        async: true,
+        type: 'GET',
+        url: data_request,
+        success: function(raw) {
+            var response = jQuery.parseJSON(raw);
+            if (response.status == "Ok") {
+                generateTable(response.data);
+            } else {
+                // Show error message
+                $("#table").html(
+                    '<i class="fa fa-exclamation-circle fa-2x"></i>\
+                     <span>' + response.status + ': ' + response.data + '</span>'
+                )
+            }
+        }
+    });
+
+};
+
 
 // Load histogram chart, top statistics, and table with all attacks
 function loadAllCharts() {
@@ -338,6 +401,7 @@ function loadAllCharts() {
     loadTopN("horizontal-victims", 10);
     loadTopN("vertical-sources", 10);
     loadTopN("vertical-victims", 10);
+    loadTable();
 };
 
 

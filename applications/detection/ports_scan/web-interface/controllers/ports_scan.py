@@ -56,7 +56,7 @@ def get_histogram_statistics():
         client = elasticsearch.Elasticsearch([{'host': myconf.get('consumer.hostname'), 'port': myconf.get('consumer.port')}])
         elastic_bool = []
         elastic_bool.append({'range': {'@timestamp': {'gte': beginning, 'lte': end}}})
-        elastic_bool.append({'terms': {'@type': ['ports_scan_vertical', 'ports_scan_horizontal']}})
+        elastic_bool.append({'terms': {'@type': ['portscan_vertical', 'portscan_horizontal']}})
         # Set filter
         if filter != 'none':
             elastic_should = []
@@ -123,9 +123,11 @@ def get_top_n_statistics():
         elastic_bool = []
         elastic_bool.append({'range': {'@timestamp': {'gte': beginning, 'lte': end}}})
         if type == "horizontal-sources" or type == "horizontal-victims":
-            elastic_bool.append({'term': {'@type': 'ports_scan_horizontal'}})
+            elastic_bool.append({'term': {'@type': 'portscan_horizontal'}})
+            dst_field = 'dst_port.raw'
         else:
-            elastic_bool.append({'term': {'@type': 'ports_scan_vertical'}})
+            elastic_bool.append({'term': {'@type': 'portscan_vertical'}})
+            dst_field = 'dst_ip.raw'
         # Set filter
         if filter != 'none':
             elastic_should = []
@@ -135,33 +137,35 @@ def get_top_n_statistics():
         # Prepare query
         qx = Q({'bool': {'must': elastic_bool}})
 
-        # Get ordered data (with maximum size aggregation)
-        # Get data for the IP
+        # Elastic can sometimes return not all records that match the search
         search_ip = Search(using=client, index='_all').query(qx)
         search_ip.aggs.bucket('by_src', 'terms', field='src_ip.raw', size=2147483647) \
-                 .bucket('by_targets', 'terms', field='targets_count', size=1) \
-                 .bucket('top_src', 'top_hits', size=1, sort=[{'@timestamp': {'order': 'asc'}}])
+                      .bucket('by_dst', 'terms', field=dst_field, size=2147483647) \
+                      .bucket('by_targets', 'top_hits', size=1, sort=[{'@timestamp': {'order': 'desc'}}])
+
         results_ip = search_ip.execute()
 
         # Prepare ordered collection
         counter = collections.Counter()
         if type == "horizontal-sources" or type == "vertical-sources":
             for src_buckets in results_ip.aggregations.by_src.buckets:
-                counter[src_buckets.key] = src_buckets.by_targets.buckets[0].key
+                for result in src_buckets.by_dst.buckets:
+                    hit = result.by_targets.hits.hits[0]["_source"]
+                    # For each source IP add number of targets to the counter
+                    counter[hit["src_ip"]] += hit["target_count"]
         else:  # victims
             for src_buckets in results_ip.aggregations.by_src.buckets:
-                for target in src_buckets.by_targets.buckets:
+                for result in src_buckets.by_dst.buckets:
+                    hit = result.by_targets.hits.hits[0]["_source"]
                     if type == "horizontal-victims":
-                        dst_data = target.top_src.hits.hits[0]._source.dst_ips.split(',')
+                        counter[hit["dst_port"]] += hit["target_count"]
                     else:
-                        dst_data = target.top_src.hits.hits[0]._source.dst_ports.split(',')
-                    for element in dst_data:
-                        counter[element] += 1
+                        counter[hit["dst_ip"]] += hit["target_count"]
 
         # Select first N (number) values
         data = ""
-        for ip, count in counter.most_common(number):
-            data += ip + "," + str(count) + ","
+        for value, count in counter.most_common(number):
+            data += value + "," + str(count) + ","
         data = data[:-1]
 
         json_response = '{"status": "Ok", "data": "' + data + '"}'
@@ -185,38 +189,64 @@ def get_scans_list():
         return json_response
 
     # Check mandatory inputs
-    if not (request.get_vars.beginning and request.get_vars.end and request.get_vars.filter):
+    if not (request.get_vars.beginning and request.get_vars.end):
         json_response = '{"status": "Error", "data": "Some mandatory argument is missing!"}'
-        return
+        return json_response
 
     # Parse inputs and set correct format
     beginning = escape(request.get_vars.beginning)
     end = escape(request.get_vars.end)
-    filter = escape(request.get_vars.filter)
 
     try:
         # Elastic query
         client = elasticsearch.Elasticsearch([{'host': myconf.get('consumer.hostname'), 'port': myconf.get('consumer.port')}])
         elastic_bool = []
         elastic_bool.append({'range': {'@timestamp': {'gte': beginning, 'lte': end}}})
-        elastic_bool.append({'terms': {'@type': ['ports_scan_horizontal', 'ports_scan_vertical']}})
-        # Set filter
-        if filter != 'none':
-            elastic_should = []
-            elastic_should.append({'term': {'src_ip.raw': filter}})
-            elastic_should.append({'term': {'dst_ip.raw': filter}})
-            elastic_bool.append({'bool': {'should': elastic_should}})
-        # Prepare query
+        elastic_bool.append({'term': {'@type': 'portscan_vertical'}})
+
+        # Get data for vertical scans
         qx = Q({'bool': {'must': elastic_bool}})
+        s = Search(using=client, index='_all').query(qx)
+        s.aggs.bucket('by_src', 'terms', field='src_ip.raw', size=2147483647) \
+            .bucket('by_dst_ip', 'terms', field='dst_ip.raw', size=2147483647) \
+            .bucket('top_src_dst', 'top_hits', size=1, sort=[{'@timestamp': {'order': 'desc'}}])
+        vertical = s.execute()
 
-        # Search with maximum size aggregations
-        search = Search(using=client, index='_all').query(qx)
-        search.aggs.bucket('by_src', 'terms', field='src_ip.raw', size=2147483647)\
-              .bucket('top_src', 'top_hits', size=1, sort=[{'@timestamp': {'order': 'desc'}}])
-        results = search.execute()
+        elastic_bool = []
+        elastic_bool.append({'range': {'@timestamp': {'gte': beginning, 'lte': end}}})
+        elastic_bool.append({'term': {'@type': 'portscan_horizontal'}})
 
-        # Result Parsing into CSV in format: timestamp, source_ip, destination_ip, flows, duration
+        # Get data for horizontal scans
+        rx = Q({'bool': {'must': elastic_bool}})
+        r = Search(using=client, index='_all').query(rx)
+        r.aggs.bucket('by_src', 'terms', field='src_ip.raw', size=2147483647) \
+            .bucket('by_dst_port', 'terms', field='dst_port.raw', size=2147483647) \
+            .bucket('top_src_dst', 'top_hits', size=1, sort=[{'@timestamp': {'order': 'desc'}}])
+        horizontal = r.execute()
+
+        # Result Parsing into CSV in format: type, timestamp, source_ip, destination_ip/port, targets count, duration
         data = ""
+        for src_aggregations in vertical.aggregations.by_src.buckets:
+            for result in src_aggregations.by_dst_ip.buckets:
+                record = result.top_src_dst.hits.hits[0]["_source"]
+                m, s = divmod(record["duration_in_milliseconds"] / 1000, 60)
+                h, m = divmod(m, 60)
+                duration = "%d:%02d:%02d" % (h, m, s)
+                data += "Vertical," + record["@timestamp"].replace("T", " ").replace("Z", "") + "," + record["src_ip"] \
+                        + "," + record["dst_ip"] + "," + str(record["target_count"]) + "," + str(duration) + ","
+
+        for src_aggregations in horizontal.aggregations.by_src.buckets:
+            for result in src_aggregations.by_dst_port.buckets:
+                record = result.top_src_dst.hits.hits[0]["_source"]
+                m, s = divmod(record["duration_in_milliseconds"] / 1000, 60)
+                h, m = divmod(m, 60)
+                duration = "%d:%02d:%02d" % (h, m, s)
+                data += "Horizontal," + record["@timestamp"].replace("T", " ").replace("Z", "") + "," + record["src_ip"] \
+                        + "," + record["dst_port"] + "," + str(record["target_count"]) + "," + str(duration) + ","
+        data = data[:-1]
+
+        json_response = '{"status": "Ok", "data": "' + data + '"}'
+        return json_response
 
     except Exception as e:
         json_response = '{"status": "Error", "data": "Elasticsearch query exception: ' + escape(str(e)) + '"}'
