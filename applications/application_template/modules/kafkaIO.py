@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*-
+
 # MIT License
 #
 # Copyright (c) 2016 Tomas Pavuk <433592@mail.muni.cz>, Institute of Computer Science, Masaryk University
@@ -24,6 +26,8 @@
 import ujson as json  # Fast JSON parser
 import sys  # Common system functions
 import os  # Common operating system functions
+
+from termcolor import cprint  # Colors in the console output
 
 from pyspark import SparkContext  # Spark API
 from pyspark.streaming import StreamingContext  # Spark streaming API
@@ -63,10 +67,14 @@ def initialize_kafka_producer(output_zookeeper):
     Initialize Kafka producer for output.
 
     :param: output_zookeper: output zookeeper hostname:port
+    :return: Initialzied Kafka producer through which output data can be send to the Kafka topic
     """
     # Application name used as identifier
-    application_name = os.path.basename(sys.argv[0])
-    return KafkaProducer(bootstrap_servers=output_zookeeper, client_id="spark-producer-" + application_name)
+    try:
+        application_name = os.path.basename(sys.argv[0])
+        return KafkaProducer(bootstrap_servers=output_zookeeper, client_id="spark-producer-" + application_name)
+    except Exception as e:
+        cprint("[warning] Unable to initialize kafka producer.", "red")
 
 
 def process_data_and_send_result(processed_input, kafka_producer, output_topic, processing_function):
@@ -82,7 +90,10 @@ def process_data_and_send_result(processed_input, kafka_producer, output_topic, 
     processed_input.foreachRDD(lambda rdd: processing_function(rdd.collectAsMap(), kafka_producer, output_topic))
 
     # Send any remaining buffered records
-    kafka_producer.flush()
+    try:
+        kafka_producer.flush()
+    except Exception as e:
+        cprint("[warning] Unable to access producer.", "yellow")
 
 
 def send_data_to_kafka(data, producer, topic):
@@ -93,7 +104,10 @@ def send_data_to_kafka(data, producer, topic):
     :param producer: producer that sends the data
     :param topic: name of the receiving kafka topic
     """
-    producer.send(topic, str(data))
+    try:
+        producer.send(topic, str(data))
+    except KafkaTimeoutError as e:
+        cprint("[warning] Unable to send data through topic " + topic + ".", "yellow")
 
 
 def spark_start(ssc):
@@ -104,4 +118,3 @@ def spark_start(ssc):
     """
     ssc.start()
     ssc.awaitTermination()
-

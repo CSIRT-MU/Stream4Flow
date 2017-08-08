@@ -26,10 +26,16 @@
 
 import argparse  # Arguments parser
 
-from modules import kafkaIO
+from modules import kafkaIO  # IO operations with kafka topics
 
 
 def process_results(data_to_process, producer, output_topic):
+    """
+    Process analyzed data and modify it into desired output
+    :param data_to_process: analyzed data
+    :param producer: Kafka producer
+    :param output_topic: Kafka topic through which output is send
+    """
     # Here you can format your results output and send it to the kafka topic
     results_output = data_to_process
 
@@ -38,6 +44,11 @@ def process_results(data_to_process, producer, output_topic):
 
 
 def process_input(input_data):
+    """
+    Process raw data and do MapReduce operations
+    :param input_data: input data in JSON format to process
+    :return: processed data
+    """
     # Here you can process input stream with MapReduce operations
     modified_input = input_data
 
