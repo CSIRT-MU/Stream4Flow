@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 
+#
 # MIT License
 #
 # Copyright (c) 2016 Tomas Pavuk <433592@mail.muni.cz>, Institute of Computer Science, Masaryk University
@@ -43,13 +44,12 @@ def initialize_and_parse_input_stream(input_zookeeper, input_topic, microbatch_d
     :param input_zookeeper: input zookeeper hostname:port
     :param input_topic: input kafka topic
     :param microbatch_duration: duration of micro batches in seconds
-
     :return ssc, parsed_stream: initialized streaming context and json with data from DStream
     """
     # Application name used as identifier
     application_name = os.path.basename(sys.argv[0])
     # Spark context initialization
-    sc = SparkContext(appName=application_name + " " + " ".join(sys.argv[1:]))  # Application name used as the appName
+    sc = SparkContext(appName=application_name + ' ' + ' '.join(sys.argv[1:]))  # Application name used as the appName
     ssc = StreamingContext(sc, microbatch_duration)
 
     # Initialize input DStream of flows from specified Zookeeper server and Kafka topic
@@ -74,7 +74,7 @@ def initialize_kafka_producer(output_zookeeper):
         application_name = os.path.basename(sys.argv[0])
         return KafkaProducer(bootstrap_servers=output_zookeeper, client_id="spark-producer-" + application_name)
     except Exception as e:
-        cprint("[warning] Unable to initialize kafka producer.", "red")
+        cprint("[warning] Unable to initialize kafka producer.", "blue")
 
 
 def process_data_and_send_result(processed_input, kafka_producer, output_topic, processing_function):
@@ -93,7 +93,7 @@ def process_data_and_send_result(processed_input, kafka_producer, output_topic, 
     try:
         kafka_producer.flush()
     except Exception as e:
-        cprint("[warning] Unable to access producer.", "yellow")
+        cprint("[warning] Unable to access producer.", "blue")
 
 
 def send_data_to_kafka(data, producer, topic):
@@ -107,7 +107,7 @@ def send_data_to_kafka(data, producer, topic):
     try:
         producer.send(topic, str(data))
     except KafkaTimeoutError as e:
-        cprint("[warning] Unable to send data through topic " + topic + ".", "yellow")
+        cprint("[warning] Unable to send data through topic " + topic + '.', "blue")
 
 
 def spark_start(ssc):

@@ -24,6 +24,20 @@
 # SOFTWARE.
 #
 
+"""
+Template application for creating new applications using provided module and Spark operations, with a possibility of
+adding more advanced modules. This template simply resends data from given input topic to defined output topic.
+
+Usage:
+    application_template.py -iz <input-zookeeper-hostname>:<input-zookeeper-port> -it <input-topic>
+    -oz <output-zookeeper-hostname>:<output-zookeeper-port> -ot <output-topic>
+
+To run this on the Stream4Flow, you need to receive flows by IPFIXCol and make them available via Kafka topic. Then
+you can run the application as follows:
+    $ ./run-application.sh ./application_template.py -iz producer:2181 -it ipfix.entry -oz producer:9092 -ot results.output
+"""
+
+
 import argparse  # Arguments parser
 
 from modules import kafkaIO  # IO operations with kafka topics
@@ -31,7 +45,8 @@ from modules import kafkaIO  # IO operations with kafka topics
 
 def process_results(data_to_process, producer, output_topic):
     """
-    Process analyzed data and modify it into desired output
+    Process analyzed data and modify it into desired output.
+
     :param data_to_process: analyzed data
     :param producer: Kafka producer
     :param output_topic: Kafka topic through which output is send
@@ -45,7 +60,8 @@ def process_results(data_to_process, producer, output_topic):
 
 def process_input(input_data):
     """
-    Process raw data and do MapReduce operations
+    Process raw data and do MapReduce operations.
+
     :param input_data: input data in JSON format to process
     :return: processed data
     """
