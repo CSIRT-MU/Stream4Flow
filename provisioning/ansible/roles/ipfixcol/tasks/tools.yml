@@ -1,0 +1,10 @@
+# Tools
+
+# fbitdump
+- name: Build fbitdump tool
+  command: >
+    {{ item }}
+    chdir={{ build.dir }}/tools/fbitdump
+    creates=/usr/local/bin/fbitdump
+  with_items: "{{ build.cmds }}"
+  tags: fbitdump
