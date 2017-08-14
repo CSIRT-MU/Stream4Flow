@@ -66,7 +66,7 @@ def process_input(input_data):
     :return: processed data
     """
     # Here you can process input stream with MapReduce operations
-    modified_input = input_data
+    modified_input = input_data.map(lambda json: (1, json))
 
     return modified_input
 
