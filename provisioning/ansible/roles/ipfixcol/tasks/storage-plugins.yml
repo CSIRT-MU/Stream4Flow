@@ -1,5 +1,14 @@
 # Storage plugins
 
+# fastbit
+- name: Build fastbit storage plugin
+  command: >
+    {{ item }}
+    chdir={{ build.dir }}/plugins/storage/fastbit
+    creates=/usr/local/share/ipfixcol/plugins/ipfixcol-fastbit-output.so
+  with_items: "{{ build.cmds }}"
+  tags: fastbit
+
 # json
 - name: Build json storage plugin
   command: >
@@ -9,3 +18,29 @@
   with_items: "{{ build.cmds }}"
   tags: json
 
+# nfdump
+- name: Build nfdump storage plugin
+  command: >
+    {{ item }}
+    chdir={{ build.dir }}/plugins/storage/nfdump
+    creates=/usr/local/share/ipfixcol/plugins/ipfixcol-nfdump-output.so
+  with_items: "{{ build.cmds }}"
+  tags: nfdump-storage
+
+# postgres
+- name: Build postgres storage plugin
+  command: >
+    {{ item }}
+    chdir={{ build.dir }}/plugins/storage/postgres
+    creates=/usr/local/share/ipfixcol/plugins/ipfixcol-postgres-output.so
+  with_items: "{{ build.cmds }}"
+  tags: postgres
+
+# statistics
+- name: Build statistics storage plugin
+  command: >
+    {{ item }}
+    chdir={{ build.dir }}/plugins/storage/statistics
+    creates=/usr/local/share/ipfixcol/plugins/ipfixcol-statistics-output.so
+  with_items: "{{ build.cmds }}"
+  tags: statistics

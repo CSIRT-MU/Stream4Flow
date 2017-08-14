@@ -20,9 +20,9 @@ then
     PYFILES="--py-files $MODULESDIR.zip"
 fi
 
-
 echo -e "${GREEN}[info] Running application $APPLICATION...${NC}"
 
 export SPARK_MASTER_HOST={{ masterIP }}
 export SPARK_LOCAL_HOST={{ masterIP }}
+
 {{ dir_spark }}/spark-bin/bin/spark-submit --total-executor-cores {{ spark_worker_cores }} --executor-memory {{ (spark_worker_memory * 0.8)|int }}M $PYFILES {{ dir_applications }}$APPLICATION
