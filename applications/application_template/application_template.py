@@ -26,7 +26,7 @@
 
 """
 Template application for creating new applications using provided module and Spark operations, with a possibility of
-adding more advanced modules. This template simply resends data from given input topic to defined output topic.
+adding more advanced modules. This template simply resends one row of data from given input topic to defined output topic.
 
 Usage:
     application_template.py -iz <input-zookeeper-hostname>:<input-zookeeper-port> -it <input-topic>
@@ -39,6 +39,8 @@ you can run the application as follows:
 
 
 import argparse  # Arguments parser
+import ujson as json  # Fast JSON parser
+from termcolor import cprint  # Colors in the console output
 
 from modules import kafkaIO  # IO operations with kafka topics
 
@@ -51,8 +53,12 @@ def process_results(data_to_process, producer, output_topic):
     :param producer: Kafka producer
     :param output_topic: Kafka topic through which output is send
     """
+
     # Here you can format your results output and send it to the kafka topic
-    results_output = data_to_process
+    # <-- INSERT YOUR CODE HERE
+
+    # Example of a transformation function that selects values of the dictionary and dumps them as a string
+    results_output = '\n'.join(map(json.dumps, data_to_process.values()))
 
     # Send desired output to the output_topic
     kafkaIO.send_data_to_kafka(results_output, producer, output_topic)
@@ -66,6 +72,9 @@ def process_input(input_data):
     :return: processed data
     """
     # Here you can process input stream with MapReduce operations
+    # <-- INSERT YOUR CODE HERE
+
+    # Example of the map function that transform all JSONs into the key-value pair with the JSON as value and static key
     modified_input = input_data.map(lambda json: (1, json))
 
     return modified_input

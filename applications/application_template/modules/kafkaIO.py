@@ -74,7 +74,7 @@ def initialize_kafka_producer(output_zookeeper):
         application_name = os.path.basename(sys.argv[0])
         return KafkaProducer(bootstrap_servers=output_zookeeper, client_id="spark-producer-" + application_name)
     except Exception as e:
-        cprint("[warning] Unable to initialize kafka producer.", "blue")
+        cprint("[warning] Unable to initialize kafka producer " + output_zookeeper + '.', "blue")
 
 
 def process_data_and_send_result(processed_input, kafka_producer, output_topic, processing_function):
@@ -105,8 +105,9 @@ def send_data_to_kafka(data, producer, topic):
     :param topic: name of the receiving kafka topic
     """
     try:
-        producer.send(topic, str(data))
-    except KafkaTimeoutError as e:
+        if data:  # Check if there are some data to send
+            producer.send(topic, str(data))
+    except Exception as e:
         cprint("[warning] Unable to send data through topic " + topic + '.', "blue")
 
 
