@@ -20,6 +20,9 @@
 - name: Edit log4j.properties config file
   replace: dest={{ dir_spark }}/spark-bin/conf/log4j.properties regexp='log4j\.rootCategory=INFO, console' replace='log4j.rootCategory=WARN, console'
 
+- name: Copy the default spark config to spark directory
+  template: src=spark-defaults.conf.j2 dest={{ dir_spark }}/spark-bin/conf/spark-defaults.conf owner={{ user }} group={{ user }} mode=0750
+
 - include: prepareMaster.yml
   when: "'sparkMaster' in group_names"
   become: yes
