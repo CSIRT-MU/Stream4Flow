@@ -6,7 +6,7 @@ then
     exit 1;
 fi
 APPLICATION=$@
-MODULESDIR=$(dirname "${APPLICATION}")/modules
+MODULESDIR=$(dirname "$1")/modules
 
 # Output colors
 GREEN='\033[0;32m'
