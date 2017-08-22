@@ -3,13 +3,13 @@
 ### Description
 
 Counts the following statistics from Kafka every 20 seconds:
-    - Record types
-    - Response codes
-    - Queried domains by domain name
-    - Queried domains that do not exist
-    - Queried external dns servers from local network
-    - Queried dns servers on local network from the outside network
-    - Domains with hosts which queried them
+- Record types
+- Response codes
+- Queried domains by domain name
+- Queried domains that do not exist
+- Queried external dns servers from local network
+- Queried dns servers on local network from the outside network
+- Domains with hosts which queried them
 
 ### Usage:
 - General
