@@ -126,6 +126,7 @@ def get_format(dictionary, value_name="value"):
 def get_top_n_records(data, value_name, n=40):
     """
     Get top n records by value_name.
+
     :param data: records from which top n is calculated
     :param value_name: name of the attribute with value with which records are sorted
     :param n: top number of records
@@ -163,6 +164,7 @@ def process_results(results, producer, topic):
 def get_query_type(key):
     """
     Translates numerical key into the string value for dns query type
+
     :param key: Numerical value to be translated
     :return: Translated query type
     """
@@ -208,6 +210,7 @@ def get_statistics(flows_stream, local_network, s_window_duration, s_window_slid
         .filter(lambda flow_json: ("ipfix.protocolIdentifier" in flow_json.keys()) and
                                   ("ipfix.DNSName" in flow_json.keys()) and
                                   ("ipfix.sourceIPv4Address" in flow_json.keys()))
+    # TODO: ipfix.protocolIdentifier is mandatory
 
     flow_local_to_external = flows_stream_filtered \
         .filter(lambda flow_json: (IPAddress(flow_json["ipfix.sourceIPv4Address"]) in IPNetwork(local_network)) and
@@ -219,7 +222,7 @@ def get_statistics(flows_stream, local_network, s_window_duration, s_window_slid
     flow_to_local = flows_stream_filtered \
         .filter(lambda flow_json: (IPAddress(flow_json["ipfix.destinationIPv4Address"]) in IPNetwork(local_network)))
 
-    # Record Types
+    # Record Types  TODO: Add better description (for all)
     dns_rec_types = flow_from_local \
         .map(lambda record: (("record_type", record["ipfix.DNSQType"]), 1)) \
         .reduceByKey(lambda actual, update: (actual + update))\
@@ -227,6 +230,8 @@ def get_statistics(flows_stream, local_network, s_window_duration, s_window_slid
         .reduceByKey(lambda actual, update: (actual + update))\
         .map(lambda record: (record[0][0], {get_query_type(record[0][1]): record[1]})) \
         .reduceByKey(lambda actual, update: (merge_dicts(actual, update)))
+    # TODO: Second map() should be mapValues() - easier to understand (for all where is it reasonable)
+    # TODO: Try to move description from key to value and check computation speed
 
     # Response codes
     dns_res_codes = flow_to_local \
@@ -237,8 +242,10 @@ def get_statistics(flows_stream, local_network, s_window_duration, s_window_slid
         .reduceByKey(lambda actual, update: (actual + update))\
         .map(lambda record: (record[0][0], {get_response_code(record[0][1]): record[1]})) \
         .reduceByKey(lambda actual, update: (merge_dicts(actual, update)))
+    # TODO: Check if bit is set: (decimal >> N) & 1  (for all)
+    # TODO: Get response code number using shifting (like previous comment)  (for all)
 
-    # Top N sent to output
+    # Top N sent to output  # TODO: describe why is filtered >= 2
     # Queried domains by domain name
     queried_domains = flow_from_local\
         .filter(lambda flow_json: (bin(flow_json["ipfix.DNSFlagsCodes"])[2:].zfill(16)[0] == '0')) \
@@ -249,6 +256,7 @@ def get_statistics(flows_stream, local_network, s_window_duration, s_window_slid
         .reduceByKey(lambda actual, update: (actual + update))\
         .map(lambda record: (record[0][0], {record[0][1]: record[1]})) \
         .reduceByKey(lambda actual, update: (merge_dicts(actual, update)))
+    # TODO: Is it possible to utilize takeOrdered() or top() ??
 
     # Top N sent to output
     # Queried domains that do not exist
@@ -271,8 +279,9 @@ def get_statistics(flows_stream, local_network, s_window_duration, s_window_slid
         .reduceByKey(lambda actual, update: (actual + update))\
         .map(lambda record: (record[0][0], {record[0][1]: record[1]})) \
         .reduceByKey(lambda actual, update: (merge_dicts(actual, update)))
+    # TODO: Why is used ipfix.DNSQuestionCount? Simply use "1"
 
-    # Succesfully queried dns servers on local network from the outside network
+    # Successfully queried dns servers on local network from the outside network
     queried_local_dns_from_outside = flow_local_to_external \
         .filter(lambda flow_json: (bin(flow_json["ipfix.DNSFlagsCodes"])[2:].zfill(16)[0] == '1')) \
         .filter(lambda flow_json: (int(bin(flow_json["ipfix.DNSFlagsCodes"])[2:].zfill(16)[-4:], 2)) != 5) \
@@ -282,8 +291,9 @@ def get_statistics(flows_stream, local_network, s_window_duration, s_window_slid
         .reduceByKey(lambda actual, update: (actual + update))\
         .map(lambda record: (record[0][0], {record[0][1]: record[1]})) \
         .reduceByKey(lambda actual, update: (merge_dicts(actual, update)))
+    # TODO: Why ipfix.packetDeltaCount? It is UDP so one packet = one flow
 
-    # Top N sent to output
+    # Top N sent to outputn
     device_with_most_records = flow_from_local\
         .filter(lambda flow_json: (bin(flow_json["ipfix.DNSFlagsCodes"])[2:].zfill(16)[0] == '0'))\
         .map(lambda record: (("queried_by_ip", record["ipfix.DNSName"], record["ipfix.sourceIPv4Address"]), 1)) \
@@ -296,11 +306,12 @@ def get_statistics(flows_stream, local_network, s_window_duration, s_window_slid
     # Merge all types of statistics together
     all_statistics = dns_rec_types.union(dns_res_codes).union(dns_nonexisting_domains).union(queried_domains)\
         .union(queried_external_dns_servers).union(queried_local_dns_from_outside).union(device_with_most_records)
+    # TODO: Union is not necessary if each type is send as a new message
 
     # Return computed statistics
     return all_statistics
 
-
+# TODO: Function update() can be used as follows to return value in a lambda: .reduce(lambda a, b: a.update(b) or a)
 def merge_dicts(a, b):
     a.update(b)
     return a
@@ -317,7 +328,7 @@ if __name__ == "__main__":
 
     # Define Arguments for detection
     parser.add_argument("-lc", "--local_network", help="local network ip address netaddress/mask",
-                        type=str, required=True)
+                        type=str, required=True)  # TODO: help="local network"
 
     # Parse arguments
     args = parser.parse_args()
@@ -326,11 +337,11 @@ if __name__ == "__main__":
     application_name = os.path.basename(sys.argv[0])  # Application name used as identifier
     kafka_partitions = 1  # Number of partitions of the input Kafka topic
     # window_duration = args.window_size  # Analysis window duration (600 seconds/10 minutes default)
-    window_slide = 5  # Slide interval of the analysis window (5 second)
+    window_slide = 5  # Slide interval of the analysis window (5 second)  TODO: Window size and slide as parameter.
 
     # Spark context initialization
     sc = SparkContext(appName=application_name + " " + " ".join(sys.argv[1:]))  # Application name used as the appName
-    ssc = StreamingContext(sc, 10)  # Spark microbatch is 1 second
+    ssc = StreamingContext(sc, 10)  # Spark microbatch is 1 second  TODO: Window size and slide as parameter.
 
     # Initialize input DStream of flows from specified Zookeeper server and Kafka topic
     input_stream = KafkaUtils.createStream(ssc, args.input_zookeeper, "spark-consumer-" + application_name,
@@ -340,7 +351,7 @@ if __name__ == "__main__":
     flows_json = input_stream.map(lambda line: json.loads(line[1]))
 
     # Calculate statistics
-    statistics = get_statistics(flows_json, args.local_network, 20, 10)
+    statistics = get_statistics(flows_json, args.local_network, 20, 10)  # TODO: Window size and slide as parameter.
 
     # Initialize kafka producer
     kafka_producer = KafkaProducer(bootstrap_servers=args.output_zookeeper,
