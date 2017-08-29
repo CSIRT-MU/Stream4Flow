@@ -74,15 +74,14 @@ def get_output_json(key, value):
     :return: JSON string in desired format
     """
 
-    output_json = "{\"@type\": \"dns_statistics\", \"@stat_type\": \"" + key + "\", " \
-                  + "\"data_array\": ["
+    output_json = "{\"@type\": \"dns_statistics\", \"@stat_type\": \"" + key + "\", \"data_array\": ["
 
     if key == "queried_by_ip":
-        dictionary = get_top_n_records(value, "ips")
+        dictionary = get_top_n_records(value, "ips", 100)
         output_json += ', '.join(get_format(dictionary, "ips"))
 
     elif key == "queried_domain" or key == "nonexisting_domain":
-        dictionary = get_top_n_records(value, "value")
+        dictionary = get_top_n_records(value, "value", 100)
         output_json += ', '.join(get_format(dictionary))
 
     else:
@@ -101,20 +100,30 @@ def get_format(dictionary, value_name="value"):
     :return: List with key, value pairs
     """
     rec_list = []
-    for k, v in dictionary.iteritems():
-        # Changes the field names in dictionary
-        temp_dict = {"key": k, value_name: v}
+    if value_name == "ips":
+        for k, v in dictionary.iteritems():
+            # Converts dictionary to JSON format
+            conv_json = "{\"key\": \"" + unicode(k[0]).encode('utf8') + "\", \"value\": " + unicode(v).encode('utf8') \
+                        + ", \"" + value_name + "\": \"" + unicode(k[1]).encode('utf8') + "\"}"
 
-        # Converts dictionary to json
-        conv_json = json.dumps(temp_dict)
+            # Appends JSON to the list
+            rec_list.append(conv_json)
 
-        # Appends json to the list
-        rec_list.append(conv_json)
+    else:
+        for k, v in dictionary.iteritems():
+            # Changes the field names in dictionary
+            temp_dict = {"key": k, value_name: v}
+
+            # Converts dictionary to JSON
+            conv_json = json.dumps(temp_dict)
+
+            # Appends JSON to the list
+            rec_list.append(conv_json)
 
     return rec_list
 
 
-def get_top_n_records(data, value_name, n=50):
+def get_top_n_records(data, value_name, n=40):
     """
     Get top n records by value_name.
     :param data: records from which top n is calculated
@@ -143,12 +152,12 @@ def process_results(results, producer, topic):
     for key, value in results.iteritems():
         output_json += get_output_json(key, value)
 
-    # Print data to standard output
     if output_json:
+        # Print data to standard output
         print(output_json)
 
-    # Send results to the specified kafka topic
-    send_to_kafka(output_json, producer, topic)
+        # Send results to the specified kafka topic
+        send_to_kafka(output_json, producer, topic)
 
 
 def get_query_type(key):
@@ -177,11 +186,9 @@ def get_response_code(key):
     :return: Translated response code
     """
     return {
-        0: 'No Error', 1: 'Format Error', 2: 'Server Failure', 3: 'Non-Existent Domain', 4: 'Not Implemented',
-        5: 'Query Refused', 6: 'Name Exists when it should not', 7: 'RR Set Exists when it should not',
-        8: 'RR Set that should exist does not', 9: 'Server Not Authoritative for zone',
-        10: 'Name not contained in zone', 11: 'Bad Extension Mechanism for Version', 12: 'Bad Signature',
-        13: 'Bad Key', 14: 'Bad Timestamp'
+        0: 'NoError', 1: 'FormErr', 2: 'ServFail', 3: 'NXDomain', 4: 'NotImp', 5: 'Refused', 6: 'YXDomain',
+        7: 'YXRRSet', 8: 'NXRRSet', 9: 'NotAuth', 10: 'NotZone', 11: 'BADVERS', 12: 'BADSIG', 13: 'BADKEY',
+        14: 'BADTIME'
     }.get(key, 'Other')
 
 
@@ -198,17 +205,13 @@ def get_statistics(flows_stream, local_network, s_window_duration, s_window_slid
 
     # Check required flow keys
     flows_stream_filtered = flows_stream \
-        .filter(lambda flow_json: ("ipfix.protocolIdentifier" in flow_json.keys())
-                                  and ("ipfix.DNSName" in flow_json.keys())
-                                  and ("ipfix.sourceIPv4Address" in flow_json.keys()))
+        .filter(lambda flow_json: ("ipfix.protocolIdentifier" in flow_json.keys()) and
+                                  ("ipfix.DNSName" in flow_json.keys()) and
+                                  ("ipfix.sourceIPv4Address" in flow_json.keys()))
 
     flow_local_to_external = flows_stream_filtered \
         .filter(lambda flow_json: (IPAddress(flow_json["ipfix.sourceIPv4Address"]) in IPNetwork(local_network)) and
                                   (IPAddress(flow_json["ipfix.destinationIPv4Address"]) not in IPNetwork(local_network)))
-
-    flow_external_to_local = flows_stream_filtered \
-        .filter(lambda flow_json: (IPAddress(flow_json["ipfix.sourceIPv4Address"]) not in IPNetwork(local_network)) and
-                                  (IPAddress(flow_json["ipfix.destinationIPv4Address"]) in IPNetwork(local_network)))
 
     flow_from_local = flows_stream_filtered \
         .filter(lambda flow_json: (IPAddress(flow_json["ipfix.sourceIPv4Address"]) in IPNetwork(local_network)))
@@ -239,7 +242,7 @@ def get_statistics(flows_stream, local_network, s_window_duration, s_window_slid
     # Queried domains by domain name
     queried_domains = flow_from_local\
         .filter(lambda flow_json: (bin(flow_json["ipfix.DNSFlagsCodes"])[2:].zfill(16)[0] == '0')) \
-        .map(lambda record: (("queried_domain", ".".join(record["ipfix.DNSName"].split('.')[-3:])), 1)) \
+        .map(lambda record: (("queried_domain", record["ipfix.DNSName"]), 1)) \
         .reduceByKey(lambda actual, update: (actual + update))\
         .filter(lambda record: record[1] >= 2)\
         .window(s_window_duration, s_window_slide) \
@@ -252,7 +255,7 @@ def get_statistics(flows_stream, local_network, s_window_duration, s_window_slid
     dns_nonexisting_domains = flow_to_local \
         .filter(lambda flow_json: (bin(flow_json["ipfix.DNSFlagsCodes"])[2:].zfill(16)[0] == '1')) \
         .filter(lambda flow_json: (int((bin(flow_json["ipfix.DNSFlagsCodes"])[2:].zfill(16))[-4:], 2) == 3)) \
-        .map(lambda record: (("nonexisting_domain", ".".join(record["ipfix.DNSName"].split('.')[-3:])), 1)) \
+        .map(lambda record: (("nonexisting_domain", record["ipfix.DNSName"]), 1)) \
         .reduceByKey(lambda actual, update: (actual + update))\
         .window(s_window_duration, s_window_slide) \
         .reduceByKey(lambda actual, update: (actual + update))\
@@ -269,10 +272,11 @@ def get_statistics(flows_stream, local_network, s_window_duration, s_window_slid
         .map(lambda record: (record[0][0], {record[0][1]: record[1]})) \
         .reduceByKey(lambda actual, update: (merge_dicts(actual, update)))
 
-    # Queried dns servers on local network from the outside network
-    queried_local_dns_from_outside = flow_external_to_local \
-        .filter(lambda flow_json: (bin(flow_json["ipfix.DNSFlagsCodes"])[2:].zfill(16)[0] == '0')) \
-        .map(lambda record: (("queried_local", ".".join(record["ipfix.DNSName"].split('.')[-3:])), record["ipfix.packetDeltaCount"])) \
+    # Succesfully queried dns servers on local network from the outside network
+    queried_local_dns_from_outside = flow_local_to_external \
+        .filter(lambda flow_json: (bin(flow_json["ipfix.DNSFlagsCodes"])[2:].zfill(16)[0] == '1')) \
+        .filter(lambda flow_json: (int(bin(flow_json["ipfix.DNSFlagsCodes"])[2:].zfill(16)[-4:], 2)) != 5) \
+        .map(lambda record: (("queried_local", record["ipfix.sourceIPv4Address"]), record["ipfix.packetDeltaCount"])) \
         .reduceByKey(lambda actual, update: (actual + update))\
         .window(s_window_duration, s_window_slide) \
         .reduceByKey(lambda actual, update: (actual + update))\
@@ -280,13 +284,13 @@ def get_statistics(flows_stream, local_network, s_window_duration, s_window_slid
         .reduceByKey(lambda actual, update: (merge_dicts(actual, update)))
 
     # Top N sent to output
-    # Domains with hosts which queried them
-    device_with_most_records = flow_from_local \
-        .map(lambda record: (("queried_by_ip", ".".join(record["ipfix.DNSName"].split('.')[-3:])), [record["ipfix.sourceIPv4Address"]])) \
+    device_with_most_records = flow_from_local\
+        .filter(lambda flow_json: (bin(flow_json["ipfix.DNSFlagsCodes"])[2:].zfill(16)[0] == '0'))\
+        .map(lambda record: (("queried_by_ip", record["ipfix.DNSName"], record["ipfix.sourceIPv4Address"]), 1)) \
         .reduceByKey(lambda actual, update: (actual + update))\
         .window(s_window_duration, s_window_slide) \
         .reduceByKey(lambda actual, update: (actual + update)) \
-        .map(lambda record: (record[0][0], {record[0][1]: record[1]})) \
+        .map(lambda record: (record[0][0], {(record[0][1], record[0][2]): record[1]})) \
         .reduceByKey(lambda actual, update: (merge_dicts(actual, update)))
 
     # Merge all types of statistics together
