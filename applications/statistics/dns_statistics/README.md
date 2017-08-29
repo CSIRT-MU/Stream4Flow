@@ -2,7 +2,7 @@
 
 ### Description
 
-Counts the following statistics from Kafka every 20 seconds:
+Counts the following statistics from defined input topic every 20 seconds:
 - Record types
 - Response codes
 - Queried domains by domain name
