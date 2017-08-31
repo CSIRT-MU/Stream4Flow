@@ -41,7 +41,6 @@ function generateTopN(type, dataCsv, number) {
         chart_height += (top_values > 10) ? (top_values * 7) : 0;
     } else if (type == "queried_local") {
         chart_title = "Top Queried Local DNS Servers From Outside Network";
-        tooltip_text = "%t\n%v packets";
         chart_height += (top_values > 10) ? (top_values * 7) : 0;
     } else if (type == "external_dns") {
         chart_title = "Top Queried External DNS Servers";
@@ -298,11 +297,8 @@ function loadTopN(type, number) {
     var beginning = new Date( $('#datetime-beginning').val()).toISOString();
     var end = new Date( $('#datetime-end').val()).toISOString();
 
-    // Get filter value (if empty then set "none")
-    var filter = $('#filter').val() ? $('#filter').val() : 'none';
-
     // Set data request
-    var data_request = encodeURI( './get_top_n_statistics' + '?beginning=' + beginning + '&end=' + end + '&type=' + type.toLowerCase() + '&number=' + number + '&filter=' + filter);
+    var data_request = encodeURI( './get_top_n_statistics' + '?beginning=' + beginning + '&end=' + end + '&type=' + type.toLowerCase() + '&number=' + number);
     // Get Elasticsearch data
     $.ajax({
         async: true,
@@ -324,8 +320,72 @@ function loadTopN(type, number) {
 };
 
 
-// Load histogram chart, top statistics, and table with all attacks
+function generateTable(data, type) {
+    // Elements ID
+    var tableId = '#table-dns-stats';
+    var tableIdStatus = tableId + '-status';
+
+    // Hide status element
+    $(tableIdStatus).hide();
+    // Show table element
+    $(tableId).show();
+
+    var indexCount = 0;
+    var array = data.split(",");
+    var table = $("#table-records");
+
+    // Empty current data in table
+    table.bootstrapTable('removeAll');
+
+    // Generate rows for table
+    for (var i = 0; i <= array.length-2; i+=2) {
+        table.bootstrapTable('insertRow', {
+            index: indexCount,
+            row: {
+                record: String(array[i]),
+                count: array[i+1],
+            }
+        });
+        indexCount++;
+    }
+};
+
+function loadTable() {
+    // Convert times to UTC in ISO format
+    var beginning = new Date( $('#datetime-beginning').val()).toISOString();
+    var end = new Date( $('#datetime-end').val()).toISOString();
+    var type = $('#all-values').val();
+    var text = $('#all-values option:selected').text();
+
+    // Change Table title according to the table type
+    $('#table-title').html(text);
+
+    var data_request = encodeURI( './get_records_list' + '?beginning=' + beginning + '&end=' + end + '&type=' + type);
+
+    // Get Elasticsearch data
+    $.ajax({
+        async: true,
+        type: 'GET',
+        url: data_request,
+        success: function(raw) {
+            var response = jQuery.parseJSON(raw);
+            if (response.status == "Ok") {
+                generateTable(response.data);
+            } else {
+                // Show error message
+                $("#table").html(
+                    '<i class="fa fa-exclamation-circle fa-2x"></i>\
+                     <span>' + response.status + ': ' + response.data + '</span>'
+                )
+            }
+        }
+    });
+
+};
+
 function loadAllCharts() {
+    $('.table-dns-stats').hide();
+    $('.chart-dns-stats-top').show();
     var topValues = $('#top-values').val();
 
     loadTopN("record_type", topValues);
@@ -336,6 +396,16 @@ function loadAllCharts() {
     loadTopN("external_dns", topValues);
     loadTopN("queried_by_ip", topValues);
 };
+
+function loadAllRecords() {
+    var type = $('#all-values').val();
+
+    $('.chart-dns-stats-top').hide();
+    $('.table-dns-stats').show();
+    $('#table-records').show();
+    loadTable();
+};
+
 
 // Load all charts when page loaded
 $(window).load(loadAllCharts());

@@ -63,7 +63,7 @@ def get_top_n_statistics():
             search_ip = Search(using=client, index='_all').query(qx)
             search_ip.aggs.bucket('all_nested', 'nested', path='data_array') \
                 .bucket('by_key', 'terms', field='data_array.key.raw', size=2147483647)\
-                .bucket('by_ip', 'terms', field='data_array.ips.raw', size=1, order={'sum_by_ip': 'desc'}) \
+                .bucket('by_ip', 'terms', field='data_array.ip.raw', size=1, order={'sum_by_ip': 'desc'}) \
                 .bucket('sum_by_ip', 'sum', field='data_array.value')
             search_ip.aggs['all_nested']['by_key'].bucket('sum_total', 'sum', field='data_array.value')
             results = search_ip.execute()
@@ -105,3 +105,57 @@ def get_top_n_statistics():
         json_response = '{"status": "Error", "data": "Elasticsearch query exception: ' + escape(str(e)) + '"}'
         return json_response
 
+
+def get_records_list():
+    """
+    Obtains list of all records for given type given time range.
+
+    :return: JSON with status "ok" or "error" and requested data.
+    """
+
+    # Check login
+    if not session.logged:
+        json_response = '{"status": "Error", "data": "You must be logged!"}'
+        return json_response
+
+    # Check mandatory inputs
+    if not (request.get_vars.beginning and request.get_vars.end and request.get_vars.type):
+        json_response = '{"status": "Error", "data": "Some mandatory argument is missing!"}'
+        return json_response
+
+    # Parse inputs and set correct format
+    beginning = escape(request.get_vars.beginning)
+    end = escape(request.get_vars.end)
+    type = escape(request.get_vars.type)
+
+    try:
+        # Elastic query
+        client = elasticsearch.Elasticsearch(
+            [{'host': myconf.get('consumer.hostname'), 'port': myconf.get('consumer.port')}])
+        elastic_bool = []
+        elastic_bool.append({'range': {'@timestamp': {'gte': beginning, 'lte': end}}})
+        elastic_bool.append({'term': {'@stat_type': type}})
+
+        # Prepare query
+        qx = Q({'bool': {'must': elastic_bool}})
+
+        # Set query according to the statistic type
+        search_ip = Search(using=client, index='_all').query(qx)
+        search_ip.aggs.bucket('all_nested', 'nested', path='data_array')\
+            .bucket('by_key', 'terms', field='data_array.key.raw', size=2147483647)\
+            .bucket('stats_sum', 'sum', field='data_array.value')
+        results = search_ip.execute()
+
+        data = ""
+        for all_buckets in results.aggregations.all_nested.by_key:
+            data += all_buckets.key + "," + str(int(all_buckets.stats_sum.value)) + ","
+
+        # Remove trailing comma
+        data = data[:-1]
+
+        json_response = '{"status": "Ok", "data": "' + data + '"}'
+        return json_response
+
+    except Exception as e:
+        json_response = '{"status": "Error", "data": "Elasticsearch query exception: ' + escape(str(e)) + '"}'
+        return json_response
