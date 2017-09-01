@@ -12,16 +12,13 @@ function generateTopN(type, dataCsv, number) {
     // Show chart element
     $('#' + chartId).show();
 
-    var chart_height = 450;//$('#' + chartId).height();
     var font_angle = '0';
     var font_offset = '0px';
-    var fontColor = "white";
-    var placement = "bottom-in";
-    var tooltip_text = "%t\n%v";
-    var value_text = "%t";
-    var chartXOffset = '0px';
     var max_value = 0;
-    var top_values = parseInt(number);
+    var top_n_value = parseInt(number);
+
+    // Set chart height, add additional height if top N value is larger
+    var chart_height = (top_n_value > 10) ? (top_n_value * 7 + 450) : 450;
 
     // Prepare title
     var chart_title = ""
@@ -31,28 +28,18 @@ function generateTopN(type, dataCsv, number) {
             font_angle = '-90';
         }
         chart_title = "Top DNS Record Types";
-        placement = "top-in";
     } else if (type == "response_code") {
         chart_title = "Top DNS Response Codes";
-        font_angle = '0';
-        placement = "top-in";
     } else if (type == "queried_domain") {
         chart_title = "Top Queried Domains";
-        chart_height += (top_values > 10) ? (top_values * 7) : 0;
     } else if (type == "queried_local") {
         chart_title = "Top Queried Local DNS Servers From Outside Network";
-        chart_height += (top_values > 10) ? (top_values * 7) : 0;
     } else if (type == "external_dns") {
         chart_title = "Top Queried External DNS Servers";
-        chart_height += (top_values > 10) ? (top_values * 7) : 0;
     } else if (type == "queried_by_ip") {
         chart_title = "Device with the most records for domain";
-        font_angle = '0';
-        chartXOffset = '300px';
-        chart_height += (top_values > 10) ? (top_values * 10) : 0;
     } else {
         chart_title = "Top Queried Non-existing Domains";
-        chart_height += (top_values > 10) ? (top_values * 7) : 0;
     };
 
     if (type == "queried_by_ip") {
@@ -68,9 +55,9 @@ function generateTopN(type, dataCsv, number) {
         var myObj = {
             "values": values,
             "valueBox": {
-                "placement": placement,
+                "placement": "bottom-in",
                 "jsRule" : "CustomFn.formatText()",
-                "fontColor": fontColor,
+                "fontColor": "white",
             }
         };
 
@@ -79,9 +66,9 @@ function generateTopN(type, dataCsv, number) {
             "values": stackValues,
             "text": "",
             "valueBox": {
-                "placement": placement,
+                "placement": "bottom-in",
                 "text": "",
-                "fontColor": fontColor
+                "fontColor": "white"
             }
         };
 
@@ -93,11 +80,10 @@ function generateTopN(type, dataCsv, number) {
             values.unshift(parseInt(data[i+2]));
 
             if (parseInt(data[i+3]) - parseInt(data[i+2]) == 0) {
-                var additional = null;
+                stackValues.unshift(null);
             } else {
-                var additional = parseInt(data[i+3]) - parseInt(data[i+2]);
+                stackValues.unshift(parseInt(data[i+3]) - parseInt(data[i+2]));
             }
-            stackValues.unshift(additional);
         };
         mySeries.push(myObj);
         mySeries.push(myStackObj);
@@ -164,11 +150,11 @@ function generateTopN(type, dataCsv, number) {
                 offsetY: '-15px'
                }, {
                  rule: "%v > " + max_value/10000,
-                 placement: placement,
+                 placement: "top-in",
                 text: '%t',
                 fontAngle: font_angle,
                 offsetY: font_offset,
-                fontColor: fontColor
+                fontColor: "white"
                }]
               },
               tooltip:{
@@ -203,23 +189,23 @@ function generateTopN(type, dataCsv, number) {
                 rules: [{
                  rule: "%v < " + max_value/1000,
                  placement: "top-out",
-                 text: value_text,
+                 text: "%t",
                  fontAngle: font_angle,
                  offsetY: font_offset,
                  fontColor: "black"
                }, {
                  rule: "%v >= " + max_value/1000,
-                 placement: placement,
-                 text: value_text,
+                 placement: "bottom-in",
+                 text: "%t",
                  fontAngle: font_angle,
                  offsetY: font_offset,
-                 fontColor: fontColor
+                 fontColor: "white"
                }]
               },
               tooltip:{
                 fontSize: '18',
                 padding: "5 10",
-                text: tooltip_text,
+                text: "%t\n%v",
                 thousandsSeparator: " "
               },
               cursor: 'hand',
@@ -342,7 +328,7 @@ function generateTable(data, type) {
         table.bootstrapTable('insertRow', {
             index: indexCount,
             row: {
-                record: String(array[i]),
+                record: array[i],
                 count: array[i+1],
             }
         });
@@ -354,6 +340,8 @@ function loadTable() {
     // Convert times to UTC in ISO format
     var beginning = new Date( $('#datetime-beginning').val()).toISOString();
     var end = new Date( $('#datetime-end').val()).toISOString();
+
+    // Gets type and value for selected option
     var type = $('#all-values').val();
     var text = $('#all-values option:selected').text();
 
@@ -403,6 +391,7 @@ function loadAllRecords() {
     $('.chart-dns-stats-top').hide();
     $('.table-dns-stats').show();
     $('#table-records').show();
+
     loadTable();
 };
 
