@@ -23,7 +23,7 @@ function generateTopN(type, dataCsv, number) {
     // Prepare title
     var chart_title = ""
     if (type == "record_type") {
-        if (top_values > 10) {
+        if (top_n_value > 10) {
             font_offset = '20px';
             font_angle = '-90';
         }
