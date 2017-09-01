@@ -67,7 +67,7 @@ def get_format(dictionary, s_statistic_type):
     """
     Gets dictionary with computed statistics and formats it into list
     of key, value pairs (key, value, ips if statistic type is queried_by_ip)
-    that will be sent as part of the output json
+    that will be sent as part of the output json.
 
     :param dictionary: Dictionary with computer statistics
     :param s_statistic_type: Type of the statistic
@@ -121,7 +121,7 @@ def process_results(results, producer, s_output_topic, s_statistic_type):
 
 def get_query_type(key):
     """
-    Translates numerical key into the string value for dns query type
+    Translates numerical key into the string value for dns query type.
 
     :param key: Numerical value to be translated
     :return: Translated query type
@@ -141,7 +141,7 @@ def get_query_type(key):
 
 def get_response_code(key):
     """
-    Translates numerical key into the string value for dns response code
+    Translates numerical key into the string value for dns response code.
 
     :param key: Numerical value to be translated
     :return: Translated response code
@@ -155,7 +155,11 @@ def get_response_code(key):
 
 def get_rec_types(s_input_stream, s_window_duration):
     """
-    Gets the number of occurrences for each type of DNS Record
+    Gets the number of occurrences for each type of DNS Record.
+
+    :param s_input_stream: Input flows
+    :param s_window_duration: Length of the window in seconds
+    :return: Transformed input stream
     """
     return s_input_stream \
         .map(lambda record: (get_query_type(record["ipfix.DNSQType"]), 1)) \
@@ -166,7 +170,11 @@ def get_rec_types(s_input_stream, s_window_duration):
 
 def get_res_codes(s_input_stream, s_window_duration):
     """
-    Gets the number of occurrences for each type of DNS response code
+    Gets the number of occurrences for each type of DNS response code.
+
+    :param s_input_stream: Input flows
+    :param s_window_duration: Length of the window in seconds
+    :return: Transformed input stream
     """
     return s_input_stream \
         .filter(lambda flow_json: (flow_json["ipfix.DNSFlagsCodes"] >> 15) & 1) \
@@ -178,7 +186,11 @@ def get_res_codes(s_input_stream, s_window_duration):
 
 def get_queried_domains(s_input_stream, s_window_duration):
     """
-    Gets the number of occurrences for each queried domain name
+    Gets the number of occurrences for each queried domain name.
+
+    :param s_input_stream: Input flows
+    :param s_window_duration: Length of the window in seconds
+    :return: Transformed input stream
     """
     # Records with 1 occurrence are discarded to reduce the amount of data dramatically
     return s_input_stream\
@@ -192,7 +204,11 @@ def get_queried_domains(s_input_stream, s_window_duration):
 
 def get_non_existing_queried_domains(s_input_stream, s_window_duration):
     """
-    Gets the number of occurrences for each domain name that was resolved as being non-existent
+    Gets the number of occurrences for each domain name that was resolved as being non-existent.
+
+    :param s_input_stream: Input flows
+    :param s_window_duration: Length of the window in seconds
+    :return: Transformed input stream
     """
     return s_input_stream \
         .filter(lambda flow_json: flow_json["ipfix.DNSFlagsCodes"] >> 15 & 1) \
@@ -205,7 +221,11 @@ def get_non_existing_queried_domains(s_input_stream, s_window_duration):
 
 def get_queried_external_dns_servers(s_input_stream, s_window_duration):
     """
-    For each queried DNS server not in local network computes the amount of queries from the local network
+    For each queried DNS server not in local network computes the amount of queries from the local network.
+
+    :param s_input_stream: Input flows
+    :param s_window_duration: Length of the window in seconds
+    :return: Transformed input stream
     """
     return s_input_stream\
         .filter(lambda flow_json: (flow_json["ipfix.DNSFlagsCodes"] >> 15) == 0) \
@@ -217,7 +237,11 @@ def get_queried_external_dns_servers(s_input_stream, s_window_duration):
 
 def get_queried_local_dns_from_outside(s_input_stream, s_window_duration):
     """
-    For each DNS server on local network computes the amount of successfully resolved queries from the outside networks
+    For each DNS server on local network computes the amount of successfully resolved queries from the outside networks.
+
+    :param s_input_stream: Input flows
+    :param s_window_duration: Length of the window in seconds
+    :return: Transformed input stream
     """
     return s_input_stream \
         .filter(lambda flow_json: flow_json["ipfix.DNSFlagsCodes"] >> 15 & 1) \
@@ -230,7 +254,11 @@ def get_queried_local_dns_from_outside(s_input_stream, s_window_duration):
 
 def get_queried_domains_by_ip(s_input_stream, s_window_duration):
     """
-    For each queried domain computes all ips that queried it with the query count
+    For each queried domain computes all ips that queried it with the query count.
+
+    :param s_input_stream: Input flows
+    :param s_window_duration: Length of the window in seconds
+    :return: Transformed input stream
     """
     return s_input_stream\
         .filter(lambda flow_json: (flow_json["ipfix.DNSFlagsCodes"] >> 15) == 0)\
@@ -242,7 +270,10 @@ def get_queried_domains_by_ip(s_input_stream, s_window_duration):
 
 def get_dns_stream(flows_stream):
     """
-    Filter to get only flows containing DNS information
+    Filter to get only flows containing DNS information.
+
+    :param flows_stream: Input flows
+    :return: Flows with DNS information
     """
     return flows_stream \
         .filter(lambda flow_json: ("ipfix.DNSName" in flow_json.keys()) and
@@ -251,7 +282,11 @@ def get_dns_stream(flows_stream):
 
 def get_flows_local_to_external(s_dns_stream, local_network):
     """
-    Filter to contain flows going from the specified local network to the different network
+    Filter to contain flows going from the specified local network to the different network.
+
+    :param s_dns_stream: Input flows
+    :param local_network: Local network's address
+    :return: Flows coming from local network to external networks
     """
     return s_dns_stream \
         .filter(lambda dns_json: (IPAddress(dns_json["ipfix.sourceIPv4Address"]) in IPNetwork(local_network)) and
@@ -260,7 +295,11 @@ def get_flows_local_to_external(s_dns_stream, local_network):
 
 def get_flows_from_local(s_dns_stream, local_network):
     """
-    Filter to contain flows going from the specified local network
+    Filter to contain flows going from the specified local network.
+
+    :param s_dns_stream: Input flows
+    :param local_network: Local network's address
+    :return: Flows coming from local network
     """
     return s_dns_stream\
         .filter(lambda dns_json: (IPAddress(dns_json["ipfix.destinationIPv4Address"]) in IPNetwork(local_network)))
@@ -268,7 +307,11 @@ def get_flows_from_local(s_dns_stream, local_network):
 
 def get_flows_to_local(s_dns_stream, local_network):
     """
-    Filter to contain flows going to the specified local network
+    Filter to contain flows going to the specified local network.
+
+    :param s_dns_stream: Input flows
+    :param local_network: Local network's address
+    :return: Flows coming to local network
     """
     return s_dns_stream \
         .filter(lambda dns_json: (IPAddress(dns_json["ipfix.sourceIPv4Address"]) in IPNetwork(local_network)))
@@ -276,7 +319,11 @@ def get_flows_to_local(s_dns_stream, local_network):
 
 def filter_out_domain(stream, domain_to_filter):
     """
-    Returns flows filtered from the passed domain name
+    Filters flows from the passed domain name.
+
+    :param stream: Input flows
+    :param domain_to_filter: Domain name which should be filtered out
+    :return: Filtered flows
     """
     return stream.filter(lambda record: domain_to_filter not in record["ipfix.DNSName"])
 
