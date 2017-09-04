@@ -28,7 +28,7 @@
 Computes basic dns statistics within given time interval.
 
 Default output parameters:
-    * Address and port of the broker: 10.16.31.200:9092
+    * Address and port of the broker: producer:9092
     * Kafka topic: results.output
 
 Usage:
@@ -340,6 +340,8 @@ if __name__ == "__main__":
     # Define Arguments for detection
     parser.add_argument("-lc", "--local_network", help="local network", type=str, required=True)
     parser.add_argument("-f", "--filtered_domains", help="filtered out domains", type=str, required=False, default="")
+    # TODO: Change description of the "-f" parameter to the path.
+    # TODO: Specify file format for filtered domains
 
     # Parse arguments
     args = parser.parse_args()
