@@ -144,11 +144,11 @@ def process_results(results, producer, output_topic, s_window_duration):
 
 def get_key_with_ip_version(record, wanted_key):
     """
-        Find ipv4 type of key if present, ipv6 otherwise
+    Find ipv4 type of key if present, ipv6 otherwise
 
-        :param record: JSON record searched for key
-        :param wanted_key: string from which key will be made and searched (e.g. "source" => ipfix.sourceIPv4Address)
-        :return: value corresponding to the key in the record
+    :param record: JSON record searched for key
+    :param wanted_key: string from which key will be made and searched (e.g. "source" => ipfix.sourceIPv4Address)
+    :return: value corresponding to the key in the record
     """
 
     key_name = "ipfix." + wanted_key + "IPv4Address"
@@ -159,6 +159,15 @@ def get_key_with_ip_version(record, wanted_key):
 
 
 def process_input(flows_stream, flows_threshold, s_window_duration, s_window_slide):
+    """
+    Process raw data and do MapReduce operations.
+
+    :param flows_stream: input data in JSON format to process
+    :param flows_threshold: min amount of flows which we consider being an attack
+    :param s_window_duration: window size (in seconds)
+    :param s_window_slide: slide interval of the analysis window
+    :return: detected ports scans
+    """
 
     # Check required flow keys
     flows_stream_with_keys = flows_stream.filter(lambda flow_json: ("ipfix.tcpControlBits" in flow_json.keys())
