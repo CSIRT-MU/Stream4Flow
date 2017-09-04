@@ -37,7 +37,7 @@ Usage:
 
 To run this on the Stream4Flow, you need to receive flows by IPFIXCol and make them available via Kafka topic. Then you
 can run the application
-    $ ./run-application.sh ./detection/ssh_auth_simple/spark/portscan.py -iz producer:2181\
+    $ ./run-application.sh ./detection/ports_scan/spark/ports_scan.py -iz producer:2181\
     -it ipfix.entry -oz producer:9092 -ot results.output
 """
 
