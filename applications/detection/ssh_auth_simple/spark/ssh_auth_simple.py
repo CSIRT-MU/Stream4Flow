@@ -181,7 +181,7 @@ def check_for_attacks_ssh(flows_stream, min_packets_amount, max_packets_amount, 
     """
     Aggregate flows within given time window and return aggregates that fulfill given requirements.
 
-    :param flows_stream:
+    :param flows_stream: input flows
     :param min_packets_amount: min amount of packets which passes filter
     :param max_packets_amount: max amount of packets which passes filter
     :param min_bytes_amount: min amount of bytes which passes filter
@@ -190,7 +190,7 @@ def check_for_attacks_ssh(flows_stream, min_packets_amount, max_packets_amount, 
     :param flows_threshold: min amount of flows which we consider being an attack
     :param s_window_duration: window size (in seconds)
     :param s_window_slide: slide interval of the analysis window
-    :return:
+    :return: detected attacks
     """
 
     # Check required flow keys
