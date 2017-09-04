@@ -31,6 +31,11 @@ Default output parameters:
     * Address and port of the broker: producer:9092
     * Kafka topic: results.output
 
+Domain name filtering for non-existing domains statistic:
+    * All domains containing substrings in file are filtered out
+    * Usage: -f <filepath>
+    * Format: One domain name per line
+
 Usage:
     dns_top_n.py -iz <input-zookeeper-hostname>:<input-zookeeper-port> -it <input-topic>
     -oz <output-zookeeper-hostname>:<output-zookeeper-port> -ot <output-topic> -lc <local-network>/<subnet-mask>
@@ -339,9 +344,8 @@ if __name__ == "__main__":
 
     # Define Arguments for detection
     parser.add_argument("-lc", "--local_network", help="local network", type=str, required=True)
-    parser.add_argument("-f", "--filtered_domains", help="filtered out domains", type=str, required=False, default="")
-    # TODO: Change description of the "-f" parameter to the path.
-    # TODO: Specify file format for filtered domains
+    parser.add_argument("-f", "--filtered_domains", help="path to file with filtered out domains",
+                        type=str, required=False, default="")
 
     # Parse arguments
     args = parser.parse_args()

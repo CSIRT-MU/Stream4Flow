@@ -1,10 +1,10 @@
-// TODO: Add description
-var texts = [];
-var tooltipTexts = [];
-var scaleXLabels = [];
+// Global variables for zingchart tooltip and labels formatting in queried by ip statistic
+var domains = [];
+var total_records_count = [];
+var ip_address_labels = [];
 
 // Generate the Top N chart
-function generateTopN(type, dataCsv, number) {
+function generateTopN(type, dataCsv, top_n_value) {
     // Elements ID
     var chartId = 'chart-dns-stats-' + type.toLowerCase();
     var chartIdStatus = chartId + '-status';
@@ -17,12 +17,11 @@ function generateTopN(type, dataCsv, number) {
     var font_angle = '0';
     var font_offset = '0px';
     var max_value = 0;
-    var top_n_value = parseInt(number);
 
     // Set chart height, add additional height if top N value is larger
     var chart_height = (top_n_value > 10) ? (top_n_value * 7 + 450) : 450;
 
-    // Prepare title
+    // Prepare title and unique formatting parameters
     var chart_title = ""
     if (type == "record_type") {
         if (top_n_value > 10) {
@@ -30,8 +29,10 @@ function generateTopN(type, dataCsv, number) {
             font_angle = '-90';
         }
         chart_title = "Top DNS Record Types";
+        chart_height = 450;
     } else if (type == "response_code") {
         chart_title = "Top DNS Response Codes";
+        chart_height = 450;
     } else if (type == "queried_domain") {
         chart_title = "Top Queried Domains";
     } else if (type == "queried_local") {
@@ -40,21 +41,36 @@ function generateTopN(type, dataCsv, number) {
         chart_title = "Top Queried External DNS Servers";
     } else if (type == "queried_by_ip") {
         chart_title = "Device with the most records for domain";
-    } else {
+    } else if (type == "nonexisting_domain") {
         chart_title = "Top Queried Non-existing Domains";
+    } else {
+        console.log("Error: Chart type: " + type + " is not valid chart type.");
     };
-    // TODO: Change last else to else if and rais error if record type is wrong
 
-    // TODO: Add description and move else block as the first (fot better understanding)
-    if (type == "queried_by_ip") {
-        var data = dataCsv.split(",");
-        var mySeries = [];
+    // Prepare variables for parsing data for the charts
+    var data = dataCsv.split(",");
+    var mySeries = [];
 
-        // Clear the arrays when charts are refreshed
-        scaleXLabels = [];
-        texts = [];
-        tooltipTexts = [];
+    // Since Queried By Ip statistic provides more amount of data it needs to be parsed differently
+    if (type != "queried_by_ip") {
+        // Parse data for all charts except queried by ip
+        for (var i = 0; i < data.length; i+=2){
+            var myObj = {
+                "values": [parseInt(data[i+1])],
+                "text": data[i],
+            };
+            mySeries.push(myObj);
+        };
+        max_value = parseInt(data[1]);
+    } else {
+        // Parse data for the queried by ip chart
 
+        // Clear the global variables when charts are refreshed
+        ip_address_labels = [];
+        total_records_count = [];
+        domains = [];
+
+        // Create object with values for the base bar chart
         var values = [];
         var myObj = {
             "values": values,
@@ -65,6 +81,7 @@ function generateTopN(type, dataCsv, number) {
             }
         };
 
+        // Create object with values for the stacked bar chart
         var stackValues = [];
         var myStackObj = {
             "values": stackValues,
@@ -75,12 +92,10 @@ function generateTopN(type, dataCsv, number) {
                 "fontColor": "white"
             }
         };
-
-        // Parse data for the queried by ip chart
         for (var i = 0; i < data.length; i+=4){
-            tooltipTexts.unshift(data[i+3]);
-            scaleXLabels.unshift(data[i+1]);
-            texts.unshift(data[i]);
+            total_records_count.unshift(data[i+3]);
+            ip_address_labels.unshift(data[i+1]);
+            domains.unshift(data[i]);
             values.unshift(parseInt(data[i+2]));
 
             if (parseInt(data[i+3]) - parseInt(data[i+2]) == 0) {
@@ -91,23 +106,14 @@ function generateTopN(type, dataCsv, number) {
         };
         mySeries.push(myObj);
         mySeries.push(myStackObj);
-    } else {
-        // Parse data for the other charts
-        var data = dataCsv.split(",");
-        var mySeries = [];
-        for (var i = 0; i < data.length; i+=2){
-            var myObj = {
-                "values": [parseInt(data[i+1])],
-                "text": data[i],
-            };
-            mySeries.push(myObj);
-        };
-        max_value = parseInt(data[1]);
     }
+
+    // Initialize chart config
+    var myConfig = {}
 
     // ZingChart configurations
     if (type == "queried_by_ip"){
-        var myConfig = {
+        myConfig = {
             type: "hbar",
             plotarea: {
               marginLeft: '120px',
@@ -119,13 +125,14 @@ function generateTopN(type, dataCsv, number) {
                 jsRule : "CustomFn.formatTooltip()",
                 fontSize: '18',
                 padding: "5 10",
-                thousandsSeparator: " "
+                thousandsSeparator: " ",
+                backgroundColor: "#373F47"
               },
               cursor: 'hand',
             },
             scaleX:{
                 visible: "true",
-                values: scaleXLabels,
+                values: ip_address_labels,
             },
             scaleY:{
                 progression: "log",
@@ -141,7 +148,7 @@ function generateTopN(type, dataCsv, number) {
             series: mySeries
         };
     } else if (type == "response_code" || type == "record_type"){
-        var myConfig = {
+        myConfig = {
             type: "bar",
             backgroundColor: "#FFFFFF",
             plot: {
@@ -165,7 +172,8 @@ function generateTopN(type, dataCsv, number) {
                 fontSize: '18',
                 padding: "5 10",
                 text: "%t\n%v",
-                thousandsSeparator: " "
+                thousandsSeparator: " ",
+                backgroundColor: "#373F47"
               },
               cursor: 'hand'
             },
@@ -185,20 +193,20 @@ function generateTopN(type, dataCsv, number) {
             series: mySeries
         };
     } else {
-        var myConfig = {
+        myConfig = {
             type: "hbar",
             backgroundColor: "#FFFFFF",
             plot: {
               valueBox: {
                 rules: [{
-                 rule: "%v < " + max_value/1000,
+                 rule: "%v < " + max_value/10000,
                  placement: "top-out",
                  text: "%t",
                  fontAngle: font_angle,
                  offsetY: font_offset,
                  fontColor: "black"
                }, {
-                 rule: "%v >= " + max_value/1000,
+                 rule: "%v >= " + max_value/10000,
                  placement: "bottom-in",
                  text: "%t",
                  fontAngle: font_angle,
@@ -210,7 +218,8 @@ function generateTopN(type, dataCsv, number) {
                 fontSize: '18',
                 padding: "5 10",
                 text: "%t\n%v",
-                thousandsSeparator: " "
+                thousandsSeparator: " ",
+                backgroundColor: "#373F47"
               },
               cursor: 'hand',
               animation: {
@@ -237,7 +246,7 @@ function generateTopN(type, dataCsv, number) {
         };
     }
 
-    // Render ZingChart with hight based on the whole panel
+    // Render ZingChart with height based on the selected top n value
     zingchart.render({
 	    id: chartId,
         data : myConfig,
@@ -245,23 +254,25 @@ function generateTopN(type, dataCsv, number) {
     });
 };
 
-// TODO: Add description
+// Prepares custom functions
 window.CustomFn = {};
+
+// Get domain names as values displayed for the stacked bar chart in the queried by ip statistic
 window.CustomFn.formatText = function(p){
-    var tooltipText = texts[p.nodeindex];
+    var tooltipText = domains[p.nodeindex];
     return {
       text : tooltipText,
     }
 };
 
-// TODO: Add description
+// Get Tooltip texts for the queried by ip statistic
 window.CustomFn.formatTooltip = function(p){
     var dataset = zingchart.exec('chart-dns-stats-queried_by_ip', 'getdata');
     var series = dataset.graphset[p.graphindex].series;
 
     var tooltipText = "";
-    var tooltipText = series[0].values[p.nodeindex] + " / " + tooltipTexts[p.nodeindex] + " Records are from IP "
-                    + scaleXLabels[p.nodeindex] + "\n";
+    var tooltipText = series[0].values[p.nodeindex] + " / " + total_records_count[p.nodeindex] + " Records are from IP "
+                    + ip_address_labels[p.nodeindex] + "\n";
     return {
       text : tooltipText
     }
@@ -285,6 +296,9 @@ function loadTopN(type, number) {
          <span>Loading...</span>'
     )
 
+    // Parse the n value for statistics
+    var top_n_value = parseInt(number);
+
     // Convert times to UTC in ISO format
     var beginning = new Date( $('#datetime-beginning').val()).toISOString();
     var end = new Date( $('#datetime-end').val()).toISOString();
@@ -299,7 +313,7 @@ function loadTopN(type, number) {
         success: function(raw) {
             var response = jQuery.parseJSON(raw);
             if (response.status == "Ok") {
-                generateTopN(type, response.data, number);
+                generateTopN(type, response.data, top_n_value);
             } else {
                 // Show error message
                 $(chartIdStatus).html(
@@ -347,7 +361,10 @@ function loadTable() {
     var beginning = new Date( $('#datetime-beginning').val()).toISOString();
     var end = new Date( $('#datetime-end').val()).toISOString();
 
-    // TODO: Add status show and hide
+    // Hide status element
+    $(tableIdStatus).hide();
+    // Show table element
+    $(tableId).show();
 
     // Gets type and value for selected option
     var type = $('#all-values').val();
@@ -376,15 +393,17 @@ function loadTable() {
             }
         }
     });
-
 };
 
 function loadAllCharts() {
-    // TODO: Add descriptions
+    // Hide the table element
     $('.table-dns-stats').hide();
+    // Show charts
     $('.chart-dns-stats-top').show();
+    // Get the top n value
     var topValues = $('#top-values').val();
 
+    // Load charts for all types of statistics
     loadTopN("record_type", topValues);
     loadTopN("response_code", topValues);
     loadTopN("queried_domain", topValues);
@@ -395,12 +414,11 @@ function loadAllCharts() {
 };
 
 function loadAllRecords() {
-    var type = $('#all-values').val();
-
+    // Hide charts
     $('.chart-dns-stats-top').hide();
-    $('.table-dns-stats').show();
+    // Show the table element
     $('#table-records').show();
-
+    // Load the table with data
     loadTable();
 };
 
