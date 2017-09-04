@@ -1,6 +1,8 @@
+// TODO: Add description
 var texts = [];
 var tooltipTexts = [];
 var scaleXLabels = [];
+
 // Generate the Top N chart
 function generateTopN(type, dataCsv, number) {
     // Elements ID
@@ -41,7 +43,9 @@ function generateTopN(type, dataCsv, number) {
     } else {
         chart_title = "Top Queried Non-existing Domains";
     };
+    // TODO: Change last else to else if and rais error if record type is wrong
 
+    // TODO: Add description and move else block as the first (fot better understanding)
     if (type == "queried_by_ip") {
         var data = dataCsv.split(",");
         var mySeries = [];
@@ -241,6 +245,7 @@ function generateTopN(type, dataCsv, number) {
     });
 };
 
+// TODO: Add description
 window.CustomFn = {};
 window.CustomFn.formatText = function(p){
     var tooltipText = texts[p.nodeindex];
@@ -249,6 +254,7 @@ window.CustomFn.formatText = function(p){
     }
 };
 
+// TODO: Add description
 window.CustomFn.formatTooltip = function(p){
     var dataset = zingchart.exec('chart-dns-stats-queried_by_ip', 'getdata');
     var series = dataset.graphset[p.graphindex].series;
@@ -341,6 +347,8 @@ function loadTable() {
     var beginning = new Date( $('#datetime-beginning').val()).toISOString();
     var end = new Date( $('#datetime-end').val()).toISOString();
 
+    // TODO: Add status show and hide
+
     // Gets type and value for selected option
     var type = $('#all-values').val();
     var text = $('#all-values option:selected').text();
@@ -372,6 +380,7 @@ function loadTable() {
 };
 
 function loadAllCharts() {
+    // TODO: Add descriptions
     $('.table-dns-stats').hide();
     $('.chart-dns-stats-top').show();
     var topValues = $('#top-values').val();
