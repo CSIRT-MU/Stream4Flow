@@ -177,7 +177,7 @@ def process_input(flows_stream, targets_threshold, s_window_duration, s_window_s
 
     # Filter flows with SYN flag
     flows_stream_checked = flows_stream_with_keys\
-        .filter(lambda flow_json: ('{0:09b}'.format(flow_json["ipfix.tcpControlBits"]))[5] == '1')
+        .filter(lambda flow_json: (flow_json["ipfix.tcpControlBits"] & 31) == 2)
 
     # Remap to get unique horizontal and vertical portscans, first value being flow count and last being target count
     horizontal_scans = flows_stream_checked.map(lambda record: (("horizontal",
