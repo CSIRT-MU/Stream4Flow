@@ -55,27 +55,11 @@ can run the application
 import sys  # Common system functions
 import os  # Common operating system functions
 import argparse  # Arguments parser
-import ujson as json  # Fast JSON parser
 import time  # Unix time to timestamp conversion
 
 from termcolor import cprint  # Colors in the console output
 
-from pyspark import SparkContext  # Spark API
-from pyspark.streaming import StreamingContext  # Spark streaming API
-from pyspark.streaming.kafka import KafkaUtils  # Spark streaming Kafka receiver
-
-from kafka import KafkaProducer  # Kafka Python client
-
-
-def send_to_kafka(data, producer, topic):
-    """
-    Send given data to the specified kafka topic.
-
-    :param data: data to send
-    :param producer: producer that sends the data
-    :param topic: name of the receiving kafka topic
-    """
-    producer.send(topic, str(data))
+from modules import kafkaIO  # IO operations with kafka topics
 
 
 # Saves attacks in dictionary, so 1 attack is not reported multiple times
@@ -101,13 +85,13 @@ def clean_old_data_from_dictionary(s_window_duration):
                 del attDict[key]
 
 
-def get_output_json(key, value, flows_increment):
+def get_output_json(key, value, flows_total):
     """
     Create JSON with correct format.
 
     :param key: key of particular record
     :param value: value of particular record
-    :param flows_increment: number of additional flows detected in comparison to previous detection of same attack
+    :param flows_total: number of total flows detected detected for the attack
     :return: JSON string in desired format
     """
 
@@ -117,10 +101,10 @@ def get_output_json(key, value, flows_increment):
     timestamp = '%s.%03d' % (time.strftime('%Y-%m-%dT%H:%M:%S', time.gmtime(s)), ms) + 'Z'
 
     output_json += "{\"@type\": \"ssh_auth_simple\", \"src_ip\": \"" + key[0] + "\", " \
-                   "\"dst_ip\": \"" + str(key[1]) + "\", \"flows\": " + str(value[0]) + \
+                   "\"dst_ip\": \"" + str(key[1]) + "\", \"flows\": " + str(flows_total) + \
                    ", \"average_packet_count\": " + str(value[1]) + ", \"duration_in_milliseconds\": " + \
                    str(value[2]) + ", \"timestamp\": \"" + str(timestamp) + \
-                   "\", \"flows_increment\": " + str(flows_increment) + "}\n"
+                   "\", \"flows_increment\": " + str(value[0]) + "}\n"
     return output_json
 
 
@@ -139,11 +123,9 @@ def process_results(results, producer, topic, s_window_duration):
     for key, value in results.iteritems():
         if key in attDict:
             # If there are additional flows for the attack that was reported.
-            if attDict[key][0] < value[0]:
-                # Calculate incremental flows detected for same attack
-                flows_increment = value[0] - attDict[key][0]
-                attDict[key] = (value[0], value[3])
-                output_json += get_output_json(key, value, flows_increment)
+            if (attDict[key][1] + window_duration * 1000) <= value[3]:
+                attDict[key] = (attDict[key][0] + value[0], value[3])
+                output_json += get_output_json(key, value, attDict[key][0])
         else:
             attDict[key] = (value[0], value[3])
             output_json += get_output_json(key, value, value[0])
@@ -157,7 +139,7 @@ def process_results(results, producer, topic, s_window_duration):
         clean_old_data_from_dictionary(s_window_duration)
 
         # Send results to the specified kafka topic
-        send_to_kafka(output_json, producer, topic)
+        kafkaIO.send_data_to_kafka(output_json, producer, topic)
 
 
 def get_key_with_ip_version(record, wanted_key):
@@ -265,32 +247,21 @@ if __name__ == "__main__":
     kafka_partitions = 1  # Number of partitions of the input Kafka topic
     window_duration = args.window_size  # Analysis window duration (300 seconds/5 minutes default)
     window_slide = 5  # Slide interval of the analysis window (5 second)
+    microbatch_duration = 1  # Microbatch duration in seconds
 
-    # Spark context initialization
-    sc = SparkContext(appName=application_name + " " + " ".join(sys.argv[1:]))  # Application name used as the appName
-    ssc = StreamingContext(sc, 1)  # Spark microbatch is 1 second
-
-    # Initialize input DStream of flows from specified Zookeeper server and Kafka topic
-    input_stream = KafkaUtils.createStream(ssc, args.input_zookeeper, "spark-consumer-" + application_name,
-                                           {args.input_topic: kafka_partitions})
-
-    # Parse flows in the JSON format
-    flows_json = input_stream.map(lambda line: json.loads(line[1]))
+    # Initialize input stream and parse it into JSON
+    ssc, parsed_input_stream = kafkaIO.initialize_and_parse_input_stream(args.input_zookeeper, args.input_topic,
+                                                                         microbatch_duration)
 
     # Check for SSH attacks
-    attacks = check_for_attacks_ssh(flows_json, args.min_packets, args.max_packets, args.min_bytes, args.max_bytes,
+    attacks = check_for_attacks_ssh(parsed_input_stream, args.min_packets, args.max_packets, args.min_bytes, args.max_bytes,
                                     args.max_duration, args.flows_threshold, window_duration, window_slide)
 
     # Initialize kafka producer
-    kafka_producer = KafkaProducer(bootstrap_servers=args.output_zookeeper,
-                                   client_id="spark-producer-" + application_name)
+    kafka_producer = kafkaIO.initialize_kafka_producer(args.output_zookeeper)
 
-    # Process computed statistics and send them to the standard output
-    attacks.foreachRDD(lambda rdd: process_results(rdd.collectAsMap(), kafka_producer, args.output_topic, window_duration))
-
-    # Send any remaining buffered records
-    kafka_producer.flush()
+    # Process computed data and send them to the output
+    kafkaIO.process_data_and_send_result(attacks, kafka_producer, args.output_topic, window_duration, process_results)
 
     # Start Spark streaming context
-    ssc.start()
-    ssc.awaitTermination()
+    kafkaIO.spark_start(ssc)
