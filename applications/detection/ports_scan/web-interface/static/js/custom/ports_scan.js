@@ -269,7 +269,7 @@ function generateTopN(type, dataCsv) {
     });
 
     // Selected IP to the filter on click if chart contains IPs
-    if (type != "vertical-victims") {
+    if (type != "horizontal-victims") {
         zingchart.bind(chartId,'node_click',function(event){
             // Get text of the clicked node
             var plotInfo = zingchart.exec(event.id, 'getobjectinfo',{
