@@ -152,15 +152,15 @@ def get_top_n_statistics():
                 for result in src_buckets.by_dst.buckets:
                     hit = result.by_targets.hits.hits[0]["_source"]
                     # For each source IP add number of targets to the counter
-                    counter[hit["src_ip"]] += hit["target_count"]
+                    counter[hit["src_ip"]] += hit["targets_total"]
         else:  # victims
             for src_buckets in results_ip.aggregations.by_src.buckets:
                 for result in src_buckets.by_dst.buckets:
                     hit = result.by_targets.hits.hits[0]["_source"]
                     if type == "horizontal-victims":
-                        counter[hit["dst_port"]] += hit["target_count"]
+                        counter[hit["dst_port"]] += hit["targets_total"]
                     else:
-                        counter[hit["dst_ip"]] += hit["target_count"]
+                        counter[hit["dst_ip"]] += hit["targets_total"]
 
         # Select first N (number) values
         data = ""
@@ -189,13 +189,14 @@ def get_scans_list():
         return json_response
 
     # Check mandatory inputs
-    if not (request.get_vars.beginning and request.get_vars.end):
+    if not (request.get_vars.beginning and request.get_vars.end and request.get_vars.filter):
         json_response = '{"status": "Error", "data": "Some mandatory argument is missing!"}'
         return json_response
 
     # Parse inputs and set correct format
     beginning = escape(request.get_vars.beginning)
     end = escape(request.get_vars.end)
+    filter = escape(request.get_vars.filter)
 
     try:
         # Elastic query
@@ -203,6 +204,13 @@ def get_scans_list():
         elastic_bool = []
         elastic_bool.append({'range': {'@timestamp': {'gte': beginning, 'lte': end}}})
         elastic_bool.append({'term': {'@type': 'portscan_vertical'}})
+
+        # Set filter
+        if filter != 'none':
+            elastic_should = []
+            elastic_should.append({'term': {'src_ip.raw': filter}})
+            elastic_should.append({'term': {'dst_ip.raw': filter}})
+            elastic_bool.append({'bool': {'should': elastic_should}})
 
         # Get data for vertical scans
         qx = Q({'bool': {'must': elastic_bool}})
@@ -215,6 +223,10 @@ def get_scans_list():
         elastic_bool = []
         elastic_bool.append({'range': {'@timestamp': {'gte': beginning, 'lte': end}}})
         elastic_bool.append({'term': {'@type': 'portscan_horizontal'}})
+
+        # Append filter
+        if filter != 'none':
+            elastic_bool.append({'bool': {'should': elastic_should}})
 
         # Get data for horizontal scans
         rx = Q({'bool': {'must': elastic_bool}})
@@ -233,7 +245,7 @@ def get_scans_list():
                 h, m = divmod(m, 60)
                 duration = "%d:%02d:%02d" % (h, m, s)
                 data += "Vertical," + record["@timestamp"].replace("T", " ").replace("Z", "") + "," + record["src_ip"] \
-                        + "," + record["dst_ip"] + "," + str(record["target_count"]) + "," + str(duration) + ","
+                        + "," + record["dst_ip"] + "," + str(record["targets_total"]) + "," + str(record["flows"]) + "," + str(duration) + ","
 
         for src_aggregations in horizontal.aggregations.by_src.buckets:
             for result in src_aggregations.by_dst_port.buckets:
@@ -242,7 +254,7 @@ def get_scans_list():
                 h, m = divmod(m, 60)
                 duration = "%d:%02d:%02d" % (h, m, s)
                 data += "Horizontal," + record["@timestamp"].replace("T", " ").replace("Z", "") + "," + record["src_ip"] \
-                        + "," + record["dst_port"] + "," + str(record["target_count"]) + "," + str(duration) + ","
+                        + "," + record["dst_port"] + "," + str(record["targets_total"]) + "," + str(record["flows"]) + "," + str(duration) + ","
         data = data[:-1]
 
         json_response = '{"status": "Ok", "data": "' + data + '"}'

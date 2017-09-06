@@ -76,13 +76,15 @@ def clean_old_data_from_dictionary(s_window_duration):
                 del scanDict[key]
 
 
-def get_output_json(key, value, flows_increment):
+def get_output_json(key, value, flows_total, targets_total, total_duration):
     """
     Create JSON with correct format
 
     :param key: key of particular record
     :param value: value of particular record
-    :param flows_increment: number of additional flows detected in comparison to previous detection of same attack
+    :param flows_total: number of total flows detected for the same scan
+    :param targets_total: number of total targets scanned
+    :param total_duration: total scan duration in milliseconds
     :return: JSON string in desired format
     """
 
@@ -93,18 +95,14 @@ def get_output_json(key, value, flows_increment):
 
     if key[0] == 'horizontal':
         output_json += "{\"@type\": \"portscan_" + key[0] + "\", \"src_ip\": \"" + key[1] + "\", \"dst_port\": \"" \
-                       + str(key[2]) + "\", \"dst_ips\": \"" + str(value[1]) + "\", \"flows\": " \
-                       + str(value[0]) + ", " "\"duration_in_milliseconds\": " + str(value[2]) + \
-                       ", \"timestamp\": \"" + str(timestamp) + \
-                       "\", \"flows_increment\": " + str(flows_increment) + \
-                       ", \"target_count\": " + str(value[4]) + "}\n"
+                       + str(key[2]) + "\", \"flows\": " + str(flows_total) + ", " "\"duration_in_milliseconds\": " \
+                       + str(total_duration) + ", \"timestamp\": \"" + str(timestamp) + "\", \"flows_increment\": " \
+                       + str(value[0]) + ", \"targets_total\": " + str(targets_total) + "}\n"
     if key[0] == 'vertical':
         output_json += "{\"@type\": \"portscan_" + key[0] + "\", \"src_ip\": \"" + key[1] + "\", \"dst_ip\": \"" \
-                       + str(key[2]) + "\", \"dst_ports\": \"" + str(value[1]) + "\", \"flows\": " \
-                       + str(value[0]) + ", " "\"duration_in_milliseconds\": " + str(value[2]) + \
-                       ", \"timestamp\": \"" + str(timestamp) + \
-                       "\", \"flows_increment\": " + str(flows_increment) + \
-                       ", \"target_count\": " + str(value[4]) + "}\n"
+                       + str(key[2]) + "\", \"flows\": " + str(flows_total) + ", " "\"duration_in_milliseconds\": " \
+                       + str(total_duration) + ", \"timestamp\": \"" + str(timestamp) + "\", \"flows_increment\": " \
+                       + str(value[0]) + ", \"targets_total\": " + str(targets_total) + "}\n"
     return output_json
 
 
@@ -122,13 +120,15 @@ def process_results(results, producer, output_topic, s_window_duration):
     # Transform given results into the JSON
     for key, value in results.iteritems():
         if key in scanDict:
-            if scanDict[key][0] < value[0]:
-                flows_increment = value[0] - scanDict[key][0]
-                scanDict[key] = (value[0], value[3])
-                output_json = get_output_json(key, value, flows_increment)
+            if (scanDict[key][1] + (window_duration*1000)) <= value[3]:
+                scanDict[key] = (scanDict[key][0] + value[0],
+                                 value[3],
+                                 scanDict[key][2] + value[4],
+                                 scanDict[key][3] + value[2])
+                output_json += get_output_json(key, value, scanDict[key][0], scanDict[key][2], scanDict[key][3])
         else:
-            scanDict[key] = (value[0], value[3])
-            output_json = get_output_json(key, value, value[0])
+            scanDict[key] = (value[0], value[3], value[4], value[2])
+            output_json += get_output_json(key, value, value[0], value[4], value[2])
 
     # Check if there are any results
     if output_json:
@@ -158,12 +158,12 @@ def get_key_with_ip_version(record, wanted_key):
     return record[key_name]
 
 
-def process_input(flows_stream, flows_threshold, s_window_duration, s_window_slide):
+def process_input(flows_stream, targets_threshold, s_window_duration, s_window_slide):
     """
     Process raw data and do MapReduce operations.
 
     :param flows_stream: input data in JSON format to process
-    :param flows_threshold: min amount of flows which we consider being an attack
+    :param targets_threshold: min amount of flows which we consider being an attack
     :param s_window_duration: window size (in seconds)
     :param s_window_slide: slide interval of the analysis window
     :return: detected ports scans
@@ -209,7 +209,7 @@ def process_input(flows_stream, flows_threshold, s_window_duration, s_window_sli
                       actual[2] + update[2] if str(update[1]) not in str(actual[1]) else actual[2],
                       actual[3],
                       actual[4] + update[4] if str(update[1]) not in str(actual[1]) else actual[4]))\
-        .filter(lambda record: record[1][0] >= flows_threshold)
+        .filter(lambda record: record[1][4] >= targets_threshold)
 
     portscans_windowed = possible_portscans.window(s_window_duration, s_window_slide)\
         .reduceByKey(lambda actual, update:
@@ -218,7 +218,7 @@ def process_input(flows_stream, flows_threshold, s_window_duration, s_window_sli
                       actual[2] + update[2] if str(update[1]) not in str(actual[1]) else actual[2],
                       actual[3],
                       actual[4] + update[4] if str(update[1]) not in str(actual[1]) else actual[4]))\
-        .filter(lambda record: record[1][0] >= flows_threshold)
+        .filter(lambda record: record[1][4] >= targets_threshold)
 
     return portscans_windowed
 
@@ -232,7 +232,7 @@ if __name__ == "__main__":
     parser.add_argument("-w", "--window_size", help="window size (in seconds)", type=int, required=False, default=60)
 
     # arguments for detection
-    parser.add_argument("-ft", "--flows_threshold", help="min amount of flows which trigger detection", type=int,
+    parser.add_argument("-tt", "--targets_threshold", help="min amount of targets which trigger detection", type=int,
                         required=False, default=20)
 
     # Parse arguments
@@ -250,7 +250,7 @@ if __name__ == "__main__":
                                                                          microbatch_duration)
 
     # Check for port scans
-    processed_input = process_input(parsed_input_stream, args.flows_threshold, window_duration, window_slide)
+    processed_input = process_input(parsed_input_stream, args.targets_threshold, window_duration, window_slide)
 
     # Initialize kafka producer
     kafka_producer = kafkaIO.initialize_kafka_producer(args.output_zookeeper)

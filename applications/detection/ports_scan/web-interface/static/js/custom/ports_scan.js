@@ -310,6 +310,7 @@ function loadTopN(type, number) {
 
     // Set data request
     var data_request = encodeURI( './get_top_n_statistics' + '?beginning=' + beginning + '&end=' + end + '&type=' + type.toLowerCase() + '&number=' + number + '&filter=' + filter);
+
     // Get Elasticsearch data
     $.ajax({
         async: true,
@@ -342,13 +343,13 @@ function generateTable(data) {
 
     var indexCount = 0;
     var array = data.split(",");
-
     var table = $("#table");
+
     // Empty current data in table
     table.bootstrapTable('removeAll');
 
     // Generate rows for table
-    for (var i = 0; i <= array.length-6; i+=6) {
+    for (var i = 0; i <= array.length-7; i+=7) {
         table.bootstrapTable('insertRow', {
             index: indexCount,
             row: {
@@ -357,7 +358,8 @@ function generateTable(data) {
                 src_ip: array[i+2],
                 dst: array[i+3],
                 scans_count: array[i+4],
-                duration: array[i+5]
+                flows: array[i+5],
+                duration: array[i+6]
             }
         });
         indexCount++;
@@ -365,11 +367,14 @@ function generateTable(data) {
 };
 
 function loadTable() {
-
     // Convert times to UTC in ISO format
     var beginning = new Date( $('#datetime-beginning').val()).toISOString();
     var end = new Date( $('#datetime-end').val()).toISOString();
 
+    // Get filter value (if empty then set "none")
+    var filter = $('#filter').val() ? $('#filter').val() : 'none';
+
+    // Set data request
     var data_request = encodeURI( './get_scans_list' + '?beginning=' + beginning + '&end=' + end + '&filter=' + filter);
 
     // Get Elasticsearch data
@@ -390,7 +395,6 @@ function loadTable() {
             }
         }
     });
-
 };
 
 
