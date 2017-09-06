@@ -84,6 +84,10 @@ def get_histogram_statistics():
                 # Append array of timestamp and number of flows
                 detections[source.key].append([timestamp, source.sum_of_flows.value])
 
+        # Return info message if no data is present
+        if not detections:
+            return '{"status": "Empty", "data": "No data found."}'
+
         # Return data as JSON
         response = {"status": "Ok", "data": detections}
         return json.dumps(response)
@@ -168,7 +172,13 @@ def get_top_n_statistics():
             data += value + "," + str(count) + ","
         data = data[:-1]
 
-        json_response = '{"status": "Ok", "data": "' + data + '"}'
+        # Return info message if no data is present
+        if data == "":
+            json_response = '{"status": "Empty", "data": "No data found."}'
+        # Return data as JSON
+        else:
+            json_response = '{"status": "Ok", "data": "' + data + '"}'
+
         return json_response
 
     except Exception as e:
@@ -257,7 +267,13 @@ def get_scans_list():
                         + "," + record["dst_port"] + "," + str(record["targets_total"]) + "," + str(record["flows"]) + "," + str(duration) + ","
         data = data[:-1]
 
-        json_response = '{"status": "Ok", "data": "' + data + '"}'
+        # Return info message if no data is present
+        if data == "":
+            json_response = '{"status": "Empty", "data": "No data found."}'
+        # Return data as JSON
+        else:
+            json_response = '{"status": "Ok", "data": "' + data + '"}'
+
         return json_response
 
     except Exception as e:

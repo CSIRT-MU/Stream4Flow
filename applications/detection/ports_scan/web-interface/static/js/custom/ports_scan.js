@@ -180,6 +180,7 @@ function loadHistogramChart() {
 
     // Set data request
     var data_request = encodeURI( './get_histogram_statistics' + '?beginning=' + beginning + '&end=' + end + '&aggregation=' + $('#aggregation').val() + '&filter=' + filter);
+
     // Get Elasticsearch data
     $.ajax({
         async: true,
@@ -343,8 +344,8 @@ function generateTable(data) {
 
     var indexCount = 0;
     var array = data.split(",");
-    var table = $("#table");
 
+    var table = $("#table");
     // Empty current data in table
     table.bootstrapTable('removeAll');
 
@@ -367,9 +368,24 @@ function generateTable(data) {
 };
 
 function loadTable() {
+    // Elements ID
+    var tableId = '#table-ports-scan';
+    var tableIdStatus = tableId + '-status';
+
     // Convert times to UTC in ISO format
     var beginning = new Date( $('#datetime-beginning').val()).toISOString();
     var end = new Date( $('#datetime-end').val()).toISOString();
+
+    // Hide chart element
+    $(tableId).hide();
+    // Show status element
+    $(tableIdStatus).show();
+
+    // Set loading status
+    $(tableIdStatus).html(
+        '<i class="fa fa-refresh fa-spin fa-2x fa-fw"></i>\
+         <span>Loading...</span>'
+    )
 
     // Get filter value (if empty then set "none")
     var filter = $('#filter').val() ? $('#filter').val() : 'none';
@@ -388,7 +404,7 @@ function loadTable() {
                 generateTable(response.data);
             } else {
                 // Show error message
-                $("#table").html(
+                $(tableIdStatus).html(
                     '<i class="fa fa-exclamation-circle fa-2x"></i>\
                      <span>' + response.status + ': ' + response.data + '</span>'
                 )
