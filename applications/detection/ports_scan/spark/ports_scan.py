@@ -175,7 +175,7 @@ def process_input(flows_stream, targets_threshold, s_window_duration, s_window_s
                                                  and (flow_json["ipfix.protocolIdentifier"] == 6)
                                                  and ("ipfix.destinationTransportPort" in flow_json.keys()))
 
-    # Filter flows with SYN flag
+    # Filter flows with SYN flag (AND with 31 to select last 5 bits)
     flows_stream_checked = flows_stream_with_keys\
         .filter(lambda flow_json: (flow_json["ipfix.tcpControlBits"] & 31) == 2)
 
