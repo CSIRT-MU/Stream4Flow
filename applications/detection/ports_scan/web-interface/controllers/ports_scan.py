@@ -86,7 +86,7 @@ def get_histogram_statistics():
 
         # Return info message if no data is present
         if not detections:
-            return '{"status": "Empty", "data": "No data found."}'
+            return '{"status": "Empty", "data": "No data found"}'
 
         # Return data as JSON
         response = {"status": "Ok", "data": detections}
@@ -174,7 +174,7 @@ def get_top_n_statistics():
 
         # Return info message if no data is present
         if data == "":
-            json_response = '{"status": "Empty", "data": "No data found."}'
+            json_response = '{"status": "Empty", "data": "No data found"}'
         # Return data as JSON
         else:
             json_response = '{"status": "Ok", "data": "' + data + '"}'
@@ -269,7 +269,7 @@ def get_scans_list():
 
         # Return info message if no data is present
         if data == "":
-            json_response = '{"status": "Empty", "data": "No data found."}'
+            json_response = '{"status": "Empty", "data": "No data found"}'
         # Return data as JSON
         else:
             json_response = '{"status": "Ok", "data": "' + data + '"}'

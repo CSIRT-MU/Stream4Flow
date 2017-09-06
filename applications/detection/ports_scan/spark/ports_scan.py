@@ -232,7 +232,7 @@ if __name__ == "__main__":
     parser.add_argument("-w", "--window_size", help="window size (in seconds)", type=int, required=False, default=60)
 
     # arguments for detection
-    parser.add_argument("-tt", "--targets_threshold", help="min amount of targets which trigger detection", type=int,
+    parser.add_argument("-t", "--targets_threshold", help="min amount of targets which trigger detection", type=int,
                         required=False, default=20)
 
     # Parse arguments
