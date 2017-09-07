@@ -26,3 +26,11 @@
     font-weight: 600;
     margin-left: 0.5em;
 }
+/* Hack to see the whole watermark */
+#chart-ports-scan-histogram-license-text {
+    padding-top: 20px !important;
+    margin-left: -20px !important;
+}
+#chart-ports-scan-histogram-top {
+    height: 420px !important;
+}
