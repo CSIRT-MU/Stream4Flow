@@ -111,7 +111,6 @@ def process_results(results, producer, s_output_topic, s_statistic_type):
     :param s_output_topic: Name of the receiving kafka topic
     :param s_statistic_type: Type of the statistic
     """
-
     output_json = ""
     # Transform given results into the JSON
     output_json += get_output_json(results, s_statistic_type)
