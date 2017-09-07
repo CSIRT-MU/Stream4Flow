@@ -98,7 +98,10 @@ def get_top_n_statistics():
         # Remove trailing comma
         data = data[:-1]
 
-        json_response = '{"status": "Ok", "data": "' + data + '"}'
+        if data == "":
+            json_response = '{"status": "Empty", "data": "No data found"}'
+        else:
+            json_response = '{"status": "Ok", "data": "' + data + '"}'
         return json_response
 
     except Exception as e:
@@ -157,5 +160,5 @@ def get_records_list():
         return json_response
 
     except Exception as e:
-        json_response = '{"status": "Error", "data": "Elasticsearch query exception: ' + escape(str(e)) + '"}'
+        json_response = '{"status": "Error", "data": "Exception: ' + escape(str(e)) + '"}'
         return json_response

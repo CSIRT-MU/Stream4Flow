@@ -63,13 +63,13 @@
                         <option value="20">Top 20</option>
                     </select>
                 </div>
-                <button type="button" class="btn btn-default" onclick="loadAllCharts();false;" style="margin-right: 20px">Show Charts</button>
+                <button id="load-all-charts-button" type="button" class="btn btn-default" onclick="loadAllCharts();false;">Show Charts</button>
                 <div class="form-group">
                     <label for="all-values">Show all records for:</label>
                     <select name="all-values" id="all-values" class="form-control" placeholder="all-values">
-                        <option value="external_dns" selected>Queried External Servers</option>
+                        <option value="external_dns">Queried External Servers</option>
                         <option value="nonexisting_domain">Queried Non-Existing Domains</option>
-                        <option value="record_type">Record Types</option>
+                        <option value="record_type" selected>Record Types</option>
                         <option value="queried_local">Queried Local Servers</option>
                     </select>
                 </div>

@@ -361,11 +361,6 @@ function loadTable() {
     var beginning = new Date( $('#datetime-beginning').val()).toISOString();
     var end = new Date( $('#datetime-end').val()).toISOString();
 
-    // Hide status element
-    $(tableIdStatus).hide();
-    // Show table element
-    $(tableId).show();
-
     // Gets type and value for selected option
     var type = $('#all-values').val();
     var text = $('#all-values option:selected').text();
@@ -393,6 +388,7 @@ function loadTable() {
             }
         }
     });
+
 };
 
 function loadAllCharts() {
@@ -417,7 +413,7 @@ function loadAllRecords() {
     // Hide charts
     $('.chart-dns-stats-top').hide();
     // Show the table element
-    $('#table-records').show();
+    $('.table-dns-stats').show();
     // Load the table with data
     loadTable();
 };
