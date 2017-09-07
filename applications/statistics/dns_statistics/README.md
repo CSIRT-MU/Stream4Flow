@@ -17,6 +17,6 @@ Counts the following statistics from defined input topic every 20 seconds:
 
 - To run this on the Stream4Flow, you need to receive flows by IPFIXCol and make them available via Kafka topic. You also need a kafka topic to which output will be sent.
 Then you can run the example
-`/home/spark/applications/run-application.sh /home/spark/applications/statistics/dns_stats.py -iz producer:2181 -it ipfix.entry -oz producer:9092 -ot results.output -lc 10.10.0.0/16`
+`/home/spark/applications/run-application.sh /home/spark/applications/statistics/dns_statistics/dns_statistics.py -iz producer:2181 -it ipfix.entry -oz producer:9092 -ot results.output -lc 10.10.0.0/16`
 
 
