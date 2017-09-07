@@ -37,7 +37,7 @@ Domain name filtering for non-existing domains statistic:
     * Format: One domain name per line
 
 Usage:
-    dns_top_n.py -iz <input-zookeeper-hostname>:<input-zookeeper-port> -it <input-topic>
+    dns_statistics.py -iz <input-zookeeper-hostname>:<input-zookeeper-port> -it <input-topic>
     -oz <output-zookeeper-hostname>:<output-zookeeper-port> -ot <output-topic> -lc <local-network>/<subnet-mask>
 
 To run this on the Stream4Flow, you need to receive flows by IPFIXCol and make them available via Kafka topic. Then you
