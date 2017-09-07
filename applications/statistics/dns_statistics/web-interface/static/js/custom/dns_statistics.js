@@ -357,6 +357,22 @@ function generateTable(data, type) {
 };
 
 function loadTable() {
+    // Elements ID
+    var tableId = '#table-dns-stats';
+    var tableIdStatus = tableId + '-status';
+
+    // Hide chart element
+    $(tableId).hide();
+    // Show status element
+    $(tableIdStatus).show();
+
+    // Set loading status
+    $(tableIdStatus).html(
+        '<i class="fa fa-refresh fa-spin fa-2x fa-fw"></i>\
+         <span>Loading...</span>'
+    )
+
+
     // Convert times to UTC in ISO format
     var beginning = new Date( $('#datetime-beginning').val()).toISOString();
     var end = new Date( $('#datetime-end').val()).toISOString();

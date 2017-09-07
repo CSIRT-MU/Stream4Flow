@@ -14,6 +14,8 @@
     text-align: center;
     color: #777777;
     width: 100%;
+    margin-top: 250px;
+    height: 500px;
 }
 .table-status span {
     position: relative;
