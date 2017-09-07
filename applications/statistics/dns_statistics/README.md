@@ -13,7 +13,7 @@ Counts the following statistics from defined input topic every 20 seconds:
 
 ### Usage:
 - General
-` dns_stats.py -iz <input-zookeeper-hostname>:<input-zookeeper-port> -it <input-topic> -oz <output-zookeeper-hostname>:<output-zookeeper-port> -ot <output-topic> -lc <local-network>/<subnet-mask>`
+` dns_statistics.py -iz <input-zookeeper-hostname>:<input-zookeeper-port> -it <input-topic> -oz <output-zookeeper-hostname>:<output-zookeeper-port> -ot <output-topic> -lc <local-network>/<subnet-mask>`
 
 - To run this on the Stream4Flow, you need to receive flows by IPFIXCol and make them available via Kafka topic. You also need a kafka topic to which output will be sent.
 Then you can run the example
