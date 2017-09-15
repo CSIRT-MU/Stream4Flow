@@ -1,11 +1,11 @@
 /* DNS Statistics */
-.chart-dns-stats .chart-status, .chart-dns-stats .zingchart {
-    height: 300px;
+.chart-dns-external-top .chart-status, .zingchart {
+    height: 400px;
 }
 .chart-status {
     height: 300px;
 }
-#table-dns-stats {
+#table-dns-external {
     margin-top: -40px;
     padding-left: 15px;
     padding-right: 15px;

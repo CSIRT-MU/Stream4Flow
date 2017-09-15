@@ -42,9 +42,9 @@ can run the application
 """
 
 import argparse  # Arguments parser
-
 from netaddr import IPNetwork, IPAddress  # Checking if IP is in the network
-from modules import kafkaIO, converter  # IO operations with kafka topics
+
+from modules import kafkaIO  # IO operations with kafka topics
 
 
 def get_output_json(key, value):
@@ -164,7 +164,7 @@ if __name__ == "__main__":
     output_topic = args.output_topic
 
     # Initialize input stream and parse it into JSON
-    sc, ssc, parsed_input_stream = kafkaIO\
+    sc, ssc, parsed_input_stream = kafkaIO \
         .initialize_and_parse_input_stream(args.input_zookeeper, args.input_topic, microbatch)
 
     # Prepare input stream
