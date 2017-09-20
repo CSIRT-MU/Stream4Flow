@@ -117,6 +117,7 @@ def get_external_dns_resolvers(dns_input_stream, all_data_stream, s_window_durat
         .map(lambda record: ((record[0][0], record[1][1][0]), (record[1][1][1], 1))) \
         .reduceByKey(lambda actual, update: (actual[0],
                                              actual[1] + update[1]))
+    # TODO: Why IPAddress(record["ipfix.destinationIPv4Address"]) and not only record["ipfix.destinationIPv4Address"] ??
 
     return detected_external
 
