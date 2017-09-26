@@ -10,7 +10,7 @@ An application for computing statistics for all hosts in network. Computed stati
 
 ### Usage:
 - General 
-`  detection_ddos.py -iz <input-zookeeper-hostname>:<input-zookeeper-port> -it <input-topic> -oh <output-hostname>:<output-port> -net <regex for network range>`
+`host_stats.py --iz <input-zookeeper-hostname>:<input-zookeeper-port> -it <input-topic> -oz <output-zookeeper-hostname>:<output-zookeeper-port> -ot <output-topic> -net <CIDR network range>`
 
 - Stream4Flow example (using network range 10.10.0.0/16)
-`/home/spark/applications/run-application.sh /home/spark/applications/host_statistics/host_statistics.py -iz producer:2181 -it ipfix.entry -oh consumer:20101 -net "10\.10\..+"`
+`./run-application.sh ./host_statistics/spark/host_statistics.py -iz producer:2181 -it ipfix.entry -oz producer:9092 -ot results.output-net "10.0.0.0/24"`
