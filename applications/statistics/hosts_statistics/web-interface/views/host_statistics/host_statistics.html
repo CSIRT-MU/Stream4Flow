@@ -48,11 +48,11 @@
                 </div>
                 <div class="form-group">
                     <label for="datetime-beginning">From:</label>
-                    <input type="text" name="beginning" id="datetime-beginning" class="datetimepicker form-control">
+                    <input type="text" name="beginning" id="datetime-beginning" class="datetimepicker form-control" value="2017-09-26 10:00:00">
                 </div>
                 <div class="form-group">
                     <label for="datetime-end">To:</label>
-                    <input type="text" name="end" id="datetime-end" class="datetimepicker form-control">
+                    <input type="text" name="end" id="datetime-end" class="datetimepicker form-control" value="2017-09-26 23:00:00">
                 </div>
                 <div class="form-group">
                     <label for="aggregation">Aggregation:</label>
@@ -67,7 +67,7 @@
                 </div>
                 <div class="form-group">
                     <label for="filter">IP Filter:</label>
-                    <input type="text" name="filter" id="filter" class="form-control">
+                    <input type="text" name="filter" id="filter" class="form-control" value="140.11.0.0/16">
                 </div>
                 <button type="button" class="btn btn-default" onclick="loadAllCharts();false;">Set options</button>
             </form>
@@ -129,7 +129,7 @@
 <!-- //Average Distinct Peers Charts-->
 
 <!-- Custom Scripts -->
-<script src="{{=URL('static','js/custom/datetime_interval.js')}}"></script>
+<!--<script src="{{=URL('static','js/custom/datetime_interval.js')}}"></script>-->
 <script src="{{=URL('static','js/custom/host_statistics.js')}}"></script>
 <script src="{{=URL('static','js/charts/highcharts.js')}}"></script>
 <script src="{{=URL('static','js/charts/highcharts.map.js')}}"></script>

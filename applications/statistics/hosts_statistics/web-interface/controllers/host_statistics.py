@@ -299,9 +299,9 @@ def get_host_distinct_ports():
         data_min = []
         for record in result.aggregations.by_time.buckets:
             timestamp = record.key
-            maximum = round(record.dport_max.value, 2)
-            minimum = round(record.dport_min.value, 2)
-            data_avg.append([timestamp,round(record.dport_avg.value,2)])
+            maximum = round(record.dport_max.value, 2) if record.dport_max.value else None
+            minimum = round(record.dport_min.value, 2) if record.dport_min.value else None
+            data_avg.append([timestamp,round(record.dport_avg.value,2) if record.dport_avg.value else None])
             data_min_max.append([timestamp,[minimum, maximum ]])
             data_max.append(maximum)
             data_min.append(minimum)
@@ -351,8 +351,8 @@ def get_host_distinct_peers():
         s = Search(using=client, index='_all').query(qx)
         s.aggs.bucket('by_time', 'date_histogram', field='@timestamp', interval=aggregation) \
               .metric('peer_avg', 'avg', field='stats.peer_number') \
-              .metric('peer_max', 'max', field='stats.peer_number') \
-              .metric('peer_min', 'min', field='stats.peer_number')
+              .metric('peer_max', 'min', field='stats.peer_number') \
+              .metric('peer_min', 'max', field='stats.peer_number')
 
         result = s.execute()
 
@@ -362,10 +362,10 @@ def get_host_distinct_peers():
         data_min = []
         for record in result.aggregations.by_time.buckets:
             timestamp = record.key
-            maximum = round(record.peer_max.value, 2)
-            minimum = round(record.peer_min.value, 2)
-            data_avg.append([timestamp,round(record.peer_avg.value,2)])
-            data_min_max.append([timestamp,[minimum, maximum ]])
+            maximum = round(record.peer_max.value, 2) if record.peer_max.value else None
+            minimum = round(record.peer_min.value, 2) if record.peer_min.value else None
+            data_avg.append([timestamp, round(record.peer_avg.value, 2) if record.peer_avg.value else None])
+            data_min_max.append([timestamp, [minimum, maximum]])
             data_max.append(maximum)
             data_min.append(minimum)
 
