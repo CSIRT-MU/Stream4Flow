@@ -1,9 +1,21 @@
+//------------------- Common Functions --------------------------
+function setFocus(element_id) {
+    $('html, body').animate({
+        scrollTop: $(element_id).offset().top
+    }, 1000);
+};
+
+
 //------------------- Heatmap Chart --------------------------
 // Generate the histogram chart
-function renderHeatmap(data) {
+function generateHeatmap(data) {
     // Heatmap ID
     var chartId = 'chart-host-heatmap';
     var chartIdStatus = chartId + '-status';
+
+    // Get network prefix
+    var filter = $('#filter').val().split('.');
+    var network_prefix = filter[0] + '.' + filter[1] + '.';
 
     $('#' + chartId).highcharts({
         data: {
@@ -53,7 +65,7 @@ function renderHeatmap(data) {
             enabled: false
         },
         tooltip: {
-            enabled: false
+            enabled: true
         },
         plotOptions: {
                 series: {
@@ -61,8 +73,9 @@ function renderHeatmap(data) {
                     point: {
                         events: {
                             click: function (e) {
-                                var host_ip = '10.10.' + this.y + "." + this.x;
-//                              showHostInfo(host_ip);
+                                // Show details about selected host
+                                var host_ip = network_prefix + this.y + "." + this.x;
+                                loadHostCharts(host_ip);
                             }
                         }
                     },
@@ -76,8 +89,8 @@ function renderHeatmap(data) {
             borderWidth: 0,
             nullColor: '#EFEFEF',
             tooltip: {
-                headerFormat: 'IP Address<br/>',
-                pointFormat: '147.251.' + '{point.y}.{point.x}: <b>{point.value}</b>'
+                headerFormat: 'Host IP Address<br/>',
+                pointFormat: network_prefix + '{point.y}.{point.x} – <b>{point.value} flows</b>'
             },
             turboThreshold: Number.MAX_VALUE // #3404, remove after 4.0.5 release
         }]
@@ -126,7 +139,7 @@ function loadHeatmapChart() {
             var response = jQuery.parseJSON(raw);
             if (response.status == "Ok") {
                 // Replace separator ';' to new line to create a CSV string and generate the heatmap
-                renderHeatmap(response.data.replace(/;/g,'\n'));
+                generateHeatmap(response.data.replace(/;/g,'\n'));
             } else {
                 // Show error message
                 $(chartIdStatus).html(
@@ -138,9 +151,10 @@ function loadHeatmapChart() {
     });
 };
 
+
 //------------------- Host Network Traffic Chart --------------------------
 // Generate a chart and set it to the given div
-function generateChart(data, host) {
+function generateHostFlowsChart(data, host) {
     // Elements ID
     var chartId = 'chart-host-flows';
     var chartIdStatus = chartId + '-status';
@@ -155,7 +169,7 @@ function generateChart(data, host) {
         type: 'line',
         backgroundColor:'#fff',
         title:{
-            text: 'Network Traffic of a Host ' + host,
+            text: 'Traffic Statistics of the Host ' + host,
             adjustLayout: true,
             fontColor:"#444444"
         },
@@ -259,17 +273,19 @@ function generateChart(data, host) {
     zingchart.render({
 	    id: chartId,
 	    data: myConfig,
-	    height: $('#chart-panels').height(),
-	    width: $('#chart-panels').width()
+	    height: $('#' + chartId).height()
     });
 };
 
 // Obtain flow data for a host and generate the chart
-function loadHostFlowChart() {
+function loadHostFlowsChart(host_ip) {
     // Elements ID
     var chartId = '#chart-host-flows';
     var chartIdStatus = chartId + '-status';
+    var chartIdPanel = chartId + '-panel';
 
+    // Show chart panel
+    $(chartIdPanel).show();
     // Hide chart element
     $(chartId).hide();
     // Show status element
@@ -281,15 +297,15 @@ function loadHostFlowChart() {
          <span>Loading...</span>'
     )
 
+    // Scroll to this element ID
+    setFocus(chartIdPanel);
+
     // Convert times to UTC in ISO format
     var beginning = new Date( $('#datetime-beginning').val()).toISOString();
     var end = new Date( $('#datetime-end').val()).toISOString();
 
-    // Get filter value (if empty then set "none")
-    var filter = $('#filter').val() ? $('#filter').val() : 'none';
-
     // Set data request
-    var data_request = encodeURI( './get_host_flows' + '?beginning=' + beginning + '&end=' + end + '&aggregation=' + $('#aggregation').val() + '&filter=' + filter);
+    var data_request = encodeURI( './get_host_flows' + '?beginning=' + beginning + '&end=' + end + '&aggregation=' + $('#aggregation').val() + '&host_ip=' + host_ip);
     // Get Elasticsearch data
     $.ajax({
         async: true,
@@ -298,7 +314,7 @@ function loadHostFlowChart() {
         success: function(raw) {
             var response = jQuery.parseJSON(raw);
             if (response.status == "Ok") {
-                generateChart(response.data, response.host);
+                generateHostFlowsChart(response.data, host_ip);
             } else {
                 // Show error message
                 $(chartIdStatus).html(
@@ -309,6 +325,7 @@ function loadHostFlowChart() {
         }
     });
 };
+
 
 //------------------- Host Tcp Chart --------------------------
 // Generate a chart and set it to the given div
@@ -327,7 +344,7 @@ function generateHostTcp(data, host) {
         type: 'line',
         backgroundColor:'#fff',
         title:{
-            text: 'TCP Flags of a Host ' + host,
+            text: 'TCP Flags of the Host ' + host,
             adjustLayout: true,
             fontColor:"#444444"
         },
@@ -431,21 +448,23 @@ function generateHostTcp(data, host) {
     zingchart.render({
 	    id: chartId,
 	    data: myConfig,
-	    height: $('#chart-panels').height(),
-	    width: $('#chart-panels').width()
+	    height: $('#' + chartId).height()
     });
 };
 
 // Obtain flow data for a host and generate the chart
-function loadHostTcpChart() {
+function loadHostTcpChart(host_ip) {
     // Elements ID
     var chartId = '#chart-host-flags';
     var chartIdStatus = chartId + '-status';
+    var chartIdPanel = chartId + '-panel';
 
     // Hide chart element
     $(chartId).hide();
     // Show status element
     $(chartIdStatus).show();
+    // Show chart panel
+    $(chartIdPanel).show();
 
     // Set loading status
     $(chartIdStatus).html(
@@ -457,11 +476,8 @@ function loadHostTcpChart() {
     var beginning = new Date( $('#datetime-beginning').val()).toISOString();
     var end = new Date( $('#datetime-end').val()).toISOString();
 
-    // Get filter value (if empty then set "none")
-    var filter = $('#filter').val() ? $('#filter').val() : 'none';
-
     // Set data request
-    var data_request = encodeURI( './get_host_tcp_flags' + '?beginning=' + beginning + '&end=' + end + '&aggregation=' + $('#aggregation').val() + '&filter=' + filter);
+    var data_request = encodeURI( './get_host_tcp_flags' + '?beginning=' + beginning + '&end=' + end + '&aggregation=' + $('#aggregation').val() + '&host_ip=' + host_ip);
     // Get Elasticsearch data
     $.ajax({
         async: true,
@@ -470,7 +486,7 @@ function loadHostTcpChart() {
         success: function(raw) {
             var response = jQuery.parseJSON(raw);
             if (response.status == "Ok") {
-                generateHostTcp(response.data, response.host);
+                generateHostTcp(response.data, host_ip);
             } else {
                 // Show error message
                 $(chartIdStatus).html(
@@ -481,6 +497,7 @@ function loadHostTcpChart() {
         }
     });
 };
+
 
 //------------------- Host Count of Distinct Dst Ports Chart --------------------------
 // Generate a chart and set it to the given div
@@ -499,7 +516,7 @@ function generateHostDistinctPorts(data, host) {
         type: 'mixed',
         backgroundColor:'#fff',
         title:{
-            text: 'Distinct Destination Ports for a Host ' + host,
+            text: 'Distinct Destination Ports for the Host ' + host,
             adjustLayout: true,
             fontColor:"#444444"
         },
@@ -629,21 +646,23 @@ function generateHostDistinctPorts(data, host) {
     zingchart.render({
 	    id: chartId,
 	    data: myConfig,
-	    height: $('#chart-panels').height(),
-	    width: $('#chart-panels').width()
+	    height: $('#' + chartId).height()
     });
 };
 
 // Obtain flow data for a host and generate the chart
-function loadHostDistinctPorts() {
+function loadHostDistinctPorts(host_ip) {
     // Elements ID
     var chartId = '#chart-host-distinct-ports';
     var chartIdStatus = chartId + '-status';
+    var chartIdPanel = chartId + '-panel';
 
     // Hide chart element
     $(chartId).hide();
     // Show status element
     $(chartIdStatus).show();
+    // Show chart panel
+    $(chartIdPanel).show();
 
     // Set loading status
     $(chartIdStatus).html(
@@ -655,11 +674,8 @@ function loadHostDistinctPorts() {
     var beginning = new Date( $('#datetime-beginning').val()).toISOString();
     var end = new Date( $('#datetime-end').val()).toISOString();
 
-    // Get filter value (if empty then set "none")
-    var filter = $('#filter').val() ? $('#filter').val() : 'none';
-
     // Set data request
-    var data_request = encodeURI( './get_host_distinct_ports' + '?beginning=' + beginning + '&end=' + end + '&aggregation=' + $('#aggregation').val() + '&filter=' + filter);
+    var data_request = encodeURI( './get_host_distinct_ports' + '?beginning=' + beginning + '&end=' + end + '&aggregation=' + $('#aggregation').val() + '&host_ip=' + host_ip);
     // Get Elasticsearch data
     $.ajax({
         async: true,
@@ -668,7 +684,7 @@ function loadHostDistinctPorts() {
         success: function(raw) {
             var response = jQuery.parseJSON(raw);
             if (response.status == "Ok") {
-                generateHostDistinctPorts(response.data, response.host);
+                generateHostDistinctPorts(response.data, host_ip);
             } else {
                 // Show error message
                 $(chartIdStatus).html(
@@ -679,6 +695,7 @@ function loadHostDistinctPorts() {
         }
     });
 };
+
 
 //------------------- Host Count of Distinct Peers Chart --------------------------
 // Generate a chart and set it to the given div
@@ -698,7 +715,7 @@ function generateHostDistinctPeers(data, host) {
         type: 'mixed',
         backgroundColor:'#fff',
         title:{
-            text: 'Distinct Peers for a Host ' + host,
+            text: 'Distinct Peers for the Host ' + host,
             adjustLayout: true,
             fontColor:"#444444"
         },
@@ -828,21 +845,23 @@ function generateHostDistinctPeers(data, host) {
     zingchart.render({
 	    id: chartId,
 	    data: myConfig,
-	    height: $('#chart-panels').height(),
-	    width: $('#chart-panels').width()
+	    height: $('#' + chartId).height()
     });
 };
 
 // Obtain flow data for a host and generate the chart
-function loadHostDistinctPeers() {
+function loadHostDistinctPeers(host_ip) {
     // Elements ID
     var chartId = '#chart-host-distinct-peers';
     var chartIdStatus = chartId + '-status';
+    var chartIdPanel = chartId + '-panel';
 
     // Hide chart element
     $(chartId).hide();
     // Show status element
     $(chartIdStatus).show();
+    // Show chart panel
+    $(chartIdPanel).show();
 
     // Set loading status
     $(chartIdStatus).html(
@@ -854,11 +873,8 @@ function loadHostDistinctPeers() {
     var beginning = new Date( $('#datetime-beginning').val()).toISOString();
     var end = new Date( $('#datetime-end').val()).toISOString();
 
-    // Get filter value (if empty then set "none")
-    var filter = $('#filter').val() ? $('#filter').val() : 'none';
-
     // Set data request
-    var data_request = encodeURI( './get_host_distinct_peers' + '?beginning=' + beginning + '&end=' + end + '&aggregation=' + $('#aggregation').val() + '&filter=' + filter);
+    var data_request = encodeURI( './get_host_distinct_peers' + '?beginning=' + beginning + '&end=' + end + '&aggregation=' + $('#aggregation').val() + '&host_ip=' + host_ip);
     // Get Elasticsearch data
     $.ajax({
         async: true,
@@ -867,7 +883,7 @@ function loadHostDistinctPeers() {
         success: function(raw) {
             var response = jQuery.parseJSON(raw);
             if (response.status == "Ok") {
-                generateHostDistinctPeers(response.data, response.host);
+                generateHostDistinctPeers(response.data, host_ip);
             } else {
                 // Show error message
                 $(chartIdStatus).html(
@@ -879,15 +895,17 @@ function loadHostDistinctPeers() {
     });
 };
 
-// Load individual charts
-function loadAllCharts() {
-    loadHeatmapChart();
-    loadHostFlowChart();
-    loadHostTcpChart();
-    loadHostDistinctPorts();
-    loadHostDistinctPeers();
+
+//------------------- Loading functions --------------------------
+
+// Load defined host charts
+function loadHostCharts(host_ip) {
+    loadHostFlowsChart(host_ip);
+    loadHostTcpChart(host_ip);
+    loadHostDistinctPorts(host_ip);
+    loadHostDistinctPeers(host_ip);
 };
 
 
 // Load all charts when page loaded
-$(window).load(loadAllCharts());
+$(window).load(loadHeatmapChart());

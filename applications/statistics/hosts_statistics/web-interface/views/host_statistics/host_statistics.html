@@ -3,11 +3,13 @@
 <script>
     // Set correct menu view.
     $('#menu-statistics').addClass('active');
-    $('#menu-protocols-statistics').addClass('active');
+    $('#menu-host-statistics').addClass('active');
+    // Include specific CSS
+    $('head').append("<link href=\"{{=URL('static','css/host_statistics.css')}}\" rel=\"stylesheet\">");
 </script>
 
 
-<h3 class="title1">Protocols Statistics</h3>
+<h3 class="title1">Host Statistics</h3>
 
 {{if not session.logged:}}
 <div class="alert alert-danger" role="alert">
@@ -66,10 +68,10 @@
                     </select>
                 </div>
                 <div class="form-group">
-                    <label for="filter">IP Filter:</label>
+                    <label for="filter">Network:</label>
                     <input type="text" name="filter" id="filter" class="form-control" value="140.11.0.0/16">
                 </div>
-                <button type="button" class="btn btn-default" onclick="loadAllCharts();false;">Set options</button>
+                <button type="button" class="btn btn-default" onclick="loadHeatmapChart();false;">Set options</button>
             </form>
         </div>
 	</div>
@@ -78,19 +80,17 @@
 
 <!-- Heatmap-->
 <div class="panel-info widget-shadow general chart-host-heatmap">
-    <h4 class="title2">Heatmap</h4>
+    <h4 class="title2">Heatmap of Flows Sum per Host</h4>
     <!-- Status -->
     <div class="chart-status" id="chart-host-heatmap-status"></div>
     <!-- Main Chart -->
-    <div id="chart-host-heatmap" class="zingchart"></div>
-
-    <div class="clearfix"> </div>
+    <div id="chart-host-heatmap" class="highchart"></div>
 </div>
 <!-- //Detections Histogram -->
 
 <!-- Flow Charts-->
-<div class="panel-info widget-shadow general chart-host-flows">
-    <h4 class="title2">Network Traffic Charts</h4>
+<div id="chart-host-flows-panel" class="panel-info widget-shadow general chart-host-flows">
+    <h4 class="title2">Network Traffic Statistics</h4>
     <!-- Status -->
     <div class="chart-status" id="chart-host-flows-status"></div>
     <!-- Main Chart -->
@@ -99,8 +99,8 @@
 <!-- //Flow Charts -->
 
 <!-- TCP flags Charts-->
-<div class="panel-info widget-shadow general chart-host-flags">
-    <h4 class="title2">TCP Flags</h4>
+<div id="chart-host-flags-panel" class="panel-info widget-shadow general chart-host-flags">
+    <h4 class="title2">TCP Flags Statistics</h4>
     <!-- Status -->
     <div class="chart-status" id="chart-host-flags-status"></div>
     <!-- Main Chart -->
@@ -109,8 +109,8 @@
 <!-- //TCP flags Charts -->
 
 <!-- Average Distinct Ports Charts-->
-<div class="panel-info widget-shadow general chart-host-ports">
-    <h4 class="title2">Distinct Destination Ports</h4>
+<div id="chart-host-distinct-ports-panel" class="panel-info widget-shadow general chart-host-distinct-ports">
+    <h4 class="title2">Distinct Destination Ports Statistics</h4>
     <!-- Status -->
     <div class="chart-status" id="chart-host-distinct-ports-status"></div>
     <!-- Main Chart -->
@@ -119,8 +119,8 @@
 <!-- //Average Distinct Ports Charts-->
 
 <!-- Average Distinct Peers Charts-->
-<div class="panel-info widget-shadow general chart-host-ports">
-    <h4 class="title2">Distinct Destination Peers</h4>
+<div id="chart-host-distinct-peers-panel" class="panel-info widget-shadow general chart-host-distinct-peers">
+    <h4 class="title2">Distinct Destination Peers Statistics</h4>
     <!-- Status -->
     <div class="chart-status" id="chart-host-distinct-peers-status"></div>
     <!-- Main Chart -->
@@ -134,13 +134,5 @@
 <script src="{{=URL('static','js/charts/highcharts.js')}}"></script>
 <script src="{{=URL('static','js/charts/highcharts.map.js')}}"></script>
 <script src="{{=URL('static','js/charts/highcharts.data.js')}}"></script>
-
-
-<style>
-/* Hack to see the whole watermark */
-#chart-flows-license-text, #chart-packets-license-text, #chart-bytes-license-text {
-    margin-left: -20px !important;
-}
-</style>
 
 {{pass}}

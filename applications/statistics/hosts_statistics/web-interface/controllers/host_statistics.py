@@ -139,7 +139,7 @@ def get_host_flows():
         return json_response
 
     # Check mandatory inputs
-    if not (request.get_vars.beginning and request.get_vars.end and request.get_vars.aggregation and request.get_vars.filter):
+    if not (request.get_vars.beginning and request.get_vars.end and request.get_vars.aggregation and request.get_vars.host_ip):
         json_response = '{"status": "Error", "data": "Some mandatory argument is missing!"}'
         return json_response
 
@@ -147,7 +147,7 @@ def get_host_flows():
     beginning = escape(request.get_vars.beginning)
     end = escape(request.get_vars.end)
     aggregation = escape(request.get_vars.aggregation)
-    filter = escape(request.get_vars.filter)
+    host_ip = escape(request.get_vars.host_ip)
 
     try:
         # Elastic query
@@ -155,7 +155,7 @@ def get_host_flows():
             [{'host': myconf.get('consumer.hostname'), 'port': myconf.get('consumer.port')}])
         elastic_bool = []
         elastic_bool.append({'range': {'@timestamp': {'gte': beginning, 'lte': end}}})
-        elastic_bool.append({'term': {'src_ipv4': filter}})
+        elastic_bool.append({'term': {'src_ipv4': host_ip}})
 
         qx = Q({'bool': {'must': elastic_bool}})
         s = Search(using=client, index='_all').query(qx)
@@ -166,7 +166,6 @@ def get_host_flows():
 
         result = s.execute()
 
-        data_raw = {}
         data = "Timestamp,Number of flows,Number of packets,Number of bytes;"
         for record in result.aggregations.by_time.buckets:
             timestamp = record.key
@@ -176,7 +175,7 @@ def get_host_flows():
 
             data += str(timestamp) + "," + str(number_of_flows) + "," + str(number_of_packets) + "," + str(number_of_bytes) + ";"
 
-        json_response = '{"status": "Ok", "host": "' + filter + '", "data": "' + data + '"}'
+        json_response = '{"status": "Ok", "data": "' + data + '"}'
         return (json_response)
 
 
@@ -198,7 +197,7 @@ def get_host_tcp_flags():
         return json_response
 
     # Check mandatory inputs
-    if not (request.get_vars.beginning and request.get_vars.end and request.get_vars.aggregation and request.get_vars.filter):
+    if not (request.get_vars.beginning and request.get_vars.end and request.get_vars.aggregation and request.get_vars.host_ip):
         json_response = '{"status": "Error", "data": "Some mandatory argument is missing!"}'
         return json_response
 
@@ -206,7 +205,7 @@ def get_host_tcp_flags():
     beginning = escape(request.get_vars.beginning)
     end = escape(request.get_vars.end)
     aggregation = escape(request.get_vars.aggregation)
-    filter = escape(request.get_vars.filter)
+    host_ip = escape(request.get_vars.host_ip)
 
     try:
         # Elastic query
@@ -214,7 +213,7 @@ def get_host_tcp_flags():
             [{'host': myconf.get('consumer.hostname'), 'port': myconf.get('consumer.port')}])
         elastic_bool = []
         elastic_bool.append({'range': {'@timestamp': {'gte': beginning, 'lte': end}}})
-        elastic_bool.append({'term': {'src_ipv4': filter}})
+        elastic_bool.append({'term': {'src_ipv4': host_ip}})
 
         qx = Q({'bool': {'must': elastic_bool}})
         s = Search(using=client, index='_all').query(qx)
@@ -243,14 +242,13 @@ def get_host_tcp_flags():
 
             data += str(timestamp) + "," + str(number_of_syn) + "," + str(number_of_ack) + "," + str(number_of_fin) + "," + str(number_of_psh) + "," + str(number_of_rst) + "," + str(number_of_ece) + "," + str(number_of_urg) + ";"
 
-        json_response = '{"status": "Ok", "host": "' + filter + '", "data": "' + data + '"}'
+        json_response = '{"status": "Ok", "data": "' + data + '"}'
         return (json_response)
 
 
     except Exception as e:
         json_response = '{"status": "Error", "data": "Elasticsearch query exception: ' + escape(str(e)) + '"}'
         return json_response
-
 
 def get_host_distinct_ports():
     """
@@ -266,7 +264,7 @@ def get_host_distinct_ports():
         return json_response
 
     # Check mandatory inputs
-    if not (request.get_vars.beginning and request.get_vars.end and request.get_vars.aggregation and request.get_vars.filter):
+    if not (request.get_vars.beginning and request.get_vars.end and request.get_vars.aggregation and request.get_vars.host_ip):
         json_response = '{"status": "Error", "data": "Some mandatory argument is missing!"}'
         return json_response
 
@@ -274,7 +272,7 @@ def get_host_distinct_ports():
     beginning = escape(request.get_vars.beginning)
     end = escape(request.get_vars.end)
     aggregation = escape(request.get_vars.aggregation)
-    filter = escape(request.get_vars.filter)
+    host_ip = escape(request.get_vars.host_ip)
 
     try:
         # Elastic query
@@ -282,7 +280,7 @@ def get_host_distinct_ports():
             [{'host': myconf.get('consumer.hostname'), 'port': myconf.get('consumer.port')}])
         elastic_bool = []
         elastic_bool.append({'range': {'@timestamp': {'gte': beginning, 'lte': end}}})
-        elastic_bool.append({'term': {'src_ipv4': filter}})
+        elastic_bool.append({'term': {'src_ipv4': host_ip}})
 
         qx = Q({'bool': {'must': elastic_bool}})
         s = Search(using=client, index='_all').query(qx)
@@ -307,7 +305,7 @@ def get_host_distinct_ports():
             data_min.append(minimum)
 
 
-        json_response = {"status": "Ok", "host": filter, "data":{ "data_avg": data_avg, "data_min_max": data_min_max, "data_min": data_min, "data_max": data_max}}
+        json_response = {"status": "Ok", "data":{ "data_avg": data_avg, "data_min_max": data_min_max, "data_min": data_min, "data_max": data_max}}
         return (json.dumps(json_response))
 
 
@@ -329,7 +327,7 @@ def get_host_distinct_peers():
         return json_response
 
     # Check mandatory inputs
-    if not (request.get_vars.beginning and request.get_vars.end and request.get_vars.aggregation and request.get_vars.filter):
+    if not (request.get_vars.beginning and request.get_vars.end and request.get_vars.aggregation and request.get_vars.host_ip):
         json_response = '{"status": "Error", "data": "Some mandatory argument is missing!"}'
         return json_response
 
@@ -337,7 +335,7 @@ def get_host_distinct_peers():
     beginning = escape(request.get_vars.beginning)
     end = escape(request.get_vars.end)
     aggregation = escape(request.get_vars.aggregation)
-    filter = escape(request.get_vars.filter)
+    host_ip = escape(request.get_vars.host_ip)
 
     try:
         # Elastic query
@@ -345,7 +343,7 @@ def get_host_distinct_peers():
             [{'host': myconf.get('consumer.hostname'), 'port': myconf.get('consumer.port')}])
         elastic_bool = []
         elastic_bool.append({'range': {'@timestamp': {'gte': beginning, 'lte': end}}})
-        elastic_bool.append({'term': {'src_ipv4': filter}})
+        elastic_bool.append({'term': {'src_ipv4': host_ip}})
 
         qx = Q({'bool': {'must': elastic_bool}})
         s = Search(using=client, index='_all').query(qx)
@@ -370,7 +368,7 @@ def get_host_distinct_peers():
             data_min.append(minimum)
 
 
-        json_response = {"status": "Ok", "host": filter, "data":{ "data_avg": data_avg, "data_min_max": data_min_max, "data_min": data_min, "data_max": data_max}}
+        json_response = {"status": "Ok", "data":{ "data_avg": data_avg, "data_min_max": data_min_max, "data_min": data_min, "data_max": data_max}}
         return (json.dumps(json_response))
 
 

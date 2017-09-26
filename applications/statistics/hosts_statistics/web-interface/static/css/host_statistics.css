@@ -1,0 +1,17 @@
+/* Host Statistics */
+#filter {
+    width: 120px;
+}
+#chart-host-heatmap, #chart-host-flows, #chart-host-flags, #chart-host-distinct-ports, #chart-host-distinct-peers {
+    display: none;
+}
+.chart-host-heatmap .chart-status, .chart-host-heatmap .highchart,
+.chart-host-flows .chart-status, .chart-host-flows .zingchart,
+.chart-host-flags .chart-status, .chart-host-flags .zingchart,
+.chart-host-distinct-ports .chart-status, .chart-host-distinct-ports .zingchart,
+.chart-host-distinct-peers .chart-status, .chart-host-distinct-peers .zingchart {
+    height: 420px;
+}
+#chart-host-flows-panel, #chart-host-flags-panel, #chart-host-distinct-ports-panel, #chart-host-distinct-peers-panel {
+    display: none;
+}
