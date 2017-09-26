@@ -38,14 +38,12 @@ Usage:
 
   To run this on the Stream4Flow, you need to receive flows by IPFIXCol and make them available via Kafka topic. Then
   you can run the example
-    $ ./run-application.sh ./statistics/hosts_statistics/spark/host_stats.py -iz producer:2181 -it ipfix.entry -oz producer:9092 -ot results.output-net "10.0.0.0/24"
+    $ ./run-application.sh ./statistics/hosts_statistics/spark/host_stats.py -iz producer:2181 -it ipfix.entry -oz producer:9092 -ot results.output -n "10.0.0.0/24"
 
 """
 
 import argparse  # Arguments parser
 import ujson as json  # Fast JSON parser
-
-from termcolor import cprint  # Colors in the console output
 
 from netaddr import IPNetwork, IPAddress  # Checking if IP is in the network
 from modules import kafkaIO  # IO operations with kafka topics
@@ -58,7 +56,7 @@ def map_tcp_flags(bitmap):
     :param bitmap: array[8]
     :return: dictionary with keynames as names of the flags
     """
-    result = dict()
+    result = dict()  # TODO: In our code we initialize dict as: result = {}
     result["FIN"] = bitmap[7]
     result["SYN"] = bitmap[6]
     result["RST"] = bitmap[5]
@@ -77,6 +75,7 @@ def decimal_to_bitmap(decimal):
     :param decimal: decimal number
     :return: bitmap of 8bits
     """
+    # TODO: This simple function is called only once. It is not necessary to have it as a separate function.
     bitmap = map(int, list('{0:08b}'.format(decimal)))
     return bitmap
 
@@ -107,6 +106,7 @@ def process_results(data_to_process, producer, output_topic):
     :param output_host: results receiver in the "hostname:port" format
     :return:
     """
+    # TODO: Update description to actual params.
 
     results = ""
 
@@ -115,11 +115,13 @@ def process_results(data_to_process, producer, output_topic):
         total_dict = {}
         stats_dict = {"total": total_dict}
         result_dict = {"@type": "host_stats", "src_ipv4": ip, "stats": stats_dict}
+        # TODO: Use src_ip instead of src_ipv4
 
         # Process total stats
         total_dict["flow"] = data[statistics_position["total_stats"]][total_stats_position["total_flows"]]
         total_dict["packets"] = data[statistics_position["total_stats"]][total_stats_position["total_packets"]]
         total_dict["bytes"] = data[statistics_position["total_stats"]][total_stats_position["total_bytes"]]
+        # TODO: There is no total_stats_position. If you need this set this as a function or pass it as an argument.
 
         # Process peer_number stats
         stats_dict["peer_number"] = data[statistics_position["peer_number"]][peer_number_position["peer_number"]]
@@ -161,9 +163,11 @@ def process_input(input_data,window_duration, window_slide, network_filter):
                                                         (IPAddress(
                                                             json_rdd["ipfix.sourceIPv4Address"]) in IPNetwork(network_filter))
                                        )
+    # TODO: Following elements are mandatory: ipfix.flowStartMilliseconds, ipfix.flowEndMilliseconds, ipfix.protocolIdentifier
 
     # Set window and slide duration for flows analysis
     flow_with_keys_windowed = flow_with_keys.window(window_duration, window_slide)
+    # TODO: Consider to reduce data at the first and then use the window (see dns_statistics application).
 
     # Compute basic hosts statistics - number of flows, packets, bytes sent by a host
     flow_ip_total_stats_no_window = flow_with_keys.map(lambda json_rdd: (json_rdd["ipfix.sourceIPv4Address"], (
@@ -174,6 +178,7 @@ def process_input(input_data,window_duration, window_slide, network_filter):
         actual[total_stats_position["total_packets"]] + update[total_stats_position["total_packets"]],
         actual[total_stats_position["total_bytes"]] + update[total_stats_position["total_bytes"]]
     ))
+    # TODO: Use better code indentation to make it easier to understand (not only there).
 
     flow_ip_total_stats = flow_ip_total_stats_no_window.window(window_duration, window_slide) \
         .reduceByKey(lambda actual, update: (
@@ -206,6 +211,7 @@ def process_input(input_data,window_duration, window_slide, network_filter):
                                                                                            "ipfix.destinationTransportPort"])),
                                                                                   1)) \
         .reduceByKey(lambda actual, update: actual)
+
     flow_dst_port_count = flow_dst_port_count_no_window.window(window_duration, window_slide) \
         .reduceByKey(lambda actual, update: actual) \
         .map(lambda json_rdd: (json_rdd[0][0], ("dport_count", 1))) \
@@ -241,25 +247,26 @@ def process_input(input_data,window_duration, window_slide, network_filter):
         [x + y for x, y in zip(actual[1], update[1])]
     ))
 
-    # Union the DStreams to be able to process all in one foreachRDD
+    # Join the DStreams to be able to process all in one foreachRDD
     # The structure of DSstream is
     # (src IP, ((((('total_stats', <# of flows>, <# of packets>, <# of bytes>), ('peer_number', <# of peers>)),
     # ('dport_count', <# number of distinct ports>)),
     # ('avg_flow_duration', <average flow duration>)),
     # ('tcp_flags',<bitarray of tcpflags>))
     # )
-    union_stream = flow_ip_total_stats.fullOuterJoin(flow_communicating_pairs) \
+    join_stream = flow_ip_total_stats.fullOuterJoin(flow_communicating_pairs) \
         .fullOuterJoin(flow_dst_port_count) \
         .fullOuterJoin(flow_average_duration) \
         .fullOuterJoin(flow_tcp_flags)
+    # TODO: Consider to use union instead of join (the application could be faster).
 
-    # Transform union_stream to parsable Dstream
+    # Transform join_stream to parsable Dstream
     # (src IP , (('total_stats', <# of flows>, <# of packets>, <# of bytes>), ('peer_number', <# of peers>),
     # ('dport_count',  <# number of distinct ports>), ('avg_flow_duration',<average flow duration>),("tcp_flags",<bitarray of tcpflags>)))
-    parsable_union_stream = union_stream.map(lambda json_rdd: (json_rdd[0], (
+    parsable_join_stream = join_stream.map(lambda json_rdd: (json_rdd[0], (
         json_rdd[1][0][0][0][0], json_rdd[1][0][0][0][1], json_rdd[1][0][0][1], json_rdd[1][0][1], json_rdd[1][1])))
 
-    return parsable_union_stream
+    return parsable_join_stream
 
 
 if __name__ == "__main__":
@@ -269,7 +276,7 @@ if __name__ == "__main__":
     parser.add_argument("-it", "--input_topic", help="input kafka topic", type=str, required=True)
     parser.add_argument("-oz", "--output_zookeeper", help="output zookeeper hostname:port", type=str, required=True)
     parser.add_argument("-ot", "--output_topic", help="output kafka topic", type=str, required=True)
-    parser.add_argument("-net", "--network_range", help="network range to watch", type=str, required=True)
+    parser.add_argument("-n", "--network_range", help="network range to watch", type=str, required=True)
 
     # You can add your own arguments here
     # See more at:
@@ -281,7 +288,8 @@ if __name__ == "__main__":
     # Application arguments
     window_duration = 10  # Analysis window duration (10 seconds)
     window_slide = 10  # Slide interval of the analysis window (10 seconds)
-    #network_filter = ipaddress.ip_network(unicode(args.network_range, "utf8"))  # CIDR filter for network for detection
+    # TODO: Allow windows settings in application arguments.
+
     # Position of statistics in DStream.
     ##  Overall structure of a record
     statistics_position = {"total_stats": 0, "peer_number": 1, "dport_count": 2, "average_flow_duration": 3,
@@ -296,9 +304,11 @@ if __name__ == "__main__":
     avg_flow_duration_postion = {"type": 0, "avg_duration": 1}
     ## Structure of protocol characteristics
     tcp_flags_position = {"type": 0, "tcp_flags_array": 1}
+    # TODO: EGH :( Transform it to the function.
 
     # Set microbatch duration to 1 second
     microbatch_duration = 1
+    # TODO: Why is microbatch different than slide?
 
     # Initialize input stream and parse it into JSON
     ssc, parsed_input_stream = kafkaIO.initialize_and_parse_input_stream(args.input_zookeeper, args.input_topic,
