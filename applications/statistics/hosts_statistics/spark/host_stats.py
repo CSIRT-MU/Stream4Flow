@@ -34,11 +34,11 @@ for each host each window are following:
 
 Usage:
   host_stats.py --iz <input-zookeeper-hostname>:<input-zookeeper-port> -it <input-topic>
-    -oz <output-zookeeper-hostname>:<output-zookeeper-port> -ot <output-topic> -n <CIDR network range>
+    -oz <output-zookeeper-hostname>:<output-zookeeper-port> -ot <output-topic> -n <CIDR network range> -wd <window duration> -ws <window slide>
 
   To run this on the Stream4Flow, you need to receive flows by IPFIXCol and make them available via Kafka topic. Then
   you can run the example
-    $ ./run-application.sh ./statistics/hosts_statistics/spark/host_stats.py -iz producer:2181 -it ipfix.entry -oz producer:9092 -ot results.output -n "10.0.0.0/24"
+    $ ./run-application.sh ./statistics/hosts_statistics/spark/host_stats.py -iz producer:2181 -it ipfix.entry -oz producer:9092 -ot results.output -n "10.0.0.0/24 -wd 10 -ws 10"
 
 """
 
@@ -265,6 +265,9 @@ if __name__ == "__main__":
     parser.add_argument("-oz", "--output_zookeeper", help="output zookeeper hostname:port", type=str, required=True)
     parser.add_argument("-ot", "--output_topic", help="output kafka topic", type=str, required=True)
     parser.add_argument("-n", "--network_range", help="network range to watch", type=str, required=True)
+    parser.add_argument("-wd", "--window_duration", help="analysis window duration in seconds", type=str, required=True)
+    parser.add_argument("-ws", "--window_slide", help="analysis window slide in seconds", type=str, required=True)
+
 
     # You can add your own arguments here
     # See more at:
@@ -272,11 +275,6 @@ if __name__ == "__main__":
 
     # Parse arguments
     args = parser.parse_args()
-
-    # Application arguments
-    window_duration = 10  # Analysis window duration (10 seconds)
-    window_slide = 10  # Slide interval of the analysis window (10 seconds)
-    # TODO: Allow windows settings in application arguments.
 
     # Position of statistics in DStream.
     ##  Overall structure of a record
@@ -294,16 +292,15 @@ if __name__ == "__main__":
     tcp_flags_position = {"type": 0, "tcp_flags_array": 1}
     # TODO: EGH :( Transform it to the function.
 
-    # Set microbatch duration to 1 second
-    microbatch_duration = 1
-    # TODO: Why is microbatch different than slide?
+    # Set microbatch duration to window slide
+    microbatch_duration = int(args.window_slide)
 
     # Initialize input stream and parse it into JSON
     ssc, parsed_input_stream = kafkaIO.initialize_and_parse_input_stream(args.input_zookeeper, args.input_topic,
                                                                          microbatch_duration)
 
     # Process input in the desired way
-    processed_input = process_input(parsed_input_stream,window_duration,window_slide,args.network_range)
+    processed_input = process_input(parsed_input_stream, int(args.window_duration), int(args.window_slide), args.network_range)
 
     # Initialize kafka producer
     kafka_producer = kafkaIO.initialize_kafka_producer(args.output_zookeeper)
