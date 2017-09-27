@@ -91,7 +91,28 @@
         },
         "src_ip" : { "type" : "ip" },
         "dst_ip" : { "type" : "ip" },
-        "dns_ip" : { "type" : "ip" }
+        "dns_ip" : { "type" : "ip" },
+	      "data_array": {
+	          "type": "nested",
+            "properties": {
+                 "ip": {
+                      "type": "ip"
+                 },
+                 "key": {
+                   "type": "text",
+                   "norms": false,
+                   "fields": {
+                     "raw": {
+                       "type": "keyword",
+                       "ignore_above": 256
+                     }
+                   }
+                 },
+                 "value": {
+                   "type": "long"
+                 }
+            }
+        }
       }
     }
   }
