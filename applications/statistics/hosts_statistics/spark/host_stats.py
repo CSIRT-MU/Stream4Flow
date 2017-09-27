@@ -34,7 +34,7 @@ for each host each window are following:
 
 Usage:
   host_stats.py --iz <input-zookeeper-hostname>:<input-zookeeper-port> -it <input-topic>
-    -oz <output-zookeeper-hostname>:<output-zookeeper-port> -ot <output-topic> -net <CIDR network range>
+    -oz <output-zookeeper-hostname>:<output-zookeeper-port> -ot <output-topic> -n <CIDR network range>
 
   To run this on the Stream4Flow, you need to receive flows by IPFIXCol and make them available via Kafka topic. Then
   you can run the example
@@ -56,7 +56,8 @@ def map_tcp_flags(bitmap):
     :param bitmap: array[8]
     :return: dictionary with keynames as names of the flags
     """
-    result = dict()  # TODO: In our code we initialize dict as: result = {}
+
+    result = {}
     result["FIN"] = bitmap[7]
     result["SYN"] = bitmap[6]
     result["RST"] = bitmap[5]
@@ -68,24 +69,12 @@ def map_tcp_flags(bitmap):
     return result
 
 
-def decimal_to_bitmap(decimal):
-    """
-    Trasfers decimal number into a 8bit bitmap
-
-    :param decimal: decimal number
-    :return: bitmap of 8bits
-    """
-    # TODO: This simple function is called only once. It is not necessary to have it as a separate function.
-    bitmap = map(int, list('{0:08b}'.format(decimal)))
-    return bitmap
-
-
 def process_results(data_to_process, producer, output_topic):
     """
     Transform given computation results into the JSON format and send them to the specified host.
 
     JSON format:
-    {"src_ipv4":"<host src IPv4 address>",
+    {"src_ip":"<host src IPv4 address>",
      "@type":"host_stats",
      "stats":{
         "total":{"packets":<# of packets>,"bytes":# of bytes,"flow":<# of flows>},
@@ -96,17 +85,17 @@ def process_results(data_to_process, producer, output_topic):
         }
     }
 
-    :param json_rrd: Map in following format  (src IP , (('total_stats', <# of flows>, <# of packets>, <# of bytes>),
+    :param data_to_process: Map in following format  (src IP , (('total_stats', <# of flows>, <# of packets>, <# of bytes>),
                                                          ('peer_number', <# of peers>),
                                                          ('dport_count',  <# number of distinct ports>),
                                                          ('avg_flow_duration',<average flow duration>),
                                                          ('tcp_flags',<bitarray of tcpflags>)
                                                         )
                                                )
-    :param output_host: results receiver in the "hostname:port" format
+    :param producer : Initialized Kafka producer
+    :param output_topic: Name of the output topic for Kafka
     :return:
     """
-    # TODO: Update description to actual params.
 
     results = ""
 
@@ -114,8 +103,7 @@ def process_results(data_to_process, producer, output_topic):
 
         total_dict = {}
         stats_dict = {"total": total_dict}
-        result_dict = {"@type": "host_stats", "src_ipv4": ip, "stats": stats_dict}
-        # TODO: Use src_ip instead of src_ipv4
+        result_dict = {"@type": "host_stats", "src_ip": ip, "stats": stats_dict}
 
         # Process total stats
         total_dict["flow"] = data[statistics_position["total_stats"]][total_stats_position["total_flows"]]
@@ -235,7 +223,7 @@ def process_input(input_data,window_duration, window_slide, network_filter):
     flow_tcp = flow_with_keys.filter(lambda json_rdd: (json_rdd["ipfix.protocolIdentifier"] == 6))
     # Compute flags statistics
     flow_tcp_flags_no_window = flow_tcp.map(lambda json_rdd: (
-        json_rdd["ipfix.sourceIPv4Address"], ("tcp_flags", decimal_to_bitmap(json_rdd["ipfix.tcpControlBits"])))) \
+        json_rdd["ipfix.sourceIPv4Address"], ("tcp_flags",  map(int, list('{0:08b}'.format(json_rdd["ipfix.tcpControlBits"])))))) \
         .reduceByKey(lambda actual, update: (
         actual[0],
         [x + y for x, y in zip(actual[1], update[1])]

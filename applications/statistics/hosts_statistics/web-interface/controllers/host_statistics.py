@@ -93,11 +93,11 @@ def get_heatmap_statistics():
             [{'host': myconf.get('consumer.hostname'), 'port': myconf.get('consumer.port')}])
         elastic_bool = []
         elastic_bool.append({'range': {'@timestamp': {'gte': beginning, 'lte': end}}})
-        elastic_bool.append({'term': {'src_ipv4': filter}})
+        elastic_bool.append({'term': {'src_ip': filter}})
 
         qx = Q({'bool': {'must': elastic_bool}})
         s = Search(using=client, index='_all').query(qx)
-        s.aggs.bucket('by_host', 'terms', field='src_ipv4', size=2147483647) \
+        s.aggs.bucket('by_host', 'terms', field='src_ip', size=2147483647) \
               .bucket('sum_of_flows', 'sum', field='stats.total.flow')
 
         result = s.execute()
@@ -155,7 +155,7 @@ def get_host_flows():
             [{'host': myconf.get('consumer.hostname'), 'port': myconf.get('consumer.port')}])
         elastic_bool = []
         elastic_bool.append({'range': {'@timestamp': {'gte': beginning, 'lte': end}}})
-        elastic_bool.append({'term': {'src_ipv4': host_ip}})
+        elastic_bool.append({'term': {'src_ip': host_ip}})
 
         qx = Q({'bool': {'must': elastic_bool}})
         s = Search(using=client, index='_all').query(qx)
@@ -213,7 +213,7 @@ def get_host_tcp_flags():
             [{'host': myconf.get('consumer.hostname'), 'port': myconf.get('consumer.port')}])
         elastic_bool = []
         elastic_bool.append({'range': {'@timestamp': {'gte': beginning, 'lte': end}}})
-        elastic_bool.append({'term': {'src_ipv4': host_ip}})
+        elastic_bool.append({'term': {'src_ip': host_ip}})
 
         qx = Q({'bool': {'must': elastic_bool}})
         s = Search(using=client, index='_all').query(qx)
@@ -280,7 +280,7 @@ def get_host_distinct_ports():
             [{'host': myconf.get('consumer.hostname'), 'port': myconf.get('consumer.port')}])
         elastic_bool = []
         elastic_bool.append({'range': {'@timestamp': {'gte': beginning, 'lte': end}}})
-        elastic_bool.append({'term': {'src_ipv4': host_ip}})
+        elastic_bool.append({'term': {'src_ip': host_ip}})
 
         qx = Q({'bool': {'must': elastic_bool}})
         s = Search(using=client, index='_all').query(qx)
@@ -343,7 +343,7 @@ def get_host_distinct_peers():
             [{'host': myconf.get('consumer.hostname'), 'port': myconf.get('consumer.port')}])
         elastic_bool = []
         elastic_bool.append({'range': {'@timestamp': {'gte': beginning, 'lte': end}}})
-        elastic_bool.append({'term': {'src_ipv4': host_ip}})
+        elastic_bool.append({'term': {'src_ip': host_ip}})
 
         qx = Q({'bool': {'must': elastic_bool}})
         s = Search(using=client, index='_all').query(qx)
