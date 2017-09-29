@@ -3,7 +3,7 @@
 #
 # MIT License
 #
-# Copyright (c) 2016  Tomas Jirsik <jirsik@ics.muni.cz>
+# Copyright (c) 2016  Tomas Jirsik <jirsik@ics.muni.cz>, Michal Stefanik <stefanik dot m@mail.muni.cz>
 # Institute of Computer Science, Masaryk University
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -33,12 +33,13 @@ for each host each window are following:
     - number of distinct communication peers
 
 Usage:
-  detection_ddos.py -iz <input-zookeeper-hostname>:<input-zookeeper-port> -it <input-topic> -oh
-    <output-hostname>:<output-port> -net <regex for network range>
+  host_stats.py -iz <input-zookeeper-hostname>:<input-zookeeper-port> -it <input-topic>
+                -oz <output-zookeeper-hostname>:<output-zookeeper-port> -ot <output-topic>
+                -net <CIDR network range>
 
   To run this on the Stream4Flow, you need to receive flows by IPFIXCol and make them available via Kafka topic. Then
   you can run the example
-    $ ./run-application.sh ./statistics/hosts_statistics/spark/host_stats.py -iz producer:2181 -it ipfix.entry -oh consumer:20101 -net "10\.10\..+"
+    $ ./run-application.sh ./statistics/hosts_statistics/spark/host_stats.py -iz producer:2181 -it ipfix.entry -oh consumer:20101 -net "10.0.0.0/24"
 
 """
 
@@ -49,12 +50,15 @@ import ujson as json  # Fast JSON parser
 import socket  # Socket interface
 import re  # Parsing and matching regular expression
 import time  # Time handling
+import ipaddress  # IP address handling
 
 from termcolor import cprint  # Colors in the console output
 
 from pyspark import SparkContext  # Spark API
 from pyspark.streaming import StreamingContext  # Spark streaming API
 from pyspark.streaming.kafka import KafkaUtils  # Spark streaming Kafka receiver
+
+from kafka import KafkaProducer  # Kafka Python client
 
 
 def map_tcp_flags(bitmap):
@@ -87,38 +91,20 @@ def decimal_to_bitmap(decimal):
     return bitmap
 
 
-def send_data(data, output_host):
+def send_to_kafka(data, producer, topic):
     """
-    Send given data to the specified host using standard socket interface.
+    Send given data to the specified kafka topic.
 
     :param data: data to send
-    :param output_host: data receiver in the "hostname:port" format
+    :param producer: producer that sends the data
+    :param topic: name of the receiving kafka topic
     """
-
-    # Split outputHost hostname and port
-    host = output_host.split(':')
-
-    # Prepare a TCP socket.
-    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-
-    # Connect to the outputHost and send given data
-    try:
-        sock.connect((host[0], int(host[1])))
-        sock.send(data)
-
-        # Print message of sent
-        now = time.strftime("%c")
-        print("Data sent at: %s" % now)
-
-    except socket.error:
-        cprint("[warning] Unable to connect to host " + output_host, "blue")
-    finally:
-        sock.close()
+    producer.send(topic, str(data))
 
 
-def process_results(json_rrd, output_host):
+def process_results(json_rrd, producer, topic):
     """
-    Transform given computation results into the JSON format and send them to the specified host.
+    Transform given computation results into the JSON format and send them to the specified kafka instance.
 
     JSON format:
     {"src_ipv4":"<host src IPv4 address>",
@@ -169,11 +155,11 @@ def process_results(json_rrd, output_host):
         if data[statistics_position["tcp_flags"]]:  # if exists statistics for a given host
             stats_dict["tcp_flags"] = map_tcp_flags(data[statistics_position["tcp_flags"]][tcp_flags_position["tcp_flags_array"]])
 
-        results += json.dumps(result_dict) + "\n"
+        # send the processed data in json format to the given kafka producer under given topic
+        send_to_kafka(json.dumps(result_dict) + "\n", producer, topic)
 
-    # Sent results to a given socket
-    # print(results)  # Controll print
-    send_data(results, output_host)
+    # logging terminal output
+    print("%s: Stats of %s IPs parsed and sent" % (time.strftime("%c"), len(json_rrd.keys())))
 
 
 def count_host_stats(flow_json):
@@ -183,17 +169,17 @@ def count_host_stats(flow_json):
     :type flow_json: Initialized spark streaming context, windowed, json_loaded.
     """
 
-    # Create regex for monitored network
-    local_ip_pattern = re.compile(network_filter)
-
-    # Filter flows with relevant keys
+    # Filter flows with required data, in a given address range
     flow_with_keys = flow_json.filter(lambda json_rdd: ("ipfix.sourceIPv4Address" in json_rdd.keys()) and
-                                                       ("ipfix.destinationTransportPort" in json_rdd.keys()) and
-                                                       ("ipfix.flowStartMilliseconds" in json_rdd.keys()) and
-                                                       ("ipfix.flowEndMilliseconds" in json_rdd.keys()) and
-                                                       ("ipfix.protocolIdentifier" in json_rdd.keys()) and
-                                                       (re.match(local_ip_pattern, json_rdd["ipfix.sourceIPv4Address"]))
-                                      )
+                                                       ("ipfix.destinationTransportPort" in json_rdd.keys()))
+
+    # if IP network range input parameter is filled, filter the flows respectively
+    if args.network_range is not None:
+        # Filter for network for detection (regex filtering), e.g. "10\.10\..+"
+        network_filter = ipaddress.ip_network(unicode(args.network_range, "utf8"))
+
+        flow_with_keys = flow_with_keys.filter(
+            lambda json_rdd: (ipaddress.ip_address(json_rdd["ipfix.sourceIPv4Address"]) in network_filter))
 
     # Set window and slide duration for flows analysis
     flow_with_keys_windowed = flow_with_keys.window(window_duration, window_slide)
@@ -285,7 +271,10 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("-iz", "--input_zookeeper", help="input zookeeper hostname:port", type=str, required=True)
     parser.add_argument("-it", "--input_topic", help="input kafka topic", type=str, required=True)
-    parser.add_argument("-oh", "--output_host", help="output hostname:port", type=str, required=True)
+
+    parser.add_argument("-oz", "--output_zookeeper", help="output zookeeper hostname:port", type=str, required=True)
+    parser.add_argument("-ot", "--output_topic", help="output kafka topic", type=str, required=True)
+
     parser.add_argument("-net", "--network_range", help="network range to watch", type=str, required=True)
 
     # Parse arguments.
@@ -325,8 +314,11 @@ if __name__ == "__main__":
     # Process data to the defined function.
     host_statistics = count_host_stats(input_stream_json)
 
+    kafka_producer = KafkaProducer(bootstrap_servers=args.output_zookeeper,
+                                   client_id="spark-producer-" + application_name)
+
     # Process computed statistics and send them to the specified host
-    host_statistics.foreachRDD(lambda rdd: process_results(rdd.collectAsMap(), args.output_host))
+    host_statistics.foreachRDD(lambda rdd: process_results(rdd.collectAsMap(), kafka_producer, args.output_topic))
 
     # Start input data processing
     ssc.start()

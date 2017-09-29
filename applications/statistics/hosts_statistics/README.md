@@ -8,9 +8,29 @@ An application for computing statistics for all hosts in network. Computed stati
 - **Average Flow Duration**: average duration of flows
 - **TCP Flags Distribution**: number of each individual TCP flags 
 
-### Usage:
-- General 
-`  detection_ddos.py -iz <input-zookeeper-hostname>:<input-zookeeper-port> -it <input-topic> -oh <output-hostname>:<output-port> -net <regex for network range>`
+### Usage
+- General:
+ 
+`  host_stats.py -iz <input-zookeeper-hostname>:<input-zookeeper-port> -it <input-topic>  -oz <output-hostname>:<output-port> -ot <output-topic> -net <network range>`
 
-- Stream4Flow example (using network range 10.10.0.0/16)
-`/home/spark/applications/run-application.sh /home/spark/applications/host_statistics/host_statistics.py -iz producer:2181 -it ipfix.entry -oh consumer:20101 -net "10\.10\..+"`
+- Stream4Flow example (using network range 10.10.0.0/16):
+
+`/home/spark/applications/run-application.sh /home/spark/applications/host_statistics/host_stats.py -iz producer:2181 -it ipfix.entry -oz producer:9092 -ot host.stats -net "10.10.0.0/16"`
+
+## Top N Host statistics
+
+### Description
+An application for collecting the top N characteristics for all hosts, particularly:
+
+- **Top N destination ports**: ports of the highest number of flows on given ports from each source IP
+- **Destination IPs**: destination IP addresses with the highest number of flows from each source IP
+- **HTTP Hosts**: destination HTTP addresses with the highest number of flows for each source IP
+
+## Usage
+- General:
+
+`  top_n_host_stats.py -iz <input-zookeeper-hostname>:<input-zookeeper-port> -it <input-topic> -oz <output-hostname>:<output-port> -ot <output-topic> -n <number of Top results> -net <network range>`
+
+- Stream4Flow example (using network range 10.10.0.0/16):
+
+`/home/spark/applications/run-application.sh /home/spark/applications/host_statistics/top_n_host_stats.py -iz producer:2181 -it ipfix.entry -oz producer:9092 -ot topn.stats -n 10 -net "10.10.0.0/16"`
