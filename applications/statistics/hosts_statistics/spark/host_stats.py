@@ -68,6 +68,25 @@ def map_tcp_flags(bitmap):
     result["CRW"] = bitmap[0]
     return result
 
+def flatten_nested_tuples(data, output):
+    if data:
+        if isinstance(data[0], tuple):
+         for p in data:
+             flatten_nested_tuples(p, output)
+        else:
+            output.append(data)
+
+        return output
+    else:
+        return None
+
+def flatten_actual(actual):
+    array = []
+    result_as_array = (flatten_nested_tuples(actual, array))
+    result_as_tupple = tuple(result_as_array)
+    return result_as_tupple
+
+
 
 def process_results(data_to_process, producer, output_topic):
     """
@@ -106,6 +125,7 @@ def process_results(data_to_process, producer, output_topic):
         result_dict = {"@type": "host_stats", "src_ip": ip, "stats": stats_dict}
 
         # Process total stats
+
         total_dict["flow"] = data[statistics_position["total_stats"]][total_stats_position["total_flows"]]
         total_dict["packets"] = data[statistics_position["total_stats"]][total_stats_position["total_packets"]]
         total_dict["bytes"] = data[statistics_position["total_stats"]][total_stats_position["total_bytes"]]
@@ -232,11 +252,27 @@ def process_input(input_data,window_duration, window_slide, network_filter):
                                      .fullOuterJoin(flow_tcp_flags)
     # TODO: Consider to use union instead of join (the application could be faster).
 
+    #unioned_stream = flow_ip_total_stats.union(flow_communicating_pairs).union(flow_dst_port_count).union(flow_average_duration).union(flow_tcp_flags)
+    #unioned_stream.pprint(5)
+
+    #reduced_unioned_stream = unioned_stream.reduceByKey(lambda actual, update: (
+    #                                                     actual, update
+                                                         #map_reduce(actual, update, "dport_count")
+                                                         #update if (str(update) not in str(actual) and str(update[0]) == "peer_number") else actual if str(actual[0]) == "peer_number" else None
+    #                                                     ))\
+    #                                      .map(lambda json_rdd: (json_rdd[0], flatten_actual(json_rdd[1])))
+
+    #reduced_unioned_stream.pprint(50)
+
     # Transform join_stream to parsable Dstream
     # (src IP , (('total_stats', <# of flows>, <# of packets>, <# of bytes>), ('peer_number', <# of peers>),
     # ('dport_count',  <# number of distinct ports>), ('avg_flow_duration',<average flow duration>),("tcp_flags",<bitarray of tcpflags>)))
     parsable_join_stream = join_stream.map(lambda json_rdd: (json_rdd[0], (
         json_rdd[1][0][0][0][0], json_rdd[1][0][0][0][1], json_rdd[1][0][0][1], json_rdd[1][0][1], json_rdd[1][1])))
+
+    #parsable_join_stream = join_stream.map(lambda json_rdd: (json_rdd[0], flatten_actual(json_rdd[1])))
+
+    #parsable_join_stream.pprint(50)
 
     return parsable_join_stream
 
