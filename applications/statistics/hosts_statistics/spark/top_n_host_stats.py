@@ -148,6 +148,8 @@ def process_input(input_data, window_duration, window_slide, network_filter):
        :param window_duration: duration of window for statistics count in seconds
        :param window_slide: slide of window for statistics count in seconds
        :param network_filter: filter for filtration network range in CIDR
+
+       :return port_host_stats_joined_obj: counted TopN characteristics in a format: (src IP , IPStats([PortStats], [DstIPStats], [HTTPHostStats]))
     """
     # Optional arguments for named tuple
     IPStats = namedtuple('IPStats', 'ports dst_ips http_hosts')
