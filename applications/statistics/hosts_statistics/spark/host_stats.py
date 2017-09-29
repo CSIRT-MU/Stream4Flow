@@ -158,82 +158,66 @@ def process_input(input_data,window_duration, window_slide, network_filter):
     # TODO: Consider to reduce data at the first and then use the window (see dns_statistics application).
 
     # Compute basic hosts statistics - number of flows, packets, bytes sent by a host
-    flow_ip_total_stats_no_window = flow_with_keys.map(lambda json_rdd: (json_rdd["ipfix.sourceIPv4Address"], (
-        "total_stats", 1, json_rdd["ipfix.packetDeltaCount"], json_rdd["ipfix.octetDeltaCount"]))) \
-        .reduceByKey(lambda actual, update: (
-        actual[total_stats_position["type"]],
-        actual[total_stats_position["total_flows"]] + update[total_stats_position["total_flows"]],
-        actual[total_stats_position["total_packets"]] + update[total_stats_position["total_packets"]],
-        actual[total_stats_position["total_bytes"]] + update[total_stats_position["total_bytes"]]
-    ))
+    flow_ip_total_stats_no_window = flow_with_keys.map(lambda json_rdd: (json_rdd["ipfix.sourceIPv4Address"], ("total_stats", 1, json_rdd["ipfix.packetDeltaCount"], json_rdd["ipfix.octetDeltaCount"]))) \
+                                                  .reduceByKey(lambda actual, update: (
+                                                        actual[total_stats_position["type"]],
+                                                        actual[total_stats_position["total_flows"]] + update[total_stats_position["total_flows"]],
+                                                        actual[total_stats_position["total_packets"]] + update[total_stats_position["total_packets"]],
+                                                        actual[total_stats_position["total_bytes"]] + update[total_stats_position["total_bytes"]]
+                                                  ))
     # TODO: Use better code indentation to make it easier to understand (not only there).
 
     flow_ip_total_stats = flow_ip_total_stats_no_window.window(window_duration, window_slide) \
-        .reduceByKey(lambda actual, update: (
-        actual[total_stats_position["type"]],
-        actual[total_stats_position["total_flows"]] + update[total_stats_position["total_flows"]],
-        actual[total_stats_position["total_packets"]] + update[total_stats_position["total_packets"]],
-        actual[total_stats_position["total_bytes"]] + update[total_stats_position["total_bytes"]]
-    ))
+                                                       .reduceByKey(lambda actual, update: (
+                                                            actual[total_stats_position["type"]],
+                                                            actual[total_stats_position["total_flows"]] + update[total_stats_position["total_flows"]],
+                                                            actual[total_stats_position["total_packets"]] + update[total_stats_position["total_packets"]],
+                                                            actual[total_stats_position["total_bytes"]] + update[total_stats_position["total_bytes"]]
+                                                       ))
 
     # Compute a number of distinct communication peers with a host
-    flow_communicating_pairs_no_window = flow_with_keys.map(lambda json_rdd: ((json_rdd["ipfix.sourceIPv4Address"],
-                                                                               json_rdd[
-                                                                                   "ipfix.sourceIPv4Address"] + "-" +
-                                                                               json_rdd[
-                                                                                   "ipfix.destinationIPv4Address"]), 1)) \
-        .reduceByKey(lambda actual, update: actual)
+    flow_communicating_pairs_no_window = flow_with_keys.map(lambda json_rdd: ((json_rdd["ipfix.sourceIPv4Address"],json_rdd["ipfix.sourceIPv4Address"] + "-" + json_rdd["ipfix.destinationIPv4Address"]), 1)) \
+                                                       .reduceByKey(lambda actual, update: actual)
 
     flow_communicating_pairs = flow_communicating_pairs_no_window.window(window_duration, window_slide) \
-        .reduceByKey(lambda actual, update: actual + update) \
-        .map(lambda json_rdd: (json_rdd[0][0], ("peer_number", 1))) \
-        .reduceByKey(lambda actual, update: (
-        actual[0],
-        actual[1] + update[1]))
+                                                                 .reduceByKey(lambda actual, update: actual + update) \
+                                                                 .map(lambda json_rdd: (json_rdd[0][0], ("peer_number", 1))) \
+                                                                 .reduceByKey(lambda actual, update: (
+                                                                    actual[0],
+                                                                    actual[1] + update[1]))
 
     # Compute a number of distinct destination ports for each host
-    flow_dst_port_count_no_window = flow_with_keys_windowed.map(lambda json_rdd: ((json_rdd["ipfix.sourceIPv4Address"],
-                                                                                   json_rdd[
-                                                                                       "ipfix.sourceIPv4Address"] + "-" + str(
-                                                                                       json_rdd[
-                                                                                           "ipfix.destinationTransportPort"])),
-                                                                                  1)) \
-        .reduceByKey(lambda actual, update: actual)
+    flow_dst_port_count_no_window = flow_with_keys_windowed.map(lambda json_rdd: ((json_rdd["ipfix.sourceIPv4Address"], json_rdd["ipfix.sourceIPv4Address"] + "-" + str(json_rdd["ipfix.destinationTransportPort"])),1)) \
+                                                           .reduceByKey(lambda actual, update: actual)
 
     flow_dst_port_count = flow_dst_port_count_no_window.window(window_duration, window_slide) \
-        .reduceByKey(lambda actual, update: actual) \
-        .map(lambda json_rdd: (json_rdd[0][0], ("dport_count", 1))) \
-        .reduceByKey(lambda actual, update: (
-        actual[0],
-        actual[1] + update[1]))
+                                                       .reduceByKey(lambda actual, update: actual) \
+                                                       .map(lambda json_rdd: (json_rdd[0][0], ("dport_count", 1))) \
+                                                       .reduceByKey(lambda actual, update: (
+                                                            actual[0],
+                                                            actual[1] + update[1]))
 
     # Compute an average duration of a flow in seconds for each host
-    flow_average_duration = flow_with_keys_windowed.map(lambda json_rdd: (json_rdd["ipfix.sourceIPv4Address"], (
-        1, (json_rdd["ipfix.flowEndMilliseconds"] - json_rdd["ipfix.flowStartMilliseconds"])))) \
-        .reduceByKey(lambda actual, update: (
-        actual[0] + update[0],  # number of flow
-        actual[1] + update[1]  # sum of flow duration
-    )) \
-        .map(lambda json_rdd: (
-        json_rdd[0],
-        ("avg_flow_duration", (json_rdd[1][1] / float(1000)) / float(json_rdd[1][0]))))  # compute the average
+    flow_average_duration = flow_with_keys_windowed.map(lambda json_rdd: (json_rdd["ipfix.sourceIPv4Address"], (1, (json_rdd["ipfix.flowEndMilliseconds"] - json_rdd["ipfix.flowStartMilliseconds"])))) \
+                                                   .reduceByKey(lambda actual, update: (
+                                                        actual[0] + update[0],  # number of flow
+                                                        actual[1] + update[1]  # sum of flow duration
+                                                   )) \
+                                                   .map(lambda json_rdd: (json_rdd[0],("avg_flow_duration", (json_rdd[1][1] / float(1000)) / float(json_rdd[1][0]))))  # compute the average
 
     # Compute TCP Flags
     # Filter out TCP traffic
     flow_tcp = flow_with_keys.filter(lambda json_rdd: (json_rdd["ipfix.protocolIdentifier"] == 6))
     # Compute flags statistics
-    flow_tcp_flags_no_window = flow_tcp.map(lambda json_rdd: (
-        json_rdd["ipfix.sourceIPv4Address"], ("tcp_flags",  map(int, list('{0:08b}'.format(json_rdd["ipfix.tcpControlBits"])))))) \
-        .reduceByKey(lambda actual, update: (
-        actual[0],
-        [x + y for x, y in zip(actual[1], update[1])]
-    ))
+    flow_tcp_flags_no_window = flow_tcp.map(lambda json_rdd: (json_rdd["ipfix.sourceIPv4Address"], ("tcp_flags",  map(int, list('{0:08b}'.format(json_rdd["ipfix.tcpControlBits"])))))) \
+                                       .reduceByKey(lambda actual, update: (
+                                                         actual[0], [x + y for x, y in zip(actual[1], update[1])]
+                                       ))
 
     flow_tcp_flags = flow_tcp_flags_no_window.window(window_duration, window_slide) \
-        .reduceByKey(lambda actual, update: (
-        actual[0],
-        [x + y for x, y in zip(actual[1], update[1])]
-    ))
+                                             .reduceByKey(lambda actual, update: (
+                                                            actual[0],[x + y for x, y in zip(actual[1], update[1])]
+                                             ))
 
     # Join the DStreams to be able to process all in one foreachRDD
     # The structure of DSstream is
@@ -243,9 +227,9 @@ def process_input(input_data,window_duration, window_slide, network_filter):
     # ('tcp_flags',<bitarray of tcpflags>))
     # )
     join_stream = flow_ip_total_stats.fullOuterJoin(flow_communicating_pairs) \
-        .fullOuterJoin(flow_dst_port_count) \
-        .fullOuterJoin(flow_average_duration) \
-        .fullOuterJoin(flow_tcp_flags)
+                                     .fullOuterJoin(flow_dst_port_count) \
+                                     .fullOuterJoin(flow_average_duration) \
+                                     .fullOuterJoin(flow_tcp_flags)
     # TODO: Consider to use union instead of join (the application could be faster).
 
     # Transform join_stream to parsable Dstream
