@@ -29,8 +29,9 @@ An application for collecting the top N characteristics for all hosts, particula
 ## Usage
 - General:
 
-`  top_n_host_stats.py -iz <input-zookeeper-hostname>:<input-zookeeper-port> -it <input-topic> -oz <output-hostname>:<output-port> -ot <output-topic> -n <number of Top results> -net <network range>`
+`top_n_host_stats.py --iz <input-zookeeper-hostname>:<input-zookeeper-port> -it <input-topic> -oz <output-zookeeper-hostname>:<output-zookeeper-port> -ot <output-topic> -n <CIDR network range> -wd <window duration> -ws <window slide> -c <count of top_n>
+`
 
 - Stream4Flow example (using network range 10.10.0.0/16):
 
-`/home/spark/applications/run-application.sh /home/spark/applications/host_statistics/top_n_host_stats.py -iz producer:2181 -it ipfix.entry -oz producer:9092 -ot topn.stats -n 10 -net "10.10.0.0/16"`
+`/run-application.sh statistics/hosts_statistics/spark/application_template.py -iz producer:2181 -it ipfix.entry -oz producer:9092 -ot results.output -n 10.10.0.0/16 -wd 10 -ws 10 -c 10`
