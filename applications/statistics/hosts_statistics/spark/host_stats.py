@@ -185,7 +185,7 @@ def process_input(input_data,window_duration, window_slide, network_filter):
                                                         actual[total_stats_position["total_packets"]] + update[total_stats_position["total_packets"]],
                                                         actual[total_stats_position["total_bytes"]] + update[total_stats_position["total_bytes"]]
                                                   ))
-    # TODO: Use better code indentation to make it easier to understand (not only there).
+    #TODO v mapu prevest value na dict {"total_stats":( 1, json_rdd["ipfix.packetDeltaCount"], json_rdd["ipfix.octetDeltaCount")}
 
     flow_ip_total_stats = flow_ip_total_stats_no_window.window(window_duration, window_slide) \
                                                        .reduceByKey(lambda actual, update: (
@@ -252,16 +252,16 @@ def process_input(input_data,window_duration, window_slide, network_filter):
                                      .fullOuterJoin(flow_tcp_flags)
     # TODO: Consider to use union instead of join (the application could be faster).
 
-    #unioned_stream = flow_ip_total_stats.union(flow_communicating_pairs).union(flow_dst_port_count).union(flow_average_duration).union(flow_tcp_flags)
+    #unioned_stream = flow_ip_total_stats
     #unioned_stream.pprint(5)
 
     #reduced_unioned_stream = unioned_stream.reduceByKey(lambda actual, update: (
-    #                                                     actual, update
-                                                         #map_reduce(actual, update, "dport_count")
-                                                         #update if (str(update) not in str(actual) and str(update[0]) == "peer_number") else actual if str(actual[0]) == "peer_number" else None
-    #                                                     ))\
+                                                         # update if str(update[0]) == "total_stats" else "nic" if not actual[0] else actual[0],
+                                                         # update if str(update[0]) == "peer_number" else "nic" if not actual[1] else actual[1],
+                                                         # update if str(update[0]) == "dport_count" else "nic" if not actual[2] else actual[2]
+                                                         # ))
     #                                      .map(lambda json_rdd: (json_rdd[0], flatten_actual(json_rdd[1])))
-
+    #TODO pouzit append
     #reduced_unioned_stream.pprint(50)
 
     # Transform join_stream to parsable Dstream
