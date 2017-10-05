@@ -10,7 +10,8 @@ An application for computing statistics for all hosts in network. Computed stati
 
 ### Usage:
 - General 
-`host_stats.py --iz <input-zookeeper-hostname>:<input-zookeeper-port> -it <input-topic> -oz <output-zookeeper-hostname>:<output-zookeeper-port> -ot <output-topic> -net <CIDR network range>`
+`host_stats.py --iz <input-zookeeper-hostname>:<input-zookeeper-port> -it <input-topic> -oz <output-zookeeper-hostname>:<output-zookeeper-port> -ot <output-topic> -n <CIDR network range> -wd <window duration> -ws <window slide>`
 
 - Stream4Flow example (using network range 10.10.0.0/16)
-`./run-application.sh ./host_statistics/spark/host_statistics.py -iz producer:2181 -it ipfix.entry -oz producer:9092 -ot results.output-net "10.0.0.0/24"`
+`./run-application.sh ./host_statistics/spark/host_statistics.py -iz producer:2181 -it ipfix.entry -oz producer:9092 -ot results.output -n "10.0.0.0/24 -wd 10 -ws 10"
+"`
