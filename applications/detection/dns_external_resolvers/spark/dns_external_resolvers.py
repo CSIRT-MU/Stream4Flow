@@ -100,24 +100,24 @@ def get_external_dns_resolvers(dns_input_stream, all_data_stream, s_window_durat
     :param all_data_stream: All incoming flows
     :return: Detected external resolvers
     """
-    dns_resolved = dns_input_stream \
+    dns_resolved = dns_input_stream\
+        .window(s_window_duration, s_window_duration) \
         .filter(lambda record: record["ipfix.DNSCrrType"] == 1) \
         .map(lambda record: ((record["ipfix.destinationIPv4Address"],
                               DNSResponseConverter.convert_dns_rdata(record["ipfix.DNSRData"], record["ipfix.DNSCrrType"])),
                              (record["ipfix.sourceIPv4Address"],
                               record["ipfix.flowStartMilliseconds"])))\
 
-    detected_external = all_data_stream \
+    detected_external = all_data_stream\
+        .window(s_window_duration, s_window_duration) \
         .filter(lambda flow_json: flow_json["ipfix.protocolIdentifier"] == 6) \
-        .map(lambda record: ((record["ipfix.sourceIPv4Address"], IPAddress(record["ipfix.destinationIPv4Address"])),
+        .map(lambda record: ((record["ipfix.sourceIPv4Address"], record["ipfix.destinationIPv4Address"]),
                              record["ipfix.flowStartMilliseconds"])) \
         .join(dns_resolved) \
-        .window(s_window_duration, s_window_duration) \
-        .filter(lambda record: ((record[1][0] - record[1][1][1]) <= 5000) and ((record[1][0] - record[1][1][1]) >= -5000)) \
+        .filter(lambda record: abs(record[1][0] - record[1][1][1]) <= 5000) \
         .map(lambda record: ((record[0][0], record[1][1][0]), (record[1][1][1], 1))) \
         .reduceByKey(lambda actual, update: (actual[0],
                                              actual[1] + update[1]))
-    # TODO: Why IPAddress(record["ipfix.destinationIPv4Address"]) and not only record["ipfix.destinationIPv4Address"] ??
 
     return detected_external
 
@@ -154,7 +154,7 @@ if __name__ == "__main__":
     parser.add_argument("-oz", "--output_zookeeper", help="output zookeeper hostname:port", type=str, required=True)
     parser.add_argument("-ot", "--output_topic", help="output kafka topic", type=str, required=True)
     parser.add_argument("-w", "--window_size", help="window size (in seconds)", type=int, required=False, default=60)
-    parser.add_argument("-m", "--microbatch", help="microbatch (in seconds)", type=int, required=False, default=30)
+    parser.add_argument("-m", "--microbatch", help="microbatch (in seconds)", type=int, required=False, default=5)
 
     # Define Arguments for detection
     parser.add_argument("-lc", "--local_network", help="local network", type=str, required=True)

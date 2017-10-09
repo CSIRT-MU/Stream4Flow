@@ -49,7 +49,7 @@ def convert_ipv4(data_to_convert):
     :param data_to_convert: Input byte array
     :return: Parsed IPv4 address
     """
-    return IPAddress(int(data_to_convert[:10], 16))
+    return str(IPAddress(int(data_to_convert[:10], 16)))
 
 
 def convert_ipv6(data_to_convert):
@@ -59,7 +59,7 @@ def convert_ipv6(data_to_convert):
     :param data_to_convert: Input byte array
     :return: Parsed IPv6 address
     """
-    return IPAddress(int(data_to_convert[:34], 16))
+    return str(IPAddress(int(data_to_convert[:34], 16)))
 
 
 def convert_string(data_to_convert):
