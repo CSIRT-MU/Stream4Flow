@@ -59,7 +59,7 @@ def initialize_and_parse_input_stream(input_zookeeper, input_topic, microbatch_d
     # Parse input stream in the json format
     parsed_stream = input_stream.map(lambda line: json.loads(line[1]))
 
-    return sc, ssc, parsed_stream
+    return ssc, parsed_stream
 
 
 def initialize_kafka_producer(output_zookeeper):
