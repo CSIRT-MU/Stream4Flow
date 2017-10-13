@@ -153,7 +153,7 @@ if __name__ == "__main__":
     parser.add_argument("-it", "--input_topic", help="input kafka topic", type=str, required=True)
     parser.add_argument("-oz", "--output_zookeeper", help="output zookeeper hostname:port", type=str, required=True)
     parser.add_argument("-ot", "--output_topic", help="output kafka topic", type=str, required=True)
-    parser.add_argument("-w", "--window_size", help="window size (in seconds)", type=int, required=False, default=60)
+    parser.add_argument("-w", "--window_size", help="window size (in seconds)", type=int, required=False, default=360)
     parser.add_argument("-m", "--microbatch", help="microbatch (in seconds)", type=int, required=False, default=5)
 
     # Define Arguments for detection
