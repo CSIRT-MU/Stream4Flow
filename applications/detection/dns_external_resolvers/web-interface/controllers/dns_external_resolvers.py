@@ -13,7 +13,7 @@ from global_functions import escape
 
 def dns_external_resolvers():
     """
-    Show the main page of the DNS statistics section.
+    Show the main page of the DNS external resolvers section.
 
     :return: Empty dictionary
     """
@@ -27,7 +27,7 @@ def dns_external_resolvers():
 
 def get_top_n_statistics():
     """
-    Obtains TOP N DNS statistics.
+    Obtains TOP N statistics about DNS external resolvers.
 
     :return: JSON with status "ok" or "error" and requested data.
     """
@@ -144,7 +144,7 @@ def get_records_list():
               .bucket('top_src_dst', 'top_hits', size=1, sort=[{'@timestamp': {'order': 'desc'}}])
         results = search.execute()
 
-        # Result Parsing into CSV in format: timestamp, source_ip, destination_ip, flows, duration
+        # Result Parsing into CSV in format: timestamp, source_ip, resolver_ip, flows
         data = ""
         for src_aggregations in results.aggregations.by_src.buckets:
             for result in src_aggregations.by_dst.buckets:
