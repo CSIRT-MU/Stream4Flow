@@ -117,21 +117,30 @@ def get_open_dns_resolvers(dns_input_stream, s_window_duration, whitelisted_doma
     :return: Detected open resolvers
     """
 
-    detected_open_resolvers = dns_input_stream\
+    # Filter non-empty, no-error responses with return types for A, NS, CNAME, AAAA
+    filtered_records = dns_input_stream\
         .window(s_window_duration, s_window_duration) \
-        .filter(lambda flow_json: (flow_json["ipfix.DNSFlagsCodes"] & 15) == 0) \
-        .filter(lambda flow_json: flow_json["ipfix.DNSQType"] == 1 or flow_json["ipfix.DNSQType"] == 28) \
-        .filter(lambda flow_json: DNSResponseConverter.
-                convert_dns_rdata(flow_json["ipfix.DNSRData"], flow_json["ipfix.DNSCrrType"]) != "") \
+        .filter(lambda flow_json: flow_json["ipfix.DNSCrrType"] == 1
+                                  or flow_json["ipfix.DNSCrrType"] == 2
+                                  or flow_json["ipfix.DNSCrrType"] == 5
+                                  or flow_json["ipfix.DNSCrrType"] == 28) \
+        .filter(lambda flow_json: (flow_json["ipfix.DNSFlagsCodes"] >> 15) & 1) \
+        .filter(lambda flow_json: flow_json["ipfix.DNSRDataLength"] > 0) \
+        .filter(lambda flow_json: (flow_json["ipfix.DNSFlagsCodes"] & 15) == 0)
+
+    # Convert to resolved data (ip or domain)
+    detected_open_resolvers = filtered_records\
         .filter(lambda flow_json:
                           not filter_ip_for_networks(
                               IPAddress(DNSResponseConverter.convert_dns_rdata(flow_json["ipfix.DNSRData"],
                                                                                flow_json["ipfix.DNSCrrType"])),
                               whitelisted_networks)
-                          if (flow_json["ipfix.DNSCrrType"] == 1 or flow_json["ipfix.DNSCrrType"] == 27)
+                          if (flow_json["ipfix.DNSCrrType"] == 1 or flow_json["ipfix.DNSCrrType"] == 28)
                           else not re.match(whitelisted_domains,
                                        DNSResponseConverter.convert_dns_rdata(flow_json["ipfix.DNSRData"],
-                                                                              flow_json["ipfix.DNSCrrType"]))) \
+                                                                              flow_json["ipfix.DNSCrrType"])))
+    # Map detected records
+    mapped_open_resolvers = detected_open_resolvers \
         .map(lambda record: ((record["ipfix.sourceIPv4Address"],
                              DNSResponseConverter.convert_dns_rdata(record["ipfix.DNSRData"], record["ipfix.DNSCrrType"])),
                              (record["ipfix.flowStartMilliseconds"],
@@ -139,7 +148,7 @@ def get_open_dns_resolvers(dns_input_stream, s_window_duration, whitelisted_doma
         .reduceByKey(lambda actual, update: (actual[0],
                                              actual[1] + update[1]))
 
-    return detected_open_resolvers
+    return mapped_open_resolvers
 
 
 def get_dns_stream(flows_stream):
@@ -197,7 +206,6 @@ if __name__ == "__main__":
             strings = f.readlines()
         whitelisted_domains = [".*" + line.strip() for line in strings]
         whitelisted_domains_regex = "(" + ")|(".join(whitelisted_domains) + ")"
-    print(whitelisted_domains_regex)
 
     # Read whitelisted ips
     whitelisted_networks = ""

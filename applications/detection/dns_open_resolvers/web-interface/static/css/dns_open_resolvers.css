@@ -1,0 +1,23 @@
+/* DNS Statistics */
+#table-dns-open {
+    margin-top: -40px;
+    padding-left: 15px;
+    padding-right: 15px;
+}
+.table-status {
+    text-align: center;
+    color: #777777;
+    width: 100%;
+    margin-top: 170px;
+    height: 300px;
+}
+.table-status span {
+    position: relative;
+    top: -4px;
+    font-size: 20px;
+    font-weight: 600;
+    margin-left: 0.5em;
+}
+#load-all-charts-button {
+    margin-right: 20px;
+}
