@@ -78,7 +78,7 @@ function generateChart(data_type, data) {
                 fontColor:'#444444'
             },
             label:{
-                text: 'Number of' + data_type.charAt(0).toUpperCase() +  data_type.slice(1),
+                text: 'Number of ' + data_type.charAt(0).toUpperCase() +  data_type.slice(1),
                 fontSize: 12,
                 fontColor: '#444444'
             },
