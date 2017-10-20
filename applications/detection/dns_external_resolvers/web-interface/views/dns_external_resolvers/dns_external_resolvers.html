@@ -3,12 +3,12 @@
 <script>
     // Set correct menu view.
     $('#menu-detections').addClass('active');
-    $('#menu-dns_external_resolvers').addClass('active');
+    $('#menu-dns-external-resolvers').addClass('active');
     // Include specific CSS
     $('head').append("<link href=\"{{=URL('static','css/dns_external_resolvers.css')}}\" rel=\"stylesheet\">");
 </script>
 
-<h3 class="title1">Detection of External DNS resolvers</h3>
+<h3 class="title1">Detection of External DNS Resolvers</h3>
 
 {{if not session.logged:}}
 <div class="alert alert-danger" role="alert">

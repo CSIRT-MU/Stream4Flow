@@ -52,7 +52,7 @@ def get_top_n_statistics():
     try:
         client = elasticsearch.Elasticsearch([{'host': myconf.get('consumer.hostname'), 'port': myconf.get('consumer.port')}])
         elastic_bool = []
-        elastic_bool.append({'range': {'@timestamp': {'gte': beginning, 'lte': end}}})
+        elastic_bool.append({'range': {'timestamp': {'gte': beginning, 'lte': end}}})
         elastic_bool.append({'term': {'@type': 'external_dns_resolver'}})
 
         # Set filter
@@ -68,7 +68,7 @@ def get_top_n_statistics():
         search = Search(using=client, index='_all').query(qx)
         search.aggs.bucket('by_src', 'terms', field='src_ip.raw', size=2147483647)\
               .bucket('by_dst', 'terms', field='resolver_ip.raw', size=2147483647)\
-              .bucket('top_src_dst', 'top_hits', size=1, sort=[{'@timestamp': {'order': 'desc'}}])
+              .bucket('top_src_dst', 'top_hits', size=1, sort=[{'timestamp': {'order': 'desc'}}])
         results = search.execute()
 
         # Prepare ordered collection
@@ -126,7 +126,7 @@ def get_records_list():
         client = elasticsearch.Elasticsearch(
             [{'host': myconf.get('consumer.hostname'), 'port': myconf.get('consumer.port')}])
         elastic_bool = []
-        elastic_bool.append({'range': {'@timestamp': {'gte': beginning, 'lte': end}}})
+        elastic_bool.append({'range': {'timestamp': {'gte': beginning, 'lte': end}}})
         elastic_bool.append({'term': {'@type': 'external_dns_resolver'}})
 
         # Set filter
@@ -141,7 +141,7 @@ def get_records_list():
         search = Search(using=client, index='_all').query(qx)
         search.aggs.bucket('by_src', 'terms', field='src_ip.raw', size=2147483647)\
               .bucket('by_dst', 'terms', field='resolver_ip.raw', size=2147483647)\
-              .bucket('top_src_dst', 'top_hits', size=1, sort=[{'@timestamp': {'order': 'desc'}}])
+              .bucket('top_src_dst', 'top_hits', size=1, sort=[{'timestamp': {'order': 'desc'}}])
         results = search.execute()
 
         # Result Parsing into CSV in format: timestamp, source_ip, resolver_ip, flows
