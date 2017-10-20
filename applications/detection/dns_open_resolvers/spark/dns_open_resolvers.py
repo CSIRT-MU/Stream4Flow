@@ -118,6 +118,7 @@ def get_open_dns_resolvers(dns_input_stream, s_window_duration, whitelisted_doma
     """
 
     # Filter non-empty, no-error responses with return types for A, NS, CNAME, AAAA
+    # TODO: Use window after all filters
     filtered_records = dns_input_stream\
         .window(s_window_duration, s_window_duration) \
         .filter(lambda flow_json: flow_json["ipfix.DNSCrrType"] == 1
