@@ -143,10 +143,9 @@ def get_open_dns_resolvers(dns_input_stream, s_window_duration, whitelisted_doma
     mapped_open_resolvers = detected_open_resolvers \
         .map(lambda record: ((record["ipfix.sourceIPv4Address"],
                              DNSResponseConverter.convert_dns_rdata(record["ipfix.DNSRData"], record["ipfix.DNSCrrType"])),
-                             (record["ipfix.flowStartMilliseconds"],
-                              1)))\
-        .reduceByKey(lambda actual, update: (actual[0],
-                                             actual[1] + update[1]))
+                             (record["ipfix.flowStartMilliseconds"], 1)
+                             ))\
+        .reduceByKey(lambda actual, update: (actual[0], actual[1] + update[1]))
 
     return mapped_open_resolvers
 
@@ -158,6 +157,7 @@ def get_dns_stream(flows_stream):
     :param flows_stream: Input flows
     :return: Flows with DNS information
     """
+    # TODO: Allow IPv6
     return flows_stream \
         .filter(lambda flow_json: ("ipfix.DNSName" in flow_json.keys()) and
                                   ("ipfix.sourceIPv4Address" in flow_json.keys()))
@@ -171,6 +171,7 @@ def get_flows_local_to_external(s_dns_stream, local_network):
     :param local_network: Local network's address
     :return: Flows coming from local network to external networks
     """
+    # TODO: Allow IPv6
     return s_dns_stream \
         .filter(lambda dns_json: (IPAddress(dns_json["ipfix.sourceIPv4Address"]) in IPNetwork(local_network)) and
                                  (IPAddress(dns_json["ipfix.destinationIPv4Address"]) not in IPNetwork(local_network)))
@@ -189,6 +190,7 @@ if __name__ == "__main__":
     parser.add_argument("-lc", "--local_network", help="local network", type=str, required=True)
     parser.add_argument("-wd", "--whitelisted_domains", help="whitelisted domains", type=str, required=False, default="")
     parser.add_argument("-wn", "--whitelisted_networks", help="whitelisted networks", type=str, required=False, default="")
+    # TODO: Add defaults for whitelist (use domain google.com and ip 192.168.0.2
 
     # Parse arguments
     args = parser.parse_args()
@@ -202,6 +204,7 @@ if __name__ == "__main__":
     whitelisted_domains = ""
     whitelisted_domains_regex = ""
     if args.whitelisted_domains:
+        # TODO: Check if file exists
         with open(args.whitelisted_domains, 'r') as f:
             strings = f.readlines()
         whitelisted_domains = [".*" + line.strip() for line in strings]
@@ -210,6 +213,7 @@ if __name__ == "__main__":
     # Read whitelisted ips
     whitelisted_networks = ""
     if args.whitelisted_networks:
+        # TODO: Check if file exists
         with open(args.whitelisted_networks, 'r') as f:
             strings = f.readlines()
         whitelisted_networks = [IPNetwork(line.strip()) for line in strings]
