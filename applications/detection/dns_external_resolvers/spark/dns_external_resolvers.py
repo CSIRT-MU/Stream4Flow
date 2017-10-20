@@ -209,7 +209,7 @@ if __name__ == "__main__":
 
     # Calculate and process DNS statistics
     get_external_dns_resolvers(dns_external_to_local, ipv4_stream, args.window_size, args.window_slide) \
-        .foreachRDD(lambda rdd: process_results(rdd.collectAsMap(), kafka_producer, args.output_topic))
+        .foreachRDD(lambda rdd: process_results(rdd.collectAsMap(), kafka_producer, args.output_topic, args.window_slide))
 
     # Start Spark streaming context
     kafkaIO.spark_start(ssc)
