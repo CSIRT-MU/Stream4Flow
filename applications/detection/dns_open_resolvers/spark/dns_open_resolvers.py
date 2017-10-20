@@ -126,8 +126,7 @@ def get_open_dns_resolvers(dns_input_stream, s_window_duration, whitelisted_doma
                                   or flow_json["ipfix.DNSCrrType"] == 28) \
         .filter(lambda flow_json: (flow_json["ipfix.DNSFlagsCodes"] >> 15) & 1) \
         .filter(lambda flow_json: flow_json["ipfix.DNSRDataLength"] > 0) \
-        .filter(lambda flow_json: (flow_json["ipfix.DNSFlagsCodes"] & 15) == 0) \
-        .window(s_window_duration, s_window_duration)
+        .filter(lambda flow_json: (flow_json["ipfix.DNSFlagsCodes"] & 15) == 0)
 
     # Convert to resolved data (ip or domain)
     detected_open_resolvers = filtered_records\
@@ -202,8 +201,8 @@ if __name__ == "__main__":
 
     # Define Arguments for detection
     parser.add_argument("-lc", "--local_network", help="local network", type=str, required=True)
-    parser.add_argument("-wd", "--whitelisted_domains", help="whitelisted domains", type=str, required=False, default="")
-    parser.add_argument("-wn", "--whitelisted_networks", help="whitelisted networks", type=str, required=False, default="")
+    parser.add_argument("-wd", "--whitelisted_domains", help="whitelisted domains", type=str, required=False, default="./whitelisted_domains.txt")
+    parser.add_argument("-wn", "--whitelisted_networks", help="whitelisted networks", type=str, required=False, default="./whitelisted_networks.txt")
 
     # Parse arguments
     args = parser.parse_args()
@@ -216,22 +215,22 @@ if __name__ == "__main__":
     # Read whitelisted domains (100 maximum)
     whitelisted_domains = ""
     whitelisted_domains_regex = ""
-    if args.whitelisted_domains and os.path.isfile(args.whitelisted_domains):
+    if os.path.isfile(args.whitelisted_domains):
         with open(args.whitelisted_domains, 'r') as f:
             strings = f.readlines()
         whitelisted_domains = [".*" + line.strip() for line in strings]
         whitelisted_domains_regex = "(" + ")|(".join(whitelisted_domains) + ")"
     else:
-        whitelisted_domains_regex = "(.*google.com)"
+        cprint("[warning] File with whitelisted domains does not exist.", "blue")
 
     # Read whitelisted ips
     whitelisted_networks = ""
-    if args.whitelisted_networks and os.path.isfile(args.whitelisted_networks):
+    if os.path.isfile(args.whitelisted_networks):
         with open(args.whitelisted_networks, 'r') as f:
             strings = f.readlines()
         whitelisted_networks = [IPNetwork(line.strip()) for line in strings]
     else:
-        whitelisted_networks = IPNetwork("192.168.0.0/16")
+        cprint("[warning] File with whitelisted networks does not exist.", "blue")
 
     # Initialize input stream and parse it into JSON
     ssc, parsed_input_stream = kafkaIO\

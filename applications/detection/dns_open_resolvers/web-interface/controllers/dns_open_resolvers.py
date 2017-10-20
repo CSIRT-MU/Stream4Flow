@@ -67,18 +67,20 @@ def get_top_n_statistics():
         # Get ordered data (with maximum size aggregation)
         search = Search(using=client, index='_all').query(qx)
         search.aggs.bucket('by_src', 'terms', field='resolver_ip.raw', size=2147483647)\
-              .bucket('by_dst', 'terms', field='resolved_data.raw', size=2147483647)\
-              .bucket('top_src_dst', 'top_hits', size=1, sort=[{'timestamp': {'order': 'desc'}}])
+            .bucket('by_data', 'terms', field='resolved_data.raw', size=2147483647) \
+            .bucket('sum_by_ip', 'sum', field='flows')
         results = search.execute()
 
         # Prepare ordered collection
         counter = collections.Counter()
-        for src_buckets in results.aggregations.by_src.buckets:
-            if type == "resolved":
-                counter[src_buckets.key] = len(src_buckets.by_dst.buckets)
-            else:
-                for dst_buckets in src_buckets.by_dst.buckets:
-                    counter[dst_buckets.key] += 1
+        if type == "resolved":
+            for resolver_buckets in results.aggregations.by_src.buckets:
+                for dst_buckets in resolver_buckets.by_data.buckets:
+                    counter[resolver_buckets.key] += int(dst_buckets.sum_by_ip.value)
+        else:
+            for resolver_buckets in results.aggregations.by_src.buckets:
+                for dst_buckets in resolver_buckets.by_data.buckets:
+                    counter[dst_buckets.key] += int(dst_buckets.sum_by_ip.value)
 
         # Select first N (number) values
         data = ""
@@ -105,7 +107,6 @@ def get_records_list():
 
     :return: JSON with status "ok" or "error" and requested data.
     """
-    # TODO: Do not show resolved, aggregate number of Flows, show the first timestamp
 
     # Check login
     if not session.logged:
@@ -141,17 +142,32 @@ def get_records_list():
         # Search with maximum size aggregations
         search = Search(using=client, index='_all').query(qx)
         search.aggs.bucket('by_src', 'terms', field='resolver_ip.raw', size=2147483647)\
-              .bucket('by_dst', 'terms', field='resolved_data.raw', size=2147483647)\
-              .bucket('top_src_dst', 'top_hits', size=1, sort=[{'timestamp': {'order': 'desc'}}])
+            .bucket('by_data', 'terms', field='resolved_data.raw', size=2147483647) \
+            .bucket('sum_by_ip', 'sum', field='flows')
+        search.aggs['by_src'].bucket('by_start_time', 'top_hits', size=1, sort=[{'timestamp': {'order': 'asc'}}])
         results = search.execute()
+
+        # Prepare ordered collection
+        counter = collections.Counter()
+        for resolver_buckets in results.aggregations.by_src.buckets:
+            domain_counter = collections.Counter()
+
+            # Calculate sums for each resolved query and resolver ip
+            for dst_buckets in resolver_buckets.by_data.buckets:
+                domain_counter[(resolver_buckets.key, dst_buckets.key)] += int(dst_buckets.sum_by_ip.value)
+
+            top_resolved_query_for_ip = domain_counter.most_common(1)[0][0][1]
+            top_resolved_query_flows_count = domain_counter.most_common(1)[0][1]
+            first_timestamp_for_ip = resolver_buckets.by_start_time[0].timestamp.replace("T", " ").replace("Z", "")
+
+            counter[(resolver_buckets.key, top_resolved_query_for_ip, top_resolved_query_flows_count, first_timestamp_for_ip)] \
+                += sum(domain_counter.values())
 
         # Result Parsing into CSV in format: timestamp, resolver_ip, resolved_data, flows
         data = ""
-        for src_aggregations in results.aggregations.by_src.buckets:
-            for result in src_aggregations.by_dst.buckets:
-                record = result.top_src_dst.hits.hits[0]["_source"]
-                data += record["timestamp"].replace("T", " ").replace("Z", "") + "," + record["resolver_ip"] + "," \
-                    + record["resolved_data"] + "," + str(record["flows"]) + ","
+        for record in counter.most_common():
+            data += str(record[0][0]) + "," + str(record[0][1]) + "," \
+                    + str(record[0][2]) + "," + str(record[0][3]) + "," + str(record[1]) + ","
         data = data[:-1]
 
         json_response = '{"status": "Ok", "data": "' + data + '"}'
