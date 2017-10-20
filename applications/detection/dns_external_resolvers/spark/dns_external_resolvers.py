@@ -50,7 +50,30 @@ from modules import DNSResponseConverter  # Convert byte array to the IP address
 from termcolor import cprint  # Colors in the console output
 
 
-def get_output_json(key, value):
+# Saves attacks in dictionary, so 1 attack is not reported multiple times
+detectionsDict = {}
+# Remembers when dictionary was cleaned last time
+lastCleaning = time.time()
+
+
+def clean_old_data_from_dictionary(s_window_duration):
+    """
+    Clean dictionary of old attacks.
+
+    :param s_window_duration: time for which if record is older it gets deleted (multiplied by 10)
+    """
+    global lastCleaning
+    current_time = time.time()
+    # Clean once a day
+    if (lastCleaning + 86400) < current_time:
+        lastCleaning = current_time
+        for key, value in detectionsDict.items():
+            # If timestamp of record + 10times window duration is smaller than current time
+            if ((10 * s_window_duration * 1000) + value[1]) < (int(current_time * 1000)):
+                del detectionsDict[key]
+
+
+def get_output_json(key, value, flows_total):
     """
     Create JSON with correct format.
 
@@ -65,23 +88,32 @@ def get_output_json(key, value):
 
     return "{\"@type\": \"external_dns_resolver\", \"src_ip\": \"" + str(key[0]) + '\"' +\
            ", \"resolver_ip\": \"" + str(key[1]) + '\"' +\
-           ", \"flows\": " + str(value[1]) + \
+           ", \"flows\": " + str(flows_total) + \
+           ", \"flows_increment\": " + str(value[1]) +\
            ", \"timestamp\": \"" + str(timestamp) + "\"}\n"
 
 
-def process_results(results, producer, s_output_topic):
+def process_results(results, producer, s_output_topic, window_duration):
     """
     Format and report detected records.
 
     :param results: Detected records
     :param producer: Kafka producer that sends the data to output topic
     :param s_output_topic: Name of the receiving kafka topic
+    :param window_duration: Duration of the window
     """
 
     output_json = ""
     # Transform given results into the JSON
     for key, value in results.iteritems():
-        output_json += get_output_json(key, value)
+        if key in detectionsDict:
+            # If there are additional flows for the attack that was reported.
+            if (detectionsDict[key][0] + window_duration * 1000) <= value[0]:
+                detectionsDict[key] = (value[0], detectionsDict[key][1] + value[1])
+                output_json += get_output_json(key, value, detectionsDict[key][1])
+        else:
+            detectionsDict[key] = (value[0], value[1])
+            output_json += get_output_json(key, value, value[1])
 
     if output_json:
         # Print data to standard output
@@ -91,17 +123,17 @@ def process_results(results, producer, s_output_topic):
         kafkaIO.send_data_to_kafka(output_json, producer, s_output_topic)
 
 
-def get_external_dns_resolvers(dns_input_stream, all_data_stream, s_window_duration):
+def get_external_dns_resolvers(dns_input_stream, all_data_stream, window_duration, window_slide):
     """
     Gets used external dns resolvers from input stream
 
     :param dns_input_stream: Input flows
-    :param s_window_duration: Length of the window in seconds
+    :param window_duration: Length of the window in seconds
     :param all_data_stream: All incoming flows
     :return: Detected external resolvers
     """
     dns_resolved = dns_input_stream\
-        .window(s_window_duration, s_window_duration) \
+        .window(window_duration, window_slide) \
         .filter(lambda record: record["ipfix.DNSCrrType"] == 1) \
         .map(lambda record: ((record["ipfix.destinationIPv4Address"],
                               DNSResponseConverter.convert_dns_rdata(record["ipfix.DNSRData"], record["ipfix.DNSCrrType"])),
@@ -109,7 +141,7 @@ def get_external_dns_resolvers(dns_input_stream, all_data_stream, s_window_durat
                               record["ipfix.flowStartMilliseconds"])))\
 
     detected_external = all_data_stream\
-        .window(s_window_duration, s_window_duration) \
+        .window(window_duration, window_slide) \
         .filter(lambda flow_json: flow_json["ipfix.protocolIdentifier"] == 6) \
         .map(lambda record: ((record["ipfix.sourceIPv4Address"], record["ipfix.destinationIPv4Address"]),
                               record["ipfix.flowStartMilliseconds"])) \
@@ -154,7 +186,8 @@ if __name__ == "__main__":
     parser.add_argument("-oz", "--output_zookeeper", help="output zookeeper hostname:port", type=str, required=True)
     parser.add_argument("-ot", "--output_topic", help="output kafka topic", type=str, required=True)
     parser.add_argument("-w", "--window_size", help="window size (in seconds)", type=int, required=False, default=360)
-    parser.add_argument("-m", "--microbatch", help="microbatch (in seconds)", type=int, required=False, default=5)
+    parser.add_argument("-ws", "--window_slide", help="window slide (in seconds)", type=int, required=False, default=90)
+    parser.add_argument("-m", "--microbatch", help="microbatch (in seconds)", type=int, required=False, default=1)
 
     # Define Arguments for detection
     parser.add_argument("-ln", "--local_network", help="local network", type=str, required=True)
@@ -175,7 +208,7 @@ if __name__ == "__main__":
     kafka_producer = kafkaIO.initialize_kafka_producer(args.output_zookeeper)
 
     # Calculate and process DNS statistics
-    get_external_dns_resolvers(dns_external_to_local, ipv4_stream, args.window_size) \
+    get_external_dns_resolvers(dns_external_to_local, ipv4_stream, args.window_size, args.window_slide) \
         .foreachRDD(lambda rdd: process_results(rdd.collectAsMap(), kafka_producer, args.output_topic))
 
     # Start Spark streaming context
