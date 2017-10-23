@@ -49,4 +49,4 @@
 - name: Run script to set web2py password
   shell: ./chgpasswd.py chdir=/var/www/web2py/
   become: True
-  become_user: www-data
+
