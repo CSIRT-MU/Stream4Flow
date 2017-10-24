@@ -141,9 +141,10 @@ def get_records_list():
 
         # Search with maximum size aggregations
         search = Search(using=client, index='_all').query(qx)
-        search.aggs.bucket('by_src', 'terms', field='resolver_ip.raw', size=2147483647)\
+        search.aggs.bucket('by_src', 'terms', field='resolver_ip.raw', size=2147483647) \
             .bucket('by_data', 'terms', field='resolved_data.raw', size=2147483647) \
             .bucket('sum_by_ip', 'sum', field='flows')
+        search.aggs['by_src']['by_data'].bucket('by_query', 'top_hits', size=1, sort=[{'flows': {'order': 'desc'}}])
         search.aggs['by_src'].bucket('by_start_time', 'top_hits', size=1, sort=[{'timestamp': {'order': 'asc'}}])
         results = search.execute()
 
@@ -154,20 +155,24 @@ def get_records_list():
 
             # Calculate sums for each resolved query and resolver ip
             for dst_buckets in resolver_buckets.by_data.buckets:
-                domain_counter[(resolver_buckets.key, dst_buckets.key)] += int(dst_buckets.sum_by_ip.value)
+                query = dst_buckets["by_query"]["hits"].hits[0]["_source"].resolved_query
+                domain_counter[(resolver_buckets.key, dst_buckets.key, query)] += int(dst_buckets.sum_by_ip.value)
 
-            top_resolved_query_for_ip = domain_counter.most_common(1)[0][0][1]
+            top_resolved_data_for_ip = domain_counter.most_common(1)[0][0][1]
+            top_resolved_query_for_ip = domain_counter.most_common(1)[0][0][2]
             top_resolved_query_flows_count = domain_counter.most_common(1)[0][1]
             first_timestamp_for_ip = resolver_buckets.by_start_time[0].timestamp.replace("T", " ").replace("Z", "")
 
-            counter[(resolver_buckets.key, top_resolved_query_for_ip, top_resolved_query_flows_count, first_timestamp_for_ip)] \
+            counter[
+                (resolver_buckets.key, top_resolved_query_for_ip, top_resolved_data_for_ip,
+                 top_resolved_query_flows_count, first_timestamp_for_ip)] \
                 += sum(domain_counter.values())
 
         # Result Parsing into CSV in format: timestamp, resolver_ip, resolved_data, flows
         data = ""
         for record in counter.most_common():
-            data += str(record[0][0]) + "," + str(record[0][1]) + "," \
-                    + str(record[0][2]) + "," + str(record[0][3]) + "," + str(record[1]) + ","
+            data += str(record[0][0]) + "," + str(record[0][1]) + "," + str(record[0][2]) + "," \
+                    + str(record[0][3]) + "," + str(record[0][4]) + "," + str(record[1]) + ","
         data = data[:-1]
 
         json_response = '{"status": "Ok", "data": "' + data + '"}'

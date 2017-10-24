@@ -69,6 +69,7 @@ def get_output_json(key, value):
            ", \"resolver_ip\": \"" + str(key[0]) + "\"" +\
            ", \"flows\": " + str(value[1]) + \
            ", \"resolved_data\": \"" + str(key[1]) + "\"" +\
+           ", \"resolved_query\": \"" + str(key[2]) + "\"" +\
            ", \"timestamp\": \"" + str(timestamp) + "\"}\n"
 
 
@@ -141,7 +142,8 @@ def get_open_dns_resolvers(dns_input_stream, whitelisted_domains, whitelisted_ne
     # Map detected records
     mapped_open_resolvers = detected_open_resolvers \
         .map(lambda record: ((get_key_with_ip_version(record, "source"),
-                             DNSResponseConverter.convert_dns_rdata(record["ipfix.DNSRData"], record["ipfix.DNSCrrType"])),
+                             DNSResponseConverter.convert_dns_rdata(record["ipfix.DNSRData"], record["ipfix.DNSCrrType"]),
+                              record["ipfix.DNSCrrName"]),
                              (record["ipfix.flowStartMilliseconds"], 1)
                              ))\
         .reduceByKey(lambda actual, update: (actual[0], actual[1] + update[1]))

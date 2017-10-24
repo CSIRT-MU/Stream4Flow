@@ -174,15 +174,16 @@ function generateTable(data, type) {
     table.bootstrapTable('removeAll');
 
     // Generate rows for table
-    for (var i = 0; i <= array.length-4; i+=5) {
+    for (var i = 0; i <= array.length-5; i+=6) {
         table.bootstrapTable('insertRow', {
             index: indexCount,
             row: {
                 res_ip: array[i],
-                top_resolved_for_ip: array[i+1],
-                top_resolved_count: array[i+2],
-                timestamp: array[i+3],
-                flows: array[i+4]
+                top_resolved_query_for_ip: array[i+1],
+                top_resolved_data_for_ip: array[i+2],
+                top_resolved_count: array[i+3],
+                timestamp: array[i+4],
+                flows: array[i+5]
             }
         });
         indexCount++;

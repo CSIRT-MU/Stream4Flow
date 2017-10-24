@@ -1,4 +1,7 @@
 /* DNS Statistics */
+.chart-status {
+    height: 300px;
+}
 #table-dns-open {
     margin-top: -40px;
     padding-left: 15px;

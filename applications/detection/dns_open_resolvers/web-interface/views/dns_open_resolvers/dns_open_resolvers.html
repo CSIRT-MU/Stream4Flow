@@ -8,7 +8,7 @@
     $('head').append("<link href=\"{{=URL('static','css/dns_open_resolvers.css')}}\" rel=\"stylesheet\">");
 </script>
 
-<h3 class="title1">Detection of Open DNS resolvers</h3>
+<h3 class="title1">Detection of Open DNS Resolvers</h3>
 
 {{if not session.logged:}}
 <div class="alert alert-danger" role="alert">
@@ -108,8 +108,9 @@
             <thead>
                 <tr>
                     <th data-sortable="true" data-field="res_ip">Resolver IP</th>
-                    <th data-sortable="true" data-field="top_resolved_for_ip">Most resolved query</th>
-                    <th data-sortable="true" data-field="top_resolved_count">Flows containing most resolved query</th>
+                    <th data-sortable="true" data-field="top_resolved_query_for_ip">Most resolved query</th>
+                    <th data-sortable="true" data-field="top_resolved_data_for_ip">Data of the most resolved query</th>
+                    <th data-sortable="true" data-field="top_resolved_count">Flows containing the most resolved query</th>
                     <th data-sortable="true" data-field="flows">Total Flows</th>
                     <th data-sortable="true" data-field="timestamp">First Timestamp</th>
                 </tr>
