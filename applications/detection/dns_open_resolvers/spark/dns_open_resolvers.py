@@ -107,12 +107,11 @@ def filter_ip_for_networks(ip_to_filter, whitelisted_networks):
     return False
 
 
-def get_open_dns_resolvers(dns_input_stream, s_window_duration, whitelisted_domains, whitelisted_networks):
+def get_open_dns_resolvers(dns_input_stream, whitelisted_domains, whitelisted_networks):
     """
     Gets used open dns resolvers from input stream
 
     :param dns_input_stream: Input flows
-    :param s_window_duration: Length of the window in seconds
     :param whitelisted_domains: Regex containing all whitelisted domains
     :param whitelisted_networks: Array with all whitelisted networks
     :return: Detected open resolvers
@@ -196,7 +195,6 @@ if __name__ == "__main__":
     parser.add_argument("-it", "--input_topic", help="input kafka topic", type=str, required=True)
     parser.add_argument("-oz", "--output_zookeeper", help="output zookeeper hostname:port", type=str, required=True)
     parser.add_argument("-ot", "--output_topic", help="output kafka topic", type=str, required=True)
-    parser.add_argument("-w", "--window_size", help="window size (in seconds)", type=int, required=False, default=60)
     parser.add_argument("-m", "--microbatch", help="microbatch (in seconds)", type=int, required=False, default=5)
 
     # Define Arguments for detection
@@ -208,7 +206,6 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     # Set variables
-    window_duration = args.window_size  # Analysis window duration (60 seconds default)
     microbatch = args.microbatch
     output_topic = args.output_topic
 
@@ -244,7 +241,7 @@ if __name__ == "__main__":
     kafka_producer = kafkaIO.initialize_kafka_producer(args.output_zookeeper)
 
     # Calculate and process DNS statistics
-    get_open_dns_resolvers(dns_external_to_local, window_duration, whitelisted_domains_regex, whitelisted_networks) \
+    get_open_dns_resolvers(dns_external_to_local, whitelisted_domains_regex, whitelisted_networks) \
         .foreachRDD(lambda rdd: process_results(rdd.collectAsMap(), kafka_producer, output_topic))
 
     # Start Spark streaming context
