@@ -226,7 +226,7 @@ function loadTable() {
                 generateTable(response.data);
             } else {
                 // Show error message
-                $("#table").html(
+                $(tableIdStatus).html(
                     '<i class="fa fa-exclamation-circle fa-2x"></i>\
                      <span>' + response.status + ': ' + response.data + '</span>'
                 )
