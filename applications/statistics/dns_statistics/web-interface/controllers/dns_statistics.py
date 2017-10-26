@@ -63,7 +63,7 @@ def get_top_n_statistics():
             search_ip = Search(using=client, index='_all').query(qx)
             search_ip.aggs.bucket('all_nested', 'nested', path='data_array') \
                 .bucket('by_key', 'terms', field='data_array.key.raw', size=2147483647)\
-                .bucket('by_ip', 'terms', field='data_array.ip.raw', size=1, order={'sum_by_ip': 'desc'}) \
+                .bucket('by_ip', 'terms', field='data_array.ip', size=1, order={'sum_by_ip': 'desc'}) \
                 .bucket('sum_by_ip', 'sum', field='data_array.value')
             search_ip.aggs['all_nested']['by_key'].bucket('sum_total', 'sum', field='data_array.value')
             results = search_ip.execute()
