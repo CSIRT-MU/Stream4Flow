@@ -126,6 +126,22 @@ def process_results(results, producer, output_topic, window_duration):
         kafkaIO.send_data_to_kafka(output_json, producer, output_topic)
 
 
+def get_ip(record, direction):
+    """
+    Return required IPv4 or IPv6 address (source or destination) from given record.
+
+    :param record: JSON record searched for IP
+    :param direction: string from which IP will be searched (e.g. "source" => ipfix.sourceIPv4Address or "destination" => ipfix.destinationIPv4Address)
+    :return: value corresponding to the key in the record
+    """
+
+    key_name = "ipfix." + direction + "IPv4Address"
+    if key_name in record.keys():
+        return record[key_name]
+    key_name = "ipfix." + direction + "IPv6Address"
+    return record[key_name]
+
+
 def get_external_dns_resolvers(dns_input_stream, all_data_stream, window_duration, window_slide):
     """
     Gets used external dns resolvers from input stream
@@ -138,16 +154,16 @@ def get_external_dns_resolvers(dns_input_stream, all_data_stream, window_duratio
     """
     dns_resolved = dns_input_stream\
         .filter(lambda record: record["ipfix.DNSCrrType"] == 1) \
-        .map(lambda record: ((record["ipfix.destinationIPv4Address"],
+        .map(lambda record: ((get_ip(record, "destination"),
                               DNSResponseConverter.convert_dns_rdata(record["ipfix.DNSRData"], record["ipfix.DNSCrrType"])),
-                             (record["ipfix.sourceIPv4Address"],
+                             (get_ip(record, "source"),
                               record["ipfix.flowStartMilliseconds"]))) \
         .reduceByKey(lambda actual, update: actual) \
         .window(window_duration, window_slide)
 
     detected_external = all_data_stream\
         .filter(lambda flow_json: flow_json["ipfix.protocolIdentifier"] == 6) \
-        .map(lambda record: ((record["ipfix.sourceIPv4Address"], record["ipfix.destinationIPv4Address"]),
+        .map(lambda record: ((get_ip(record, "source"), get_ip(record, "destination")),
                               record["ipfix.flowStartMilliseconds"])) \
         .join(dns_resolved) \
         .filter(lambda record: abs(record[1][0] - record[1][1][1]) <= 5000) \
@@ -165,9 +181,7 @@ def get_dns_stream(flows_stream):
     :param flows_stream: Input flows
     :return: Flows with DNS information
     """
-    return flows_stream \
-        .filter(lambda flow_json: ("ipfix.DNSName" in flow_json.keys()) and
-                                  ("ipfix.sourceIPv4Address" in flow_json.keys()))
+    return flows_stream.filter(lambda flow_json: ("ipfix.DNSName" in flow_json.keys()))
 
 
 def get_flows_external_to_local(dns_stream, local_network):
@@ -179,8 +193,8 @@ def get_flows_external_to_local(dns_stream, local_network):
     :return: Flows coming from local network to external networks
     """
     return dns_stream \
-        .filter(lambda dns_json: (IPAddress(dns_json["ipfix.sourceIPv4Address"]) not in IPNetwork(local_network)) and
-                                 (IPAddress(dns_json["ipfix.destinationIPv4Address"]) in IPNetwork(local_network)))
+        .filter(lambda dns_json: (IPAddress(get_ip(dns_json, "source")) not in IPNetwork(local_network)) and
+                                 (IPAddress(get_ip(dns_json, "destination")) in IPNetwork(local_network)))
 
 
 if __name__ == "__main__":
@@ -205,13 +219,12 @@ if __name__ == "__main__":
     # Prepare input stream
     dns_stream = get_dns_stream(parsed_input_stream)
     dns_external_to_local = get_flows_external_to_local(dns_stream, args.local_network)
-    ipv4_stream = parsed_input_stream.filter(lambda flow_json: ("ipfix.sourceIPv4Address" in flow_json.keys()))
 
     # Initialize kafka producer
     kafka_producer = kafkaIO.initialize_kafka_producer(args.output_zookeeper)
 
     # Calculate and process DNS statistics
-    get_external_dns_resolvers(dns_external_to_local, ipv4_stream, args.window_size, args.microbatch) \
+    get_external_dns_resolvers(dns_external_to_local, parsed_input_stream, args.window_size, args.microbatch) \
         .foreachRDD(lambda rdd: process_results(rdd.collectAsMap(), kafka_producer, args.output_topic, args.window_size))
 
     # Start Spark streaming context
