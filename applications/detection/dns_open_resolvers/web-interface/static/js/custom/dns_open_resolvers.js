@@ -22,6 +22,9 @@ function generateTopN(type, dataCsv, top_n_value) {
     // Prepare variables for parsing data for the charts
     var data = dataCsv.split(",");
     var mySeries = [];
+    
+    // Set chart height, add additional height if top N value is larger
+    var chart_height = (top_n_value > 10) ? (top_n_value * 7 + 450) : 450;
 
     // Parse data for all charts except queried by ip
     for (var i = 0; i < data.length; i+=2){
@@ -85,7 +88,7 @@ function generateTopN(type, dataCsv, top_n_value) {
     zingchart.render({
 	    id: chartId,
         data : myConfig,
-        height: 450,
+        height: chart_height,
     });
 
     // And selected IP to the filter on click
