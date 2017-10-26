@@ -49,19 +49,17 @@ from modules import kafkaIO  # IO operations with kafka topics
 from modules import DNSResponseConverter  # Convert byte array to the IP address
 from termcolor import cprint  # Colors in the console output
 
-import pyspark
-
 # Saves attacks in dictionary, so 1 attack is not reported multiple times
 detectionsDict = {}
 # Remembers when dictionary was cleaned last time
 lastCleaning = time.time()
 
 
-def clean_old_data_from_dictionary(s_window_duration):
+def clean_old_data_from_dictionary(window_duration):
     """
     Clean dictionary of old attacks.
 
-    :param s_window_duration: time for which if record is older it gets deleted (multiplied by 10)
+    :param window_duration: time for which if record is older it gets deleted (multiplied by 10)
     """
     global lastCleaning
     current_time = time.time()
@@ -70,7 +68,7 @@ def clean_old_data_from_dictionary(s_window_duration):
         lastCleaning = current_time
         for key, value in detectionsDict.items():
             # If timestamp of record + 10times window duration is smaller than current time
-            if ((10 * s_window_duration * 1000) + value[1]) < (int(current_time * 1000)):
+            if ((10 * window_duration * 1000) + value[1]) < (int(current_time * 1000)):
                 del detectionsDict[key]
 
 
@@ -80,6 +78,7 @@ def get_output_json(key, value, flows_total):
 
     :param key: Source ip address
     :param value: Dictionary value for statistic
+    :param flows_total: Sum of all flows
     :return: JSON string in desired format
     """
 
@@ -94,13 +93,13 @@ def get_output_json(key, value, flows_total):
            ", \"timestamp\": \"" + str(timestamp) + "\"}\n"
 
 
-def process_results(results, producer, s_output_topic, window_duration):
+def process_results(results, producer, output_topic, window_duration):
     """
     Format and report detected records.
 
     :param results: Detected records
     :param producer: Kafka producer that sends the data to output topic
-    :param s_output_topic: Name of the receiving kafka topic
+    :param output_topic: Name of the receiving kafka topic
     :param window_duration: Duration of the window
     """
 
@@ -120,8 +119,11 @@ def process_results(results, producer, s_output_topic, window_duration):
         # Print data to standard output
         cprint(output_json)
 
+        # Check if dictionary cleaning is necessary
+        clean_old_data_from_dictionary(window_duration)
+
         # Send results to the specified kafka topic
-        kafkaIO.send_data_to_kafka(output_json, producer, s_output_topic)
+        kafkaIO.send_data_to_kafka(output_json, producer, output_topic)
 
 
 def get_external_dns_resolvers(dns_input_stream, all_data_stream, window_duration, window_slide):
@@ -129,8 +131,9 @@ def get_external_dns_resolvers(dns_input_stream, all_data_stream, window_duratio
     Gets used external dns resolvers from input stream
 
     :param dns_input_stream: Input flows
-    :param window_duration: Length of the window in seconds
     :param all_data_stream: All incoming flows
+    :param window_duration: Length of the window in seconds
+    :param window_slide: Length of the window slide in seconds
     :return: Detected external resolvers
     """
     dns_resolved = dns_input_stream\
@@ -139,7 +142,7 @@ def get_external_dns_resolvers(dns_input_stream, all_data_stream, window_duratio
                               DNSResponseConverter.convert_dns_rdata(record["ipfix.DNSRData"], record["ipfix.DNSCrrType"])),
                              (record["ipfix.sourceIPv4Address"],
                               record["ipfix.flowStartMilliseconds"]))) \
-        .persist(pyspark.StorageLevel.MEMORY_AND_DISK) \
+        .reduceByKey(lambda actual, update: actual) \
         .window(window_duration, window_slide)
 
     detected_external = all_data_stream\
@@ -167,15 +170,15 @@ def get_dns_stream(flows_stream):
                                   ("ipfix.sourceIPv4Address" in flow_json.keys()))
 
 
-def get_flows_external_to_local(s_dns_stream, local_network):
+def get_flows_external_to_local(dns_stream, local_network):
     """
     Filter to contain flows going from the specified local network to the different network.
 
-    :param s_dns_stream: Input flows
+    :param dns_stream: Input flows
     :param local_network: Local network's address
     :return: Flows coming from local network to external networks
     """
-    return s_dns_stream \
+    return dns_stream \
         .filter(lambda dns_json: (IPAddress(dns_json["ipfix.sourceIPv4Address"]) not in IPNetwork(local_network)) and
                                  (IPAddress(dns_json["ipfix.destinationIPv4Address"]) in IPNetwork(local_network)))
 
@@ -186,9 +189,8 @@ if __name__ == "__main__":
     parser.add_argument("-it", "--input_topic", help="input kafka topic", type=str, required=True)
     parser.add_argument("-oz", "--output_zookeeper", help="output zookeeper hostname:port", type=str, required=True)
     parser.add_argument("-ot", "--output_topic", help="output kafka topic", type=str, required=True)
-    parser.add_argument("-w", "--window_size", help="window size (in seconds)", type=int, required=False, default=360)
-    parser.add_argument("-ws", "--window_slide", help="window slide (in seconds)", type=int, required=False, default=10)
     parser.add_argument("-m", "--microbatch", help="microbatch (in seconds)", type=int, required=False, default=10)
+    parser.add_argument("-w", "--window_size", help="window size (in seconds)", type=int, required=False, default=360)
 
     # Define Arguments for detection
     parser.add_argument("-ln", "--local_network", help="local network", type=str, required=True)
@@ -209,8 +211,8 @@ if __name__ == "__main__":
     kafka_producer = kafkaIO.initialize_kafka_producer(args.output_zookeeper)
 
     # Calculate and process DNS statistics
-    get_external_dns_resolvers(dns_external_to_local, ipv4_stream, args.window_size, args.window_slide) \
-        .foreachRDD(lambda rdd: process_results(rdd.collectAsMap(), kafka_producer, args.output_topic, args.window_slide))
+    get_external_dns_resolvers(dns_external_to_local, ipv4_stream, args.window_size, args.microbatch) \
+        .foreachRDD(lambda rdd: process_results(rdd.collectAsMap(), kafka_producer, args.output_topic, args.window_size))
 
     # Start Spark streaming context
     kafkaIO.spark_start(ssc)
