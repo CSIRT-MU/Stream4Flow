@@ -49,6 +49,7 @@ from modules import kafkaIO  # IO operations with kafka topics
 from modules import DNSResponseConverter  # Convert byte array to the IP address
 from termcolor import cprint  # Colors in the console output
 
+import pyspark
 
 # Saves attacks in dictionary, so 1 attack is not reported multiple times
 detectionsDict = {}
@@ -133,15 +134,15 @@ def get_external_dns_resolvers(dns_input_stream, all_data_stream, window_duratio
     :return: Detected external resolvers
     """
     dns_resolved = dns_input_stream\
-        .window(window_duration, window_slide) \
         .filter(lambda record: record["ipfix.DNSCrrType"] == 1) \
         .map(lambda record: ((record["ipfix.destinationIPv4Address"],
                               DNSResponseConverter.convert_dns_rdata(record["ipfix.DNSRData"], record["ipfix.DNSCrrType"])),
                              (record["ipfix.sourceIPv4Address"],
-                              record["ipfix.flowStartMilliseconds"])))\
+                              record["ipfix.flowStartMilliseconds"]))) \
+        .persist(pyspark.StorageLevel.MEMORY_AND_DISK) \
+        .window(window_duration, window_slide)
 
     detected_external = all_data_stream\
-        .window(window_duration, window_slide) \
         .filter(lambda flow_json: flow_json["ipfix.protocolIdentifier"] == 6) \
         .map(lambda record: ((record["ipfix.sourceIPv4Address"], record["ipfix.destinationIPv4Address"]),
                               record["ipfix.flowStartMilliseconds"])) \
@@ -186,8 +187,8 @@ if __name__ == "__main__":
     parser.add_argument("-oz", "--output_zookeeper", help="output zookeeper hostname:port", type=str, required=True)
     parser.add_argument("-ot", "--output_topic", help="output kafka topic", type=str, required=True)
     parser.add_argument("-w", "--window_size", help="window size (in seconds)", type=int, required=False, default=360)
-    parser.add_argument("-ws", "--window_slide", help="window slide (in seconds)", type=int, required=False, default=90)
-    parser.add_argument("-m", "--microbatch", help="microbatch (in seconds)", type=int, required=False, default=1)
+    parser.add_argument("-ws", "--window_slide", help="window slide (in seconds)", type=int, required=False, default=10)
+    parser.add_argument("-m", "--microbatch", help="microbatch (in seconds)", type=int, required=False, default=10)
 
     # Define Arguments for detection
     parser.add_argument("-ln", "--local_network", help="local network", type=str, required=True)
