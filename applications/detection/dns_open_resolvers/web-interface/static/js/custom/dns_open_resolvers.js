@@ -19,9 +19,6 @@ function generateTopN(type, dataCsv, top_n_value) {
         console.log("Error: Chart type: " + type + " is not valid chart type.");
     };
 
-    // Set chart height, add additional height if top N value is larger
-    var chart_height = (top_n_value > 10) ? (top_n_value * 7 + 450) : 450;
-
     // Prepare variables for parsing data for the charts
     var data = dataCsv.split(",");
     var mySeries = [];
@@ -88,7 +85,7 @@ function generateTopN(type, dataCsv, top_n_value) {
     zingchart.render({
 	    id: chartId,
         data : myConfig,
-        height: chart_height,
+        height: 450,
     });
 
     // And selected IP to the filter on click
