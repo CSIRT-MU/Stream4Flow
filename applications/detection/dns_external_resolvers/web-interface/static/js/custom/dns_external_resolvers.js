@@ -12,15 +12,12 @@ function generateTopN(type, dataCsv, top_n_value) {
     var max_value = 0;
 
     if (type == "sources") {
-        chart_title = "Top Source IPs using External Resolver";
+        chart_title = "Top " + top_n_value + " Source IPs using External Resolver";
     } else if (type == "resolvers") {
-        chart_title = "Top Queried External DNS Resolvers";
+        chart_title = "Top " + top_n_value + " Queried External DNS Resolvers";
     } else {
         console.log("Error: Chart type: " + type + " is not valid chart type.");
     };
-
-    // Set chart height, add additional height if top N value is larger
-    var chart_height = (top_n_value > 10) ? (top_n_value * 7 + 450) : 450;
 
     // Prepare variables for parsing data for the charts
     var data = dataCsv.split(",");
@@ -64,7 +61,7 @@ function generateTopN(type, dataCsv, top_n_value) {
     zingchart.render({
 	    id: chartId,
         data : myConfig,
-        height: chart_height,
+        height: 450,
     });
 
     // And selected IP to the filter on click
@@ -200,7 +197,7 @@ function loadTable() {
                 generateTable(response.data);
             } else {
                 // Show error message
-                $("#table").html(
+                $(tableIdStatus).html(
                     '<i class="fa fa-exclamation-circle fa-2x"></i>\
                      <span>' + response.status + ': ' + response.data + '</span>'
                 )
