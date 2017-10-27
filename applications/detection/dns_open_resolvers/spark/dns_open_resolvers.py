@@ -33,8 +33,8 @@ Usage:
 
 To run this on the Stream4Flow, you need to receive flows by IPFIXCol and make them available via Kafka topic. Then you
 can run the application
-    $ ./run-application.sh ./detection/dns_open_resolvers/spark/dns_open_resolvers.py -iz producer:2181\
-    -it ipfix.entry -oz producer:9092 -ot results.output -ln 10.10.0.0/16
+    $ ~/applications/run-application.sh ./dns_open_resolvers.py -iz producer:2181 -it ipfix.entry -oz producer:9092
+    -ot results.output -ln 10.10.0.0/16
 """
 
 import argparse  # Arguments parser
