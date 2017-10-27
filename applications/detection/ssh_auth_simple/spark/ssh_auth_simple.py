@@ -37,18 +37,15 @@ Default values are:
     * min amount of flows: 10
     * windows size: 300
 
-Default output parameters:
-    * Address and port of the broker: 10.16.31.200:9092
-    * Kafka topic: results.output
-
 Usage:
     ssh_auth_simple.py -iz <input-zookeeper-hostname>:<input-zookeeper-port> -it <input-topic>
-    -oz <output-zookeeper-hostname>:<output-zookeeper-port> -ot <output-topic>
+    -oz <output-zookeeper-hostname>:<output-zookeeper-port> -ot <output-topic> -m <microbatch-duration>
+    -w <window-duration>
 
 To run this on the Stream4Flow, you need to receive flows by IPFIXCol and make them available via Kafka topic. Then you
 can run the application
-    $ ./run-application.sh ./detection/ssh_auth_simple/spark/ssh_auth_simple.py -iz producer:2181\
-    -it ipfix.entry -oz producer:9092 -ot results.output
+    $ ~/applications/run-application.sh ./ssh_auth_simple.py -iz producer:2181 -it ipfix.entry -oz producer:9092
+    -ot results.output
 """
 
 
@@ -56,7 +53,6 @@ import sys  # Common system functions
 import os  # Common operating system functions
 import argparse  # Arguments parser
 import time  # Unix time to timestamp conversion
-
 from termcolor import cprint  # Colors in the console output
 
 from modules import kafkaIO  # IO operations with kafka topics
@@ -68,11 +64,11 @@ attDict = {}
 lastCleaning = time.time()
 
 
-def clean_old_data_from_dictionary(s_window_duration):
+def clean_old_data_from_dictionary(window_duration):
     """
     Clean dictionary of old attacks.
 
-    :param s_window_duration: time for which if record is older it gets deleted (multiplied by 10)
+    :param window_duration: time for which if record is older it gets deleted (multiplied by 10)
     """
     global lastCleaning
     current_time = time.time()
@@ -81,7 +77,7 @@ def clean_old_data_from_dictionary(s_window_duration):
         lastCleaning = current_time
         for key, value in attDict.items():
             # If timestamp of record + 10times window duration is smaller than current time
-            if ((10 * s_window_duration * 1000) + value[1]) < (int(current_time * 1000)):
+            if ((10 * window_duration * 1000) + value[1]) < (int(current_time * 1000)):
                 del attDict[key]
 
 
@@ -94,7 +90,6 @@ def get_output_json(key, value, flows_total):
     :param flows_total: number of total flows detected detected for the attack
     :return: JSON string in desired format
     """
-
     output_json = ""
     # Convert Unix time to timestamp
     s, ms = divmod(value[3], 1000)
@@ -108,16 +103,15 @@ def get_output_json(key, value, flows_total):
     return output_json
 
 
-def process_results(results, producer, topic, s_window_duration):
+def process_results(results, producer, topic, window_duration):
     """
     Check if attack was reported, or additional flows were detected in same attack and report it.
 
     :param results: flows that should be reported as attack
     :param producer: producer that sends the data
     :param topic: name of the receiving kafka topic
-    :param s_window_duration: window size (in seconds)
+    :param window_duration: window size (in seconds)
     """
-
     output_json = ""
     # Transform given results into the JSON
     for key, value in results.iteritems():
@@ -136,30 +130,28 @@ def process_results(results, producer, topic, s_window_duration):
         cprint(output_json)
 
         # Check if dictionary cleaning is necessary
-        clean_old_data_from_dictionary(s_window_duration)
+        clean_old_data_from_dictionary(window_duration)
 
         # Send results to the specified kafka topic
         kafkaIO.send_data_to_kafka(output_json, producer, topic)
 
 
-def get_key_with_ip_version(record, wanted_key):
+def get_ip(record, direction):
     """
-    Find ipv4 type of key if present, ipv6 otherwise.
-
-    :param record: JSON record searched for key
-    :param wanted_key: string from which key will be made and searched (e.g. "source" => ipfix.sourceIPv4Address)
+    Return required IPv4 or IPv6 address (source or destination) from given record.
+    :param record: JSON record searched for IP
+    :param direction: string from which IP will be searched (e.g. "source" => ipfix.sourceIPv4Address or "destination" => ipfix.destinationIPv4Address)
     :return: value corresponding to the key in the record
     """
-
-    key_name = "ipfix." + wanted_key + "IPv4Address"
+    key_name = "ipfix." + direction + "IPv4Address"
     if key_name in record.keys():
         return record[key_name]
-    key_name = "ipfix." + wanted_key + "IPv6Address"
+    key_name = "ipfix." + direction + "IPv6Address"
     return record[key_name]
 
 
 def check_for_attacks_ssh(flows_stream, min_packets_amount, max_packets_amount, min_bytes_amount, max_bytes_amount,
-                          max_duration_time, flows_threshold, s_window_duration, s_window_slide):
+                          max_duration_time, flows_threshold, window_duration, window_slide):
     """
     Aggregate flows within given time window and return aggregates that fulfill given requirements.
 
@@ -170,11 +162,10 @@ def check_for_attacks_ssh(flows_stream, min_packets_amount, max_packets_amount, 
     :param max_bytes_amount: max amount of bytes which passes filter
     :param max_duration_time: max flow duration which passes filter (in milliseconds)
     :param flows_threshold: min amount of flows which we consider being an attack
-    :param s_window_duration: window size (in seconds)
-    :param s_window_slide: slide interval of the analysis window
+    :param window_duration: window size (in seconds)
+    :param window_slide: slide interval of the analysis window
     :return: detected attacks
     """
-
     # Check required flow keys
     flows_stream_filtered = flows_stream\
         .filter(lambda flow_json: ("ipfix.protocolIdentifier" in flow_json.keys())
@@ -188,8 +179,8 @@ def check_for_attacks_ssh(flows_stream, min_packets_amount, max_packets_amount, 
                       flow_json["ipfix.flowStartMilliseconds"]) < max_duration_time))
 
     # Map and reduce to get format ((SRC_IP, DST_IP), (NUM_OF_FLOWS, AVERAGE_PACKET_COUNT, DURATION, TIMESTAMP))
-    flows_mapped = flows_stream_filtered.map(lambda record: ((get_key_with_ip_version(record, "source"),
-                                                              get_key_with_ip_version(record, "destination")),
+    flows_mapped = flows_stream_filtered.map(lambda record: ((get_ip(record, "source"),
+                                                              get_ip(record, "destination")),
                                                              (1,
                                                               record["ipfix.packetDeltaCount"],
                                                               record["ipfix.flowEndMilliseconds"] -
@@ -203,7 +194,7 @@ def check_for_attacks_ssh(flows_stream, min_packets_amount, max_packets_amount, 
                                              actual[3]))
 
     # Reduce in window
-    possible_attacks = flows_ssh_formatted.window(s_window_duration, s_window_slide)\
+    possible_attacks = flows_ssh_formatted.window(window_duration, window_slide)\
         .reduceByKey(lambda actual, update: (actual[0] + update[0],
                                              ((update[0] - 1) * actual[1] + update[1]) / update[0],
                                              actual[2] + update[2],
@@ -223,7 +214,8 @@ if __name__ == "__main__":
     parser.add_argument("-it", "--input_topic", help="input kafka topic", type=str, required=True)
     parser.add_argument("-oz", "--output_zookeeper", help="output zookeeper hostname:port", type=str, required=True)
     parser.add_argument("-ot", "--output_topic", help="output kafka topic", type=str, required=True)
-    parser.add_argument("-w", "--window_size", help="window size (in seconds)", type=int, required=False, default=300)
+    parser.add_argument("-m", "--microbatch", help="microbatch duration", type=int, required=False, default=5)
+    parser.add_argument("-w", "--window", help="analysis window duration", type=int, required=False, default=300)
 
     # Define Arguments for detection
     parser.add_argument("-minp", "--min_packets", help="min amount of packets which passes filter",
@@ -234,34 +226,27 @@ if __name__ == "__main__":
                         type=int, required=False, default=1800)
     parser.add_argument("-maxb", "--max_bytes", help="max amount of bytes which passes filter",
                         type=int, required=False, default=5000)
-    parser.add_argument("-d", "--max_duration", help="max flow duration which passes filter (in milliseconds)",
+    parser.add_argument("-maxd", "--max_duration", help="max flow duration which passes filter (in milliseconds)",
                         type=int, required=False, default=12000)
-    parser.add_argument("-ft", "--flows_threshold", help="min amount of flows which we consider being an attack",
+    parser.add_argument("-t", "--threshold", help="min amount of flows which we consider being an attack",
                         type=int, required=False, default=10)
 
     # Parse arguments
     args = parser.parse_args()
 
-    # Set variables
-    application_name = os.path.basename(sys.argv[0])  # Application name used as identifier
-    kafka_partitions = 1  # Number of partitions of the input Kafka topic
-    window_duration = args.window_size  # Analysis window duration (300 seconds/5 minutes default)
-    window_slide = 5  # Slide interval of the analysis window (5 second)
-    microbatch_duration = 1  # Microbatch duration in seconds
-
     # Initialize input stream and parse it into JSON
-    ssc, parsed_input_stream = kafkaIO.initialize_and_parse_input_stream(args.input_zookeeper, args.input_topic,
-                                                                         microbatch_duration)
+    ssc, parsed_input_stream = kafkaIO\
+        .initialize_and_parse_input_stream(args.input_zookeeper, args.input_topic, args.microbatch)
 
     # Check for SSH attacks
     attacks = check_for_attacks_ssh(parsed_input_stream, args.min_packets, args.max_packets, args.min_bytes, args.max_bytes,
-                                    args.max_duration, args.flows_threshold, window_duration, window_slide)
+                                    args.max_duration, args.threshold, args.window, args.microbatch)
 
     # Initialize kafka producer
     kafka_producer = kafkaIO.initialize_kafka_producer(args.output_zookeeper)
 
     # Process computed data and send them to the output
-    kafkaIO.process_data_and_send_result(attacks, kafka_producer, args.output_topic, window_duration, process_results)
+    kafkaIO.process_data_and_send_result(attacks, kafka_producer, args.output_topic, args.window, process_results)
 
     # Start Spark streaming context
     kafkaIO.spark_start(ssc)
