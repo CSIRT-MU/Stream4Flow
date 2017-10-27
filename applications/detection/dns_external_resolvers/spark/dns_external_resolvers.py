@@ -27,18 +27,15 @@
 """
 Detects external dns resolvers used in the specified local network.
 
-Default output parameters:
-    * Address and port of the broker: producer:9092
-    * Kafka topic: results.output
-
 Usage:
     dns_external_resolvers.py -iz <input-zookeeper-hostname>:<input-zookeeper-port> -it <input-topic>
-    -oz <output-zookeeper-hostname>:<output-zookeeper-port> -ot <output-topic> -ln <local-network>/<subnet-mask>
+    -oz <output-zookeeper-hostname>:<output-zookeeper-port> -ot <output-topic> -m <microbatch-duration>
+    -w <window-duration> -ln <local-network>/<subnet-mask>
 
 To run this on the Stream4Flow, you need to receive flows by IPFIXCol and make them available via Kafka topic. Then you
-can run the application
-    $ ./run-application.sh ./detection/dns_external_resolvers/spark/dns_external_resolvers.py -iz producer:2181\
-    -it ipfix.entry -oz producer:9092 -ot results.output -ln 10.10.0.0/16
+can run the application as follows:
+    $ ~/applications/run-application.sh ./dns_external_resolvers.py -iz producer:2181 -it ipfix.entry -oz producer:9092
+    -ot results.output -ln 10.10.0.0/16
 """
 
 import argparse  # Arguments parser
@@ -81,7 +78,6 @@ def get_output_json(key, value, flows_total):
     :param flows_total: Sum of all flows
     :return: JSON string in desired format
     """
-
     # Convert Unix time to timestamp
     s, ms = divmod(value[0], 1000)
     timestamp = "%s.%03d" % (time.strftime("%Y-%m-%dT%H:%M:%S", time.gmtime(s)), ms) + 'Z'
@@ -102,7 +98,6 @@ def process_results(results, producer, output_topic, window_duration):
     :param output_topic: Name of the receiving kafka topic
     :param window_duration: Duration of the window
     """
-
     output_json = ""
     # Transform given results into the JSON
     for key, value in results.iteritems():
@@ -134,7 +129,6 @@ def get_ip(record, direction):
     :param direction: string from which IP will be searched (e.g. "source" => ipfix.sourceIPv4Address or "destination" => ipfix.destinationIPv4Address)
     :return: value corresponding to the key in the record
     """
-
     key_name = "ipfix." + direction + "IPv4Address"
     if key_name in record.keys():
         return record[key_name]
@@ -203,8 +197,8 @@ if __name__ == "__main__":
     parser.add_argument("-it", "--input_topic", help="input kafka topic", type=str, required=True)
     parser.add_argument("-oz", "--output_zookeeper", help="output zookeeper hostname:port", type=str, required=True)
     parser.add_argument("-ot", "--output_topic", help="output kafka topic", type=str, required=True)
-    parser.add_argument("-m", "--microbatch", help="microbatch (in seconds)", type=int, required=False, default=10)
-    parser.add_argument("-w", "--window_size", help="window size (in seconds)", type=int, required=False, default=360)
+    parser.add_argument("-m", "--microbatch", help="microbatch duration", type=int, required=False, default=10)
+    parser.add_argument("-w", "--window", help="analysis window duration", type=int, required=False, default=360)
 
     # Define Arguments for detection
     parser.add_argument("-ln", "--local_network", help="local network", type=str, required=True)
@@ -224,8 +218,8 @@ if __name__ == "__main__":
     kafka_producer = kafkaIO.initialize_kafka_producer(args.output_zookeeper)
 
     # Calculate and process DNS statistics
-    get_external_dns_resolvers(dns_external_to_local, parsed_input_stream, args.window_size, args.microbatch) \
-        .foreachRDD(lambda rdd: process_results(rdd.collectAsMap(), kafka_producer, args.output_topic, args.window_size))
+    get_external_dns_resolvers(dns_external_to_local, parsed_input_stream, args.window, args.microbatch) \
+        .foreachRDD(lambda rdd: process_results(rdd.collectAsMap(), kafka_producer, args.output_topic, args.window))
 
     # Start Spark streaming context
     kafkaIO.spark_start(ssc)
