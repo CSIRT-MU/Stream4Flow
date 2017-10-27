@@ -26,15 +26,17 @@
 
 """
 Template application for creating new applications using provided module and Spark operations, with a possibility of
-adding more advanced modules. This template simply resends one row of data from given input topic to defined output topic.
+adding more advanced modules. This template simply resends one row of data from given input topic to defined
+output topic.
 
 Usage:
     application_template.py -iz <input-zookeeper-hostname>:<input-zookeeper-port> -it <input-topic>
-    -oz <output-zookeeper-hostname>:<output-zookeeper-port> -ot <output-topic>
+    -oz <output-zookeeper-hostname>:<output-zookeeper-port> -ot <output-topic> -m <microbatch-duration>
 
 To run this on the Stream4Flow, you need to receive flows by IPFIXCol and make them available via Kafka topic. Then
 you can run the application as follows:
-    $ ./run-application.sh ./application_template.py -iz producer:2181 -it ipfix.entry -oz producer:9092 -ot results.output
+    $ ~/applications//run-application.sh ./application_template.py -iz producer:2181 -it ipfix.entry
+    -oz producer:9092 -ot results.output
 """
 
 
@@ -75,7 +77,7 @@ def process_input(input_data):
     # <-- INSERT YOUR CODE HERE
 
     # Example of the map function that transform all JSONs into the key-value pair with the JSON as value and static key
-    modified_input = input_data.map(lambda json: (1, json))
+    modified_input = input_data.map(lambda json_data: (1, json_data))
 
     return modified_input
 
@@ -87,6 +89,7 @@ if __name__ == "__main__":
     parser.add_argument("-it", "--input_topic", help="input kafka topic", type=str, required=True)
     parser.add_argument("-oz", "--output_zookeeper", help="output zookeeper hostname:port", type=str, required=True)
     parser.add_argument("-ot", "--output_topic", help="output kafka topic", type=str, required=True)
+    parser.add_argument("-m", "--microbatch", help="microbatch duration", type=int, required=False, default=5)
 
     # You can add your own arguments here
     # See more at:
@@ -95,11 +98,9 @@ if __name__ == "__main__":
     # Parse arguments
     args = parser.parse_args()
 
-    # Set microbatch duration to 1 second
-    microbatch_duration = 1
-
     # Initialize input stream and parse it into JSON
-    ssc, parsed_input_stream = kafkaIO.initialize_and_parse_input_stream(args.input_zookeeper, args.input_topic, microbatch_duration)
+    ssc, parsed_input_stream = kafkaIO\
+        .initialize_and_parse_input_stream(args.input_zookeeper, args.input_topic, args.microbatch)
 
     # Process input in the desired way
     processed_input = process_input(parsed_input_stream)
