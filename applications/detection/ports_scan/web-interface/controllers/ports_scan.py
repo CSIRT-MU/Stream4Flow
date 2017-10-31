@@ -60,8 +60,8 @@ def get_histogram_statistics():
         # Set filter
         if filter != 'none':
             elastic_should = []
-            elastic_should.append({'term': {'src_ip.raw': filter}})
-            elastic_should.append({'term': {'dst_ip.raw': filter}})
+            elastic_should.append({'term': {'src_ip': filter}})
+            elastic_should.append({'term': {'dst_ip': filter}})
             elastic_bool.append({'bool': {'should': elastic_should}})
         # Prepare query
         qx = Q({'bool': {'must': elastic_bool}})
@@ -69,7 +69,7 @@ def get_histogram_statistics():
         # Get histogram data
         search_histogram = Search(using=client, index='_all').query(qx)
         search_histogram.aggs.bucket('by_time', 'date_histogram', field='@timestamp', interval=aggregation) \
-            .bucket('by_src', 'terms', field='src_ip.raw', size=2147483647) \
+            .bucket('by_src', 'terms', field='src_ip', size=2147483647) \
             .bucket('sum_of_flows', 'sum', field='flows_increment')
         histogram = search_histogram.execute()
 
@@ -131,19 +131,19 @@ def get_top_n_statistics():
             dst_field = 'dst_port.raw'
         else:
             elastic_bool.append({'term': {'@type': 'portscan_vertical'}})
-            dst_field = 'dst_ip.raw'
+            dst_field = 'dst_ip'
         # Set filter
         if filter != 'none':
             elastic_should = []
-            elastic_should.append({'term': {'src_ip.raw': filter}})
-            elastic_should.append({'term': {'dst_ip.raw': filter}})
+            elastic_should.append({'term': {'src_ip': filter}})
+            elastic_should.append({'term': {'dst_ip': filter}})
             elastic_bool.append({'bool': {'should': elastic_should}})
         # Prepare query
         qx = Q({'bool': {'must': elastic_bool}})
 
         # Elastic can sometimes return not all records that match the search
         search_ip = Search(using=client, index='_all').query(qx)
-        search_ip.aggs.bucket('by_src', 'terms', field='src_ip.raw', size=2147483647) \
+        search_ip.aggs.bucket('by_src', 'terms', field='src_ip', size=2147483647) \
                       .bucket('by_dst', 'terms', field=dst_field, size=2147483647) \
                       .bucket('by_targets', 'top_hits', size=1, sort=[{'@timestamp': {'order': 'desc'}}])
 
@@ -218,15 +218,15 @@ def get_scans_list():
         # Set filter
         if filter != 'none':
             elastic_should = []
-            elastic_should.append({'term': {'src_ip.raw': filter}})
-            elastic_should.append({'term': {'dst_ip.raw': filter}})
+            elastic_should.append({'term': {'src_ip': filter}})
+            elastic_should.append({'term': {'dst_ip': filter}})
             elastic_bool.append({'bool': {'should': elastic_should}})
 
         # Get data for vertical scans
         qx = Q({'bool': {'must': elastic_bool}})
         s = Search(using=client, index='_all').query(qx)
-        s.aggs.bucket('by_src', 'terms', field='src_ip.raw', size=2147483647) \
-            .bucket('by_dst_ip', 'terms', field='dst_ip.raw', size=2147483647) \
+        s.aggs.bucket('by_src', 'terms', field='src_ip', size=2147483647) \
+            .bucket('by_dst_ip', 'terms', field='dst_ip', size=2147483647) \
             .bucket('top_src_dst', 'top_hits', size=1, sort=[{'@timestamp': {'order': 'desc'}}])
         vertical = s.execute()
 
@@ -241,7 +241,7 @@ def get_scans_list():
         # Get data for horizontal scans
         rx = Q({'bool': {'must': elastic_bool}})
         r = Search(using=client, index='_all').query(rx)
-        r.aggs.bucket('by_src', 'terms', field='src_ip.raw', size=2147483647) \
+        r.aggs.bucket('by_src', 'terms', field='src_ip', size=2147483647) \
             .bucket('by_dst_port', 'terms', field='dst_port.raw', size=2147483647) \
             .bucket('top_src_dst', 'top_hits', size=1, sort=[{'@timestamp': {'order': 'desc'}}])
         horizontal = r.execute()
