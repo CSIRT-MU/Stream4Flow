@@ -27,13 +27,9 @@
 """
 Computes basic dns statistics within given time interval.
 
-Default output parameters:
-    * Address and port of the broker: producer:9092
-    * Kafka topic: results.output
-
 Domain name filtering for non-existing domains statistic:
     * All domains containing substrings in file are filtered out
-    * Usage: -f <filepath>
+    * Usage: -fd <filepath>
     * Format: One domain name per line
 
 Usage:
@@ -56,65 +52,45 @@ from netaddr import IPNetwork, IPAddress  # Checking if IP is in the network
 from modules import kafkaIO  # IO operations with kafka topics
 
 
-def get_output_json(dictionary, statistic_type):
-    """
-    Create JSON with correct format.
-
-    :param dictionary: All computed records for the statistic type
-    :param statistic_type: Type of the computed statistic
-    :return: JSON string in desired format
-    """
-
-    return "{\"@type\": \"dns_statistics\", \"@stat_type\": \"" + statistic_type + "\", \"data_array\": [" + \
-           ', '.join(get_format(dictionary, statistic_type)) + "]" + "}\n"
-
-
-def get_format(dictionary, statistic_type):
-    """
-    Gets dictionary with computed statistics and formats it into list
-    of key, value pairs (key, value, ips if statistic type is queried_by_ip)
-    that will be sent as part of the output json.
-
-    :param dictionary: Dictionary with computer statistics
-    :param statistic_type: Type of the statistic
-    :return: List with key, value pairs (key, value, ip tripple if statistic type is queried_by_ip)
-    """
-    rec_list = []
-    if statistic_type == "queried_by_ip":
-        for k, v in dictionary.iteritems():
-            # Converts dictionary to JSON format
-            conv_json = "{\"key\": \"" + unicode(k[0]).encode('utf8') + "\", \"value\": " + unicode(v).encode('utf8') \
-                        + ", \"ip\": \"" + unicode(k[1]).encode('utf8') + "\"}"
-
-            # Appends JSON to the list
-            rec_list.append(conv_json)
-
-    else:
-        for k, v in dictionary.iteritems():
-            # Changes the field names in dictionary
-            temp_dict = {"key": k, "value": v}
-
-            # Converts dictionary to JSON
-            conv_json = json.dumps(temp_dict)
-
-            # Appends JSON to the list
-            rec_list.append(conv_json)
-
-    return rec_list
-
-
-def process_results(results, producer, output_topic, statistic_type):
+def process_results(results, producer, output_topic):
     """
     Format and report computed statistics.
 
     :param results: Computed statistics
     :param producer: Producer that sends the data
     :param output_topic: Name of the receiving kafka topic
-    :param statistic_type: Type of the statistic
     """
+    # Dictionary to store all data for given statistic
+    statistics = {}
+    for key, value in results.iteritems():
+        # Get statistic name (last element of the key)
+        statistic_type = key[-1]
+        # Create empty list if statistic type is not in statistics dictionary
+        if statistic_type not in statistics.keys():
+            statistics[statistic_type] = []
+        # Get data part in JSON string format
+        if statistic_type == "queried_by_ip":
+            data = {"key": key[0], "value": value, "ip": key[1]}
+        elif (statistic_type == "queried_domain") and (value == 1):
+            # Skip queried domains with only one occurrence
+            continue
+        else:
+            data = {"key": key[0], "value": value}
+        # Append data to statistics dictionary
+        statistics[statistic_type].append(data)
+
+    # Create all statistics JSONs in string format
     output_json = ""
-    # Transform given results into the JSON
-    output_json += get_output_json(results, statistic_type)
+    for statistic_type, data in statistics.iteritems():
+        # Check if Top 100 data elements should be selected to reduce volume of data in database
+        if statistic_type in ["queried_domain", "nonexisting_domain", "queried_by_ip"]:
+            data.sort(key=lambda stat: stat['value'], reverse=True)
+            data_array = json.dumps(data[:100])
+        else:
+            data_array = json.dumps(data)
+
+        output_json += "{\"@type\": \"dns_statistics\", \"@stat_type\": \"" + statistic_type + "\", " + \
+                       "\"data_array\": " + data_array + "}\n"
 
     if output_json:
         # Print data to standard output
@@ -122,6 +98,21 @@ def process_results(results, producer, output_topic, statistic_type):
 
         # Send results to the specified kafka topic
         kafkaIO.send_data_to_kafka(output_json, producer, output_topic)
+
+
+def get_ip(record, direction):
+    """
+    Return required IPv4 or IPv6 address (source or destination) from given record.
+    :param record: JSON record searched for IP
+    :param direction: string from which IP will be searched (e.g. "source" => ipfix.sourceIPv4Address or "destination" => ipfix.destinationIPv4Address)
+    :return: value corresponding to the key in the record
+    """
+
+    key_name = "ipfix." + direction + "IPv4Address"
+    if key_name in record.keys():
+        return record[key_name]
+    key_name = "ipfix." + direction + "IPv6Address"
+    return record[key_name]
 
 
 def get_query_type(key):
@@ -158,179 +149,74 @@ def get_response_code(key):
     }.get(key, 'Other')
 
 
-def get_rec_types(input_stream, window_duration):
+def is_whitelisted(record, domains_whitelist):
     """
-    Gets the number of occurrences for each type of DNS Record.
+    Check if queried DNS domain is not in given whitelist.
 
-    :param input_stream: Input flows
-    :param window_duration: Length of the window in seconds
-    :return: Transformed input stream
+    :param record: record with DNS query
+    :param domains_whitelist: list of domains
+    :return: True if quieried domain is in the whitelist, False otherwise
     """
-    return input_stream \
-        .map(lambda record: (get_query_type(record["ipfix.DNSQType"]), 1)) \
-        .reduceByKey(lambda actual, update: (actual + update))\
-        .window(window_duration, window_duration) \
-        .reduceByKey(lambda actual, update: (actual + update))
+    # Iterate through all whitelisted domains
+    for domain in domains_whitelist:
+        # Check if whitelisted domain is part of the queried name
+        if domain in record["ipfix.DNSName"]:
+            return True
+    # Return False otherwise
+    return False
 
 
-def get_res_codes(input_stream, window_duration):
+def get_dns_stats_mapping(record, local_network, domains):
     """
-    Gets the number of occurrences for each type of DNS response code.
+    Transform given record to all mappings required for DNS statistics computation.
 
-    :param input_stream: Input flows
-    :param window_duration: Length of the window in seconds
-    :return: Transformed input stream
+    :param record: one record of the data stream
+    :param local_network: address of local network in CIDR format
+    :param domains: array of whitelisted domains
+    :return: Array of all mappings derived from given record
     """
-    return input_stream \
-        .filter(lambda flow_json: (flow_json["ipfix.DNSFlagsCodes"] >> 15) & 1) \
-        .map(lambda record: (get_response_code(record["ipfix.DNSFlagsCodes"] & 15), 1)) \
-        .reduceByKey(lambda actual, update: (actual + update))\
-        .window(window_duration, window_duration) \
-        .reduceByKey(lambda actual, update: (actual + update))
+    # Array to store all mappings for given record
+    maps = []
 
+    # Get record properties
+    to_local_network = get_ip(record, "destination") in IPNetwork(local_network)
+    from_local_network = get_ip(record, "source") in IPNetwork(local_network)
+    is_response = record["ipfix.DNSFlagsCodes"] >> 15 & 1
+    is_query = (record["ipfix.DNSFlagsCodes"] >> 15) == 0
 
-def get_queried_domains(input_stream, window_duration):
-    """
-    Gets the number of occurrences for each queried domain name.
+    # Map queried domains from successful responses
+    if to_local_network and is_response:
+        maps.append(((record["ipfix.DNSName"], "queried_domain"), 1))
 
-    :param input_stream: Input flows
-    :param window_duration: Length of the window in seconds
-    :return: Transformed input stream
-    """
-    # Records with 1 occurrence are discarded to reduce the amount of data dramatically
-    return input_stream\
-        .filter(lambda flow_json: (flow_json["ipfix.DNSFlagsCodes"] >> 15) == 0) \
-        .map(lambda record: (record["ipfix.DNSName"], 1)) \
-        .reduceByKey(lambda actual, update: (actual + update))\
-        .filter(lambda record: record[1] >= 2)\
-        .window(window_duration, window_duration) \
-        .reduceByKey(lambda actual, update: (actual + update))
+    # Map queried domains from non-existing response
+    if to_local_network and is_response and ((record["ipfix.DNSFlagsCodes"] & 15) == 3):
+        # Append mapping if non-existing domain is not whitelisted
+        if not is_whitelisted(record, domains):
+            maps.append(((record["ipfix.DNSName"], "nonexisting_domain"), 1))
 
+    # Map DNS response codes from all responses
+    if to_local_network and is_response:
+        maps.append(((get_response_code(record["ipfix.DNSFlagsCodes"] & 15), "response_code"), 1))
 
-def get_non_existing_queried_domains(input_stream, window_duration):
-    """
-    Gets the number of occurrences for each domain name that was resolved as being non-existent.
+    # Map DNS record types from all queries
+    if from_local_network:
+        maps.append(((get_query_type(record["ipfix.DNSQType"]), "record_type"), 1))
 
-    :param input_stream: Input flows
-    :param window_duration: Length of the window in seconds
-    :return: Transformed input stream
-    """
-    return input_stream \
-        .filter(lambda flow_json: flow_json["ipfix.DNSFlagsCodes"] >> 15 & 1) \
-        .filter(lambda flow_json: (flow_json["ipfix.DNSFlagsCodes"] & 15) == 3) \
-        .map(lambda record: (record["ipfix.DNSName"], 1)) \
-        .reduceByKey(lambda actual, update: (actual + update))\
-        .window(window_duration, window_duration) \
-        .reduceByKey(lambda actual, update: (actual + update))
+    # Map local DNS servers queried from non-local network that not returned "Refused" response
+    if to_local_network and (get_ip(record, "source") not in IPNetwork(local_network)) and \
+            is_response and ((record["ipfix.DNSFlagsCodes"] & 15) != 5):
+        maps.append(((record["ipfix.sourceIPv4Address"], "queried_local"), 1))
 
+    # Map external DNS servers queried from local network
+    if  from_local_network and (get_ip(record, "destination") not in IPNetwork(local_network)) and is_query:
+        maps.append(((record["ipfix.destinationIPv4Address"], "external_dns"), 1))
 
-def get_queried_external_dns_servers(input_stream, window_duration):
-    """
-    For each queried DNS server not in local network computes the amount of queries from the local network.
+    # Map queried domains by local network IP
+    if from_local_network and is_query:
+        maps.append(((record["ipfix.DNSName"], record["ipfix.sourceIPv4Address"], "queried_by_ip"), 1))
 
-    :param input_stream: Input flows
-    :param window_duration: Length of the window in seconds
-    :return: Transformed input stream
-    """
-    return input_stream\
-        .filter(lambda flow_json: (flow_json["ipfix.DNSFlagsCodes"] >> 15) == 0) \
-        .map(lambda record: (record["ipfix.destinationIPv4Address"], 1))\
-        .reduceByKey(lambda actual, update: (actual + update))\
-        .window(window_duration, window_duration) \
-        .reduceByKey(lambda actual, update: (actual + update))
-
-
-def get_queried_local_dns_from_outside(input_stream, window_duration):
-    """
-    For each DNS server on local network computes the amount of successfully resolved queries from the outside networks.
-
-    :param input_stream: Input flows
-    :param window_duration: Length of the window in seconds
-    :return: Transformed input stream
-    """
-    return input_stream \
-        .filter(lambda flow_json: flow_json["ipfix.DNSFlagsCodes"] >> 15 & 1) \
-        .filter(lambda flow_json: (flow_json["ipfix.DNSFlagsCodes"] & 15) != 5) \
-        .map(lambda record: (record["ipfix.sourceIPv4Address"], 1)) \
-        .reduceByKey(lambda actual, update: (actual + update))\
-        .window(window_duration, window_duration) \
-        .reduceByKey(lambda actual, update: (actual + update))
-
-
-def get_queried_domains_by_ip(input_stream, window_duration):
-    """
-    For each queried domain computes all ips that queried it with the query count.
-
-    :param input_stream: Input flows
-    :param window_duration: Length of the window in seconds
-    :return: Transformed input stream
-    """
-    return input_stream\
-        .filter(lambda flow_json: (flow_json["ipfix.DNSFlagsCodes"] >> 15) == 0)\
-        .map(lambda record: ((record["ipfix.DNSName"], record["ipfix.sourceIPv4Address"]), 1)) \
-        .reduceByKey(lambda actual, update: (actual + update))\
-        .window(window_duration, window_duration) \
-        .reduceByKey(lambda actual, update: (actual + update))
-
-
-def get_dns_stream(flows_stream):
-    """
-    Filter to get only flows containing DNS information.
-
-    :param flows_stream: Input flows
-    :return: Flows with DNS information
-    """
-    return flows_stream \
-        .filter(lambda flow_json: ("ipfix.DNSName" in flow_json.keys()) and
-                                  ("ipfix.sourceIPv4Address" in flow_json.keys()))
-
-
-def get_flows_local_to_external(flows_stream, local_network):
-    """
-    Filter to contain flows going from the specified local network to the different network.
-
-    :param flows_stream: Input flows
-    :param local_network: Local network's address
-    :return: Flows coming from local network to external networks
-    """
-    return flows_stream \
-        .filter(lambda dns_json: (IPAddress(dns_json["ipfix.sourceIPv4Address"]) in IPNetwork(local_network)) and
-                                 (IPAddress(dns_json["ipfix.destinationIPv4Address"]) not in IPNetwork(local_network)))
-
-
-def get_flows_from_local(flows_stream, local_network):
-    """
-    Filter to contain flows going from the specified local network.
-
-    :param flows_stream: Input flows
-    :param local_network: Local network's address
-    :return: Flows coming from local network
-    """
-    return flows_stream\
-        .filter(lambda dns_json: (IPAddress(dns_json["ipfix.destinationIPv4Address"]) in IPNetwork(local_network)))
-
-
-def get_flows_to_local(flows_stream, local_network):
-    """
-    Filter to contain flows going to the specified local network.
-
-    :param flows_stream: Input flows
-    :param local_network: Local network's address
-    :return: Flows coming to local network
-    """
-    return flows_stream \
-        .filter(lambda dns_json: (IPAddress(dns_json["ipfix.sourceIPv4Address"]) in IPNetwork(local_network)))
-
-
-def filter_out_domain(stream, domain_to_filter):
-    """
-    Filters flows from the passed domain name.
-
-    :param stream: Input flows
-    :param domain_to_filter: Domain name which should be filtered out
-    :return: Filtered flows
-    """
-    return stream.filter(lambda record: domain_to_filter not in record["ipfix.DNSName"])
+    # Return array of all mappings derived from given record
+    return maps
 
 
 if __name__ == "__main__":
@@ -339,12 +225,12 @@ if __name__ == "__main__":
     parser.add_argument("-it", "--input_topic", help="input kafka topic", type=str, required=True)
     parser.add_argument("-oz", "--output_zookeeper", help="output zookeeper hostname:port", type=str, required=True)
     parser.add_argument("-ot", "--output_topic", help="output kafka topic", type=str, required=True)
-    parser.add_argument("-w", "--window", help="window size (in seconds)", type=int, required=False, default=20)
-    parser.add_argument("-m", "--microbatch", help="microbatch (in seconds)", type=int, required=False, default=10)
+    parser.add_argument("-w", "--window", help="window size (in seconds)", type=int, required=False, default=60)
+    parser.add_argument("-m", "--microbatch", help="microbatch (in seconds)", type=int, required=False, default=30)
 
     # Define Arguments for detection
     parser.add_argument("-ln", "--local_network", help="local network", type=str, required=True)
-    parser.add_argument("-f", "--filtered_domains", help="path to file with filtered out domains",
+    parser.add_argument("-fd", "--filtered_domains", help="path to file with filtered out non-existing domains",
                         type=str, required=False, default="")
 
     # Parse arguments
@@ -358,47 +244,26 @@ if __name__ == "__main__":
         filtered_domains = [line.strip() for line in strings]
 
     # Initialize input stream and parse it into JSON
-    ssc, parsed_input_stream = kafkaIO\
+    ssc, parsed_input_stream = kafkaIO \
         .initialize_and_parse_input_stream(args.input_zookeeper, args.input_topic, args.microbatch)
 
-    # Process input in the desired way
-    dns_stream = get_dns_stream(parsed_input_stream)
+    # Get flow with DNS elements
+    dns_stream = parsed_input_stream.filter(lambda flow_json: ("ipfix.DNSName" in flow_json.keys()))
 
-    # Prepare input streams for corresponding statistics
-    dns_local_to_external = get_flows_local_to_external(dns_stream, args.local_network)
-    dns_from_local = get_flows_from_local(dns_stream, args.local_network)
-    dns_to_local = get_flows_to_local(dns_stream, args.local_network)
-    filtered_domains_stream = dns_to_local
-    for domain in filtered_domains:
-        filtered_domains_stream = filter_out_domain(filtered_domains_stream, domain)
+    # Get mapping of DNS statistics
+    dns_stream_map = dns_stream \
+        .flatMap(lambda record: get_dns_stats_mapping(record, args.local_network, filtered_domains))
+
+    # Get statistics within given window
+    dns_statistics = dns_stream_map.reduceByKey(lambda actual, update: (actual + update)) \
+        .window(args.window, args.window) \
+        .reduceByKey(lambda actual, update: (actual + update))
 
     # Initialize kafka producer
     kafka_producer = kafkaIO.initialize_kafka_producer(args.output_zookeeper)
 
-    # Calculate and process DNS statistics
-    get_rec_types(dns_from_local, args.window) \
-        .foreachRDD(lambda rdd: process_results(rdd.collectAsMap(), kafka_producer, args.output_topic, "record_type"))
-
-    get_res_codes(dns_to_local, args.window) \
-        .foreachRDD(lambda rdd: process_results(rdd.collectAsMap(), kafka_producer, args.output_topic, "response_code"))
-
-    get_queried_domains(dns_from_local, args.window) \
-        .foreachRDD(lambda rdd: process_results(dict(rdd.top(100, key=lambda x: x[1])),
-                                                kafka_producer, args.output_topic, "queried_domain"))
-
-    get_non_existing_queried_domains(filtered_domains_stream, args.window) \
-        .foreachRDD(lambda rdd: process_results(dict(rdd.top(100, key=lambda x: x[1])),
-                                                kafka_producer, args.output_topic, "nonexisting_domain"))
-
-    get_queried_external_dns_servers(dns_local_to_external, args.window) \
-        .foreachRDD(lambda rdd: process_results(rdd.collectAsMap(), kafka_producer, args.output_topic, "external_dns"))
-
-    get_queried_local_dns_from_outside(dns_local_to_external, args.window) \
-        .foreachRDD(lambda rdd: process_results(rdd.collectAsMap(), kafka_producer, args.output_topic, "queried_local"))
-
-    get_queried_domains_by_ip(dns_from_local, args.window) \
-        .foreachRDD(lambda rdd: process_results(dict(rdd.top(100, key=lambda x: x[1])),
-                                                kafka_producer, args.output_topic, "queried_by_ip"))
+    # Process computed data and send them to the output
+    kafkaIO.process_data_and_send_result(dns_statistics, kafka_producer, args.output_topic, process_results)
 
     # Start Spark streaming context
     kafkaIO.spark_start(ssc)
