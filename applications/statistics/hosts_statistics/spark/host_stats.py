@@ -68,25 +68,6 @@ def map_tcp_flags(bitmap):
     result["CRW"] = bitmap[0]
     return result
 
-def flatten_nested_tuples(data, output):
-    if data:
-        if isinstance(data[0], tuple):
-         for p in data:
-             flatten_nested_tuples(p, output)
-        else:
-            output.append(data)
-
-        return output
-    else:
-        return None
-
-def flatten_actual(actual):
-    array = []
-    result_as_array = (flatten_nested_tuples(actual, array))
-    result_as_tupple = tuple(result_as_array)
-    return result_as_tupple
-
-
 
 def process_results(data_to_process, producer, output_topic):
     """
@@ -165,17 +146,13 @@ def process_input(input_data,window_duration, window_slide, network_filter):
     # Filter flows with relevant keys
     flow_with_keys = input_data.filter(lambda json_rdd: ("ipfix.sourceIPv4Address" in json_rdd.keys()) and
                                                         ("ipfix.destinationTransportPort" in json_rdd.keys()) and
-                                                        ("ipfix.flowStartMilliseconds" in json_rdd.keys()) and
-                                                        ("ipfix.flowEndMilliseconds" in json_rdd.keys()) and
                                                         ("ipfix.protocolIdentifier" in json_rdd.keys()) and
                                                         (IPAddress(
                                                             json_rdd["ipfix.sourceIPv4Address"]) in IPNetwork(network_filter))
                                        )
-    # TODO: Following elements are mandatory: ipfix.flowStartMilliseconds, ipfix.flowEndMilliseconds, ipfix.protocolIdentifier
 
     # Set window and slide duration for flows analysis
     flow_with_keys_windowed = flow_with_keys.window(window_duration, window_slide)
-    # TODO: Consider to reduce data at the first and then use the window (see dns_statistics application).
 
     # Compute basic hosts statistics - number of flows, packets, bytes sent by a host
     flow_ip_total_stats_no_window = flow_with_keys.map(lambda json_rdd: (json_rdd["ipfix.sourceIPv4Address"], ("total_stats", 1, json_rdd["ipfix.packetDeltaCount"], json_rdd["ipfix.octetDeltaCount"]))) \
@@ -185,7 +162,7 @@ def process_input(input_data,window_duration, window_slide, network_filter):
                                                         actual[total_stats_position["total_packets"]] + update[total_stats_position["total_packets"]],
                                                         actual[total_stats_position["total_bytes"]] + update[total_stats_position["total_bytes"]]
                                                   ))
-    #TODO v mapu prevest value na dict {"total_stats":( 1, json_rdd["ipfix.packetDeltaCount"], json_rdd["ipfix.octetDeltaCount")}
+    #TODO in map transfer value to dict {"total_stats":( 1, json_rdd["ipfix.packetDeltaCount"], json_rdd["ipfix.octetDeltaCount")}
 
     flow_ip_total_stats = flow_ip_total_stats_no_window.window(window_duration, window_slide) \
                                                        .reduceByKey(lambda actual, update: (
@@ -250,29 +227,13 @@ def process_input(input_data,window_duration, window_slide, network_filter):
                                      .fullOuterJoin(flow_dst_port_count) \
                                      .fullOuterJoin(flow_average_duration) \
                                      .fullOuterJoin(flow_tcp_flags)
-    # TODO: Consider to use union instead of join (the application could be faster).
-
-    #unioned_stream = flow_ip_total_stats
-    #unioned_stream.pprint(5)
-
-    #reduced_unioned_stream = unioned_stream.reduceByKey(lambda actual, update: (
-                                                         # update if str(update[0]) == "total_stats" else "nic" if not actual[0] else actual[0],
-                                                         # update if str(update[0]) == "peer_number" else "nic" if not actual[1] else actual[1],
-                                                         # update if str(update[0]) == "dport_count" else "nic" if not actual[2] else actual[2]
-                                                         # ))
-    #                                      .map(lambda json_rdd: (json_rdd[0], flatten_actual(json_rdd[1])))
-    #TODO pouzit append
-    #reduced_unioned_stream.pprint(50)
+    # TODO: Consider to use union instead of join (the application could be faster). For reduce use append - linked to the changes of map approach
 
     # Transform join_stream to parsable Dstream
     # (src IP , (('total_stats', <# of flows>, <# of packets>, <# of bytes>), ('peer_number', <# of peers>),
     # ('dport_count',  <# number of distinct ports>), ('avg_flow_duration',<average flow duration>),("tcp_flags",<bitarray of tcpflags>)))
     parsable_join_stream = join_stream.map(lambda json_rdd: (json_rdd[0], (
         json_rdd[1][0][0][0][0], json_rdd[1][0][0][0][1], json_rdd[1][0][0][1], json_rdd[1][0][1], json_rdd[1][1])))
-
-    #parsable_join_stream = join_stream.map(lambda json_rdd: (json_rdd[0], flatten_actual(json_rdd[1])))
-
-    #parsable_join_stream.pprint(50)
 
     return parsable_join_stream
 
@@ -297,18 +258,18 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     # Position of statistics in DStream.
-    ##  Overall structure of a record
+    #  Overall structure of a record
     statistics_position = {"total_stats": 0, "peer_number": 1, "dport_count": 2, "average_flow_duration": 3,
                            "tcp_flags": 4}
-    ## Structure of basic characteristics
+    # Structure of basic characteristics
     total_stats_position = {"type": 0, "total_flows": 1, "total_packets": 2, "total_bytes": 3}
-    ## Structure of peer number count characteristics
+    # Structure of peer number count characteristics
     peer_number_position = {"type": 0, "peer_number": 1}
-    ## Structure of destination port count characteristics
+    # Structure of destination port count characteristics
     dport_count_position = {"type": 0, "dport_number": 1}
-    ## Structure of average flow duration characteristics
+    # Structure of average flow duration characteristics
     avg_flow_duration_postion = {"type": 0, "avg_duration": 1}
-    ## Structure of protocol characteristics
+    # Structure of protocol characteristics
     tcp_flags_position = {"type": 0, "tcp_flags_array": 1}
     # TODO: EGH :( Transform it to the function.
 
