@@ -1,8 +1,22 @@
 ---
+- name: Check if Spark Master is already running
+  shell: "jps -lm | grep -i spark.deploy.master"
+  when: "'sparkMaster' in group_names"
+  register: resultMaster
+  failed_when: resultMaster.rc not in [0,1]
+
+- name: Check if Spark Slaves are already running
+  shell: "jps -lm | grep -i spark.deploy.worker"
+  when: "'sparkSlave' in group_names"
+  register: resultSlave
+  failed_when: resultSlave.rc not in [0,1]
+
 # Run Spark Master
 - name: Run Spark Master
   shell: "{{ dir_spark }}/spark-bin/sbin/start-master.sh"
-  when: "'sparkMaster' in group_names"
+  when:
+    - "'sparkMaster' in group_names"
+    - resultMaster|failed
   environment:
     SPARK_MASTER_HOST: "{{ masterIP }}"
     SPARK_LOCAL_HOST: "{{ masterIP }}"
@@ -10,7 +24,9 @@
 # Run Spark slaves
 - name: Run Spark Slaves
   shell: "{{ dir_spark }}/spark-bin/sbin/start-slave.sh {{ spark_masterurl }} -m {{ spark_worker_memory }}M"
-  when: "'sparkSlave' in group_names"
+  when:
+    - "'sparkSlave' in group_names"
+    - resultSlave|failed
   environment:
     SPARK_MASTER_HOST: "{{ masterIP }}"
     SPARK_LOCAL_HOST: "{{ ansible_host }}"

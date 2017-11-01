@@ -1,0 +1,36 @@
+/* TCP Ports Scan */
+#filter {
+    width: 120px;
+}
+.chart-ports-scan-histogram .chart-status, .chart-ports-scan-histogram .zingchart {
+    height: 420px;
+}
+.chart-ports-scan-top .chart-status, .chart-ports-scan-top .zingchart {
+    height: 300px;
+}
+#table-ports-scan{
+    margin-top: -40px;
+    padding-left: 15px;
+    padding-right: 15px;
+}
+.table-status {
+    text-align: center;
+    color: #777777;
+    width: 100%;
+    height: 300px;
+}
+.table-status span {
+    position: relative;
+    top: -4px;
+    font-size: 20px;
+    font-weight: 600;
+    margin-left: 0.5em;
+}
+/* Hack to see the whole watermark */
+#chart-ports-scan-histogram-license-text {
+    padding-top: 20px !important;
+    margin-left: -20px !important;
+}
+#chart-ports-scan-histogram-top {
+    height: 420px !important;
+}

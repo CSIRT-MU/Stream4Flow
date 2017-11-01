@@ -1,6 +1,6 @@
 ---
 - name: Start application on sparkMaster
-  command: chdir=/home/{{ user }}/applications screen -L -d -m ./run-application.sh ./protocols-statistics/protocols_statistics.py -iz producer:2181 -it ipfix.entry -oh consumer:20101
+  shell: cd /home/{{ user }}/applications; screen -L -d -m ./run-application.sh ./protocols-statistics/protocols_statistics.py -iz producer:2181 -it ipfix.entry -oz producer:9092 -ot results.output; sleep 1;
 
-- name: Wait 15seconds
-  pause: seconds=15
+- name: Wait 25seconds
+  pause: seconds={{ time_app_start }}

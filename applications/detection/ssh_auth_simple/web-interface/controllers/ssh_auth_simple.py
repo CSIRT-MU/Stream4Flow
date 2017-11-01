@@ -60,8 +60,8 @@ def get_histogram_statistics():
         # Set filter
         if filter != 'none':
             elastic_should = []
-            elastic_should.append({'term': {'src_ip.raw': filter}})
-            elastic_should.append({'term': {'dst_ip.raw': filter}})
+            elastic_should.append({'term': {'src_ip': filter}})
+            elastic_should.append({'term': {'dst_ip': filter}})
             elastic_bool.append({'bool': {'should': elastic_should}})
         # Prepare query
         qx = Q({'bool': {'must': elastic_bool}})
@@ -69,7 +69,7 @@ def get_histogram_statistics():
         # Get histogram data
         search_histogram = Search(using=client, index='_all').query(qx)
         search_histogram.aggs.bucket('by_time', 'date_histogram', field='@timestamp', interval=aggregation) \
-            .bucket('by_src', 'terms', field='src_ip.raw', size=2147483647) \
+            .bucket('by_src', 'terms', field='src_ip', size=2147483647) \
             .bucket('sum_of_flows', 'sum', field='flows_increment')
         histogram = search_histogram.execute()
 
@@ -84,9 +84,12 @@ def get_histogram_statistics():
                 # Append array of timestamp and number of flows
                 detections[source.key].append([timestamp, source.sum_of_flows.value])
 
+        if not detections:
+            # Return No data info message
+            return '{"status": "Empty", "data": "No data found"}'
+
         # Return data as JSON
         response = {"status" : "Ok", "data" : detections}
-
         return json.dumps(response)
 
     except Exception as e:
@@ -127,16 +130,16 @@ def get_top_n_statistics():
         # Set filter
         if filter != 'none':
             elastic_should = []
-            elastic_should.append({'term': {'src_ip.raw': filter}})
-            elastic_should.append({'term': {'dst_ip.raw': filter}})
+            elastic_should.append({'term': {'src_ip': filter}})
+            elastic_should.append({'term': {'dst_ip': filter}})
             elastic_bool.append({'bool': {'should': elastic_should}})
         # Prepare query
         qx = Q({'bool': {'must': elastic_bool}})
 
         # Get ordered data (with maximum size aggregation)
         search = Search(using=client, index='_all').query(qx)
-        search.aggs.bucket('by_src', 'terms', field='src_ip.raw', size=2147483647)\
-              .bucket('by_dst', 'terms', field='dst_ip.raw', size=2147483647)\
+        search.aggs.bucket('by_src', 'terms', field='src_ip', size=2147483647)\
+              .bucket('by_dst', 'terms', field='dst_ip', size=2147483647)\
               .bucket('top_src_dst', 'top_hits', size=1, sort=[{'@timestamp': {'order': 'desc'}}])
         results = search.execute()
 
@@ -155,7 +158,10 @@ def get_top_n_statistics():
             data += ip + "," + str(count) + ","
         data = data[:-1]
 
-        json_response = '{"status": "Ok", "data": "' + data + '"}'
+        if data == "":
+            json_response = '{"status": "Empty", "data": "No data found"}'
+        else:
+            json_response = '{"status": "Ok", "data": "' + data + '"}'
         return json_response
 
     except Exception as e:
@@ -194,15 +200,15 @@ def get_attacks_list():
         # Set filter
         if filter != 'none':
             elastic_should = []
-            elastic_should.append({'term': {'src_ip.raw': filter}})
-            elastic_should.append({'term': {'dst_ip.raw': filter}})
+            elastic_should.append({'term': {'src_ip': filter}})
+            elastic_should.append({'term': {'dst_ip': filter}})
             elastic_bool.append({'bool': {'should': elastic_should}})
         qx = Q({'bool': {'must': elastic_bool}})
 
         # Search with maximum size aggregations
         search = Search(using=client, index='_all').query(qx)
-        search.aggs.bucket('by_src', 'terms', field='src_ip.raw', size=2147483647) \
-              .bucket('by_dst', 'terms', field='dst_ip.raw', size=2147483647) \
+        search.aggs.bucket('by_src', 'terms', field='src_ip', size=2147483647) \
+              .bucket('by_dst', 'terms', field='dst_ip', size=2147483647) \
               .bucket('top_src_dst', 'top_hits', size=1, sort=[{'@timestamp': {'order': 'desc'}}])
         results = search.execute()
 

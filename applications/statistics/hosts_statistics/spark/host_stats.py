@@ -3,7 +3,7 @@
 #
 # MIT License
 #
-# Copyright (c) 2016  Tomas Jirsik <jirsik@ics.muni.cz>
+# Copyright (c) 2016  Tomas Jirsik <jirsik@ics.muni.cz>, Michal Stefanik <stefanik dot m@mail.muni.cz>
 # Institute of Computer Science, Masaryk University
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -48,6 +48,8 @@ import ujson as json  # Fast JSON parser
 from netaddr import IPNetwork, IPAddress  # Checking if IP is in the network
 from modules import kafkaIO  # IO operations with kafka topics
 
+from kafka import KafkaProducer  # Kafka Python client
+
 
 def map_tcp_flags(bitmap):
     """
@@ -70,8 +72,9 @@ def map_tcp_flags(bitmap):
 
 
 def process_results(data_to_process, producer, output_topic):
+
     """
-    Transform given computation results into the JSON format and send them to the specified host.
+    Transform given computation results into the JSON format and send them to the specified kafka instance.
 
     JSON format:
     {"src_ip":"<host src IPv4 address>",
@@ -127,10 +130,12 @@ def process_results(data_to_process, producer, output_topic):
             stats_dict["tcp_flags"] = map_tcp_flags(
                 data[statistics_position["tcp_flags"]][tcp_flags_position["tcp_flags_array"]])
 
-        results += json.dumps(result_dict) + "\n"
+        # send the processed data in json format to the given kafka producer under given topic
+        send_to_kafka(json.dumps(result_dict) + "\n", producer, topic)
 
     # test print
     # print(results)
+
 
     # Send desired output to the output_topic
     kafkaIO.send_data_to_kafka(results, producer, output_topic)
@@ -139,7 +144,6 @@ def process_results(data_to_process, producer, output_topic):
 def process_input(input_data,window_duration, window_slide, network_filter):
     """
     Process raw data and do MapReduce operations.
-
     :param input_data: input data in JSON format to process
     :return: processed data
     """
@@ -273,6 +277,7 @@ if __name__ == "__main__":
     parser.add_argument("-ln", "--local_network", help="network range to watch", type=str, required=True)
     parser.add_argument("-w", "--window", help="analysis window duration (in seconds)", type=int, required=False, default=10)
     parser.add_argument("-m", "--microbatch", help="microbatch (in seconds)", type=int, required=False, default=10)
+
 
 
 

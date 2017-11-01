@@ -11,6 +11,10 @@
   include: storage-plugins.yml
   become: yes
 
+- name: Tools for viewing stored data
+  include: tools.yml
+  become: yes
+
 - name: Start IPFIXcol
   include: start.yml
   become: yes

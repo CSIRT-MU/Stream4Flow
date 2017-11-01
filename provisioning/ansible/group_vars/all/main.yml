@@ -5,3 +5,13 @@ user: spark
 # user password created with:
 # python -c 'import crypt; print crypt.crypt("Stream4Flow", "$1$wolF4maertS$")'
 user_passwd: $1$wolF4mae$jSX8IG9goPtqVfomlbla6.
+
+maven_proxy: False
+
+proxy_id: not_set
+proxy_protocol: not_set
+proxy_user: not_set
+proxy_pass: not_set
+proxy_host: not_set
+proxy_port: not_set
+non_proxy_hosts: not_set

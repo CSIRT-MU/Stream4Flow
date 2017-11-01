@@ -30,13 +30,13 @@ Description: A method for detection of DoS/DDoS attacks based on an evaluation o
 the incoming/outgoing packet volume ratio and its variance to the long-time (long window) ratio.
 
 Usage:
-  detection_ddos.py -iz <input-zookeeper-hostname>:<input-zookeeper-port> -it <input-topic> -oh
-    <output-hostname>:<output-port> -nf <regex for network range>
+  detection_ddos.py -iz <input-zookeeper-hostname>:<input-zookeeper-port> -it <input-topic>
+  -oz <output-zookeeper-hostname>:<output-zookeeper-port> -ot <output-topic> -nf <regex for network range>
 
   To run this on the Stream4Flow, you need to receive flows by IPFIXCol and make them available via Kafka topic. Then
   you can run the example
     $ /home/spark/applications/run-application.sh detection/ddos/spark/detection_ddos.py
-     -iz producer:2181 -it ipfix.entry -oh consumer:20101 -nf "10\.10\..+"
+     -iz producer:2181 -it ipfix.entry -oz producer:9092 -ot results.output -nf "10\.10\..+"
 """
 
 import sys  # Common system functions
@@ -52,32 +52,21 @@ from pyspark import SparkContext  # Spark API
 from pyspark.streaming import StreamingContext  # Spark streaming API
 from pyspark.streaming.kafka import KafkaUtils  # Spark streaming Kafka receiver
 
+from kafka import KafkaProducer  # Kafka Python client
 
-def send_data(data, output_host):
+
+def send_to_kafka(data, producer, topic):
     """
-    Send given data to the specified host using standard socket interface.
+    Send given data to the specified kafka topic.
 
     :param data: data to send
-    :param output_host: data receiver in the "hostname:port" format
+    :param producer: producer that sends the data
+    :param topic: name of the receiving kafka topic
     """
-
-    # Split outputHost hostname and port
-    host = output_host.split(':')
-
-    # Prepare a TCP socket.
-    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-
-    # Connect to the outputHost and send given data
-    try:
-        sock.connect((host[0], int(host[1])))
-        sock.send(data)
-    except socket.error:
-        cprint("[warning] Unable to connect to host " + output_host, "blue")
-    finally:
-        sock.close()
+    producer.send(topic, str(data))
 
 
-def print_and_send(rdd, output_host):
+def print_and_send(rdd, producer, topic):
     """
     Transform given computation results into the JSON format and send them to the specified host.
 
@@ -86,6 +75,8 @@ def print_and_send(rdd, output_host):
         "longratio": <long-term ration>, "attackers": [set of attackers]}
 
     :param rdd: rdd to be parsed and sent
+    :param producer: producer that sends the data
+    :param topic: name of the receiving kafka topic
     """
     results = ""
     rdd_map = rdd.collectAsMap()
@@ -97,7 +88,7 @@ def print_and_send(rdd, output_host):
         attackers = list(stats[0][2])
 
         new_entry = {"@type": "detection.ddos",
-                     "dst_ipv4": host,
+                     "dst_ip": host,
                      "shortratio": short_ratio,
                      "longratio": long_ratio,
                      "attackers": attackers}
@@ -107,8 +98,8 @@ def print_and_send(rdd, output_host):
     # Print results to stdout
     cprint(results)
 
-    # Send results to the given socket.
-    send_data(results, output_host)
+    # Send results to the specified kafka topic
+    send_to_kafka(results, producer, topic)
 
 
 def inspect_ddos(stream_data):
@@ -180,7 +171,8 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("-iz", "--input_zookeeper", help="input zookeeper hostname:port", type=str, required=True)
     parser.add_argument("-it", "--input_topic", help="input kafka topic", type=str, required=True)
-    parser.add_argument("-oh", "--output_host", help="output hostname:port", type=str, required=True)
+    parser.add_argument("-oz", "--output_zookeeper", help="output zookeeper hostname:port", type=str, required=True)
+    parser.add_argument("-ot", "--output_topic", help="output kafka topic", type=str, required=True)
     parser.add_argument("-nf", "--network_filter", help="regular expression filtering the watched IPs", type=str, required=True)
 
     # Parse arguments.
@@ -209,8 +201,15 @@ if __name__ == "__main__":
     # Run the detection of ddos
     ddos_result = inspect_ddos(input_stream)
 
+    # Initialize kafka producer
+    kafka_producer = KafkaProducer(bootstrap_servers=args.output_zookeeper,
+                                   client_id="spark-producer-" + application_name)
+
     # Process the results of the detection and send them to the specified host
-    ddos_result.foreachRDD(lambda rdd: print_and_send(rdd, args.output_host))
+    ddos_result.foreachRDD(lambda rdd: print_and_send(rdd, kafka_producer, args.output_topic))
+
+    # Send any remaining buffered records
+    kafka_producer.flush()
 
     # Start input data processing
     ssc.start()

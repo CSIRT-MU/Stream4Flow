@@ -21,3 +21,19 @@
     update_cache: yes
   with_items:
     - maven
+
+- name: Create .m2 directory
+  file: dest=/home/{{ user }}/.m2 state=directory
+  when: maven_proxy
+
+- name: Make this file on producer
+  template: src=settings.xml.j2 dest=/home/{{ user }}/.m2/settings.xml
+  when:
+    - proxy_id != "not_set"
+    - proxy_protocol != "not_set"
+    - proxy_user != "not_set"
+    - proxy_pass != "not_set"
+    - proxy_host != "not_set"
+    - proxy_port != "not_set"
+    - non_proxy_hosts != "not_set"
+    - maven_proxy

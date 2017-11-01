@@ -6,10 +6,23 @@ then
     exit 1;
 fi
 APPLICATION=$@
+MODULESDIR=$(dirname "$1")/modules
 
+# Output colors
+GREEN='\033[0;32m'
+NC='\033[0m' # No Color
+PYFILES=''
 
-echo "[info] Running application $APPLICATION..."
+if [ -d $MODULESDIR ]
+then
+    echo -e "${GREEN}[info] Creating zip with all modules${NC}"
+    zip -r $MODULESDIR{.zip,}
+    PYFILES="--py-files $MODULESDIR.zip"
+fi
+
+echo -e "${GREEN}[info] Running application $APPLICATION...${NC}"
 
 export SPARK_MASTER_HOST={{ masterIP }}
 export SPARK_LOCAL_HOST={{ masterIP }}
-{{ dir_spark }}/spark-bin/bin/spark-submit --master {{ spark_masterurl }} --conf spark.eventLog.enabled=true --conf spark.eventLog.dir="{{ dir_spark }}/spark-bin/logs/" --conf spark.executor.logs.rolling.maxRetainedFiles=3 --conf spark.executor.logs.rolling.maxSize=1G --conf spark.executor.logs.rolling.strategy=size --total-executor-cores {{ spark_worker_cores }} --executor-memory {{ (spark_worker_memory * 0.8)|int }}M --jars "./spark-streaming-kafka-assembly.jar" {{ dir_applications }}$APPLICATION
+
+{{ dir_spark }}/spark-bin/bin/spark-submit --total-executor-cores {{ spark_worker_cores }} --executor-memory {{ (spark_worker_memory * 0.8)|int }}M $PYFILES $APPLICATION

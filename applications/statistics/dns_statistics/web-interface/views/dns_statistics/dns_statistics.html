@@ -1,0 +1,192 @@
+{{extend 'layout.html'}}
+
+<script>
+    // Set correct menu view.
+    $('#menu-statistics').addClass('active');
+    $('#menu-dns-statistics').addClass('active');
+    // Include specific CSS
+    $('head').append("<link href=\"{{=URL('static','css/dns_statistics.css')}}\" rel=\"stylesheet\">");
+</script>
+
+<h3 class="title1">DNS Statistics</h3>
+
+{{if not session.logged:}}
+<div class="alert alert-danger" role="alert">
+   <strong>Error: </strong>You must be logged to view this page!
+</div>
+{{else:}}
+
+{{if ('alert_type' in globals()) and alert_type != "":}}
+<div class="alert alert-{{=alert_type}}" role="alert">
+    <strong>
+        {{if alert_type == "danger":}}Error:
+        {{elif alert_type == "success":}}Success:
+        {{elif alert_type == "info":}}Info:
+        {{elif alert_type == "warning":}}Warning:
+        {{pass}}
+    </strong>{{=alert_message}}
+</div>
+{{pass}}
+
+<!-- Options Form -->
+<div class="forms inline-form widget-shadow">
+    <div class="form-title">
+	    <h4>Options</h4>
+    </div>
+    <div class="form-body">
+        <div data-example-id="simple-form-inline">
+            <form class="form-inline">
+                <div class="form-group">
+                    <label for="interval">Interval:</label>
+                    <select name="interval" id="interval" class="form-control" placeholder="interval" onchange="setInterval(this.value)">
+                        <option value="1" selected>Last 1 hour</option>
+                        <option value="6">Last 6 hours</option>
+                        <option value="12">Last 12 hours</option>
+                        <option value="24">Last 24 hours</option>
+                        <option value="custom">Custom</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="datetime-beginning">From:</label>
+                    <input type="text" name="beginning" id="datetime-beginning" class="datetimepicker form-control">
+                </div>
+                <div class="form-group">
+                    <label for="datetime-end">To:</label>
+                    <input type="text" name="end" id="datetime-end" class="datetimepicker form-control">
+                </div>
+                <div class="form-group">
+                    <label for="top-values">Top values:</label>
+                    <select name="top-values" id="top-values" class="form-control" placeholder="top-values">
+                        <option value="5">Top 5</option>
+                        <option value="10" selected>Top 10</option>
+                        <option value="15">Top 15</option>
+                        <option value="20">Top 20</option>
+                    </select>
+                </div>
+                <button id="load-all-charts-button" type="button" class="btn btn-default" onclick="loadAllCharts();false;">Show Charts</button>
+                <div class="form-group">
+                    <label for="all-values">Show all records for:</label>
+                    <select name="all-values" id="all-values" class="form-control" placeholder="all-values">
+                        <option value="external_dns">Queried External Servers</option>
+                        <option value="nonexisting_domain">Queried Non-Existing Domains</option>
+                        <option value="record_type" selected>Record Types</option>
+                        <option value="queried_local">Queried Local Servers</option>
+                    </select>
+                </div>
+                <button type="button" class="btn btn-default" onclick="loadAllRecords();false;">Show all</button>
+            </form>
+        </div>
+	</div>
+</div>
+<!-- //Options Form -->
+
+
+<!-- Top N - Domains -->
+<div class="panel-info widget-shadow general chart-dns-stats-top">
+    <h4 class="title2">Domains</h4>
+    <!-- Queried domains -->
+    <div class="col-md-6">
+        <!-- Status -->
+        <div class="chart-status" id="chart-dns-stats-queried_domain-status"></div>
+        <!-- Main Chart -->
+        <div id="chart-dns-stats-queried_domain" class="zingchart" style="display: none;"></div>
+    </div>
+    <!-- //Queried domains -->
+    <!-- Queried Non-existing domains -->
+    <div class="col-md-6">
+        <!-- Status -->
+        <div class="chart-status" id="chart-dns-stats-nonexisting_domain-status"></div>
+        <!-- Main Chart -->
+        <div id="chart-dns-stats-nonexisting_domain" class="zingchart" style="display: none;"></div>
+    </div>
+    <!-- //Queried Non-existing domains -->
+    <div class="clearfix"> </div>
+</div>
+<!-- //Top N - Domains -->
+
+<!-- Top N - Records -->
+<div class="panel-info widget-shadow general chart-dns-stats-top">
+    <h4 class="title2">Records</h4>
+    <!-- Response codes -->
+    <div class="col-md-6">
+        <!-- Status -->
+        <div class="chart-status" id="chart-dns-stats-response_code-status"></div>
+        <!-- Main Chart -->
+        <div id="chart-dns-stats-response_code" class="zingchart" style="display: none;"></div>
+    </div>
+    <!-- //Response codes -->
+    <!-- Record types -->
+    <div class="col-md-6">
+        <!-- Status -->
+        <div class="chart-status" id="chart-dns-stats-record_type-status"></div>
+        <!-- Main Chart -->
+        <div id="chart-dns-stats-record_type" class="zingchart" style="display: none;"></div>
+    </div>
+    <!-- //Record types -->
+    <div class="clearfix"> </div>
+</div>
+<!-- //Top N - Records -->
+
+<!-- Top N - DNS Servers -->
+<div class="panel-info widget-shadow general chart-dns-stats-top">
+    <h4 class="title2">DNS Servers</h4>
+    <!-- Queried local servers -->
+    <div class="col-md-6">
+        <!-- Status -->
+        <div class="chart-status" id="chart-dns-stats-queried_local-status"></div>
+        <!-- Main Chart -->
+        <div id="chart-dns-stats-queried_local" class="zingchart" style="display: none;"></div>
+    </div>
+    <!-- //Queried local servers -->
+    <!-- Queried external servers -->
+    <div class="col-md-6">
+        <!-- Status -->
+        <div class="chart-status" id="chart-dns-stats-external_dns-status"></div>
+        <!-- Main Chart -->
+        <div id="chart-dns-stats-external_dns" class="zingchart" style="display: none;"></div>
+    </div>
+    <!-- //Queried external servers -->
+    <div class="clearfix"> </div>
+</div>
+<!-- //Top N - DNS Servers -->
+
+
+<!-- Top N - Queried domains by ip -->
+<div class="panel-info widget-shadow general chart-dns-stats-top">
+    <h4 class="title2">Records For Domain</h4>
+    <div class="col-md-12">
+        <!-- Status -->
+        <div class="chart-status" id="chart-dns-stats-queried_by_ip-status"></div>
+        <!-- Main Chart -->
+        <div id="chart-dns-stats-queried_by_ip" class="zingchart" style="display: none;"></div>
+    </div>
+    <div class="clearfix"> </div>
+</div>
+<!-- //Top N - Queried domains by ip -->
+
+<!-- Table -->
+<div class="panel-info widget-shadow general table-dns-stats">
+    <h4 class="title2" id="table-title">All Records</h4>
+    <!-- Status -->
+    <div class="table-status" id="table-dns-stats-status"></div>
+    <!-- Main Table -->
+    <div id="table-dns-stats" style="display: none;">
+        <table id="table-records" data-toggle="table" data-striped="true" data-pagination="true" data-search="true" data-page-size="10" data-page-list="[10, 20, 40]" data-search-text="">
+            <thead>
+                <tr>
+                    <th data-sortable="true" data-field="record">Value</th>
+                    <th data-sortable="true" data-field="count">Count</th>
+                </tr>
+            </thead>
+        </table>
+    </div>
+</div>
+<!-- //Table -->
+
+
+<!-- Custom Scripts -->
+<script src="{{=URL('static','js/custom/datetime_interval.js')}}"></script>
+<script src="{{=URL('static','js/custom/dns_statistics.js')}}"></script>
+<!-- //Custom Scripts -->
+
+{{pass}}

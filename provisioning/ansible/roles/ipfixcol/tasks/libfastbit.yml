@@ -1,0 +1,40 @@
+# Install libfastbit by either downloading precompiled
+# binaries or combiling from git
+
+# Install using binaries
+- name: Download FastBit compiled library (2/2)
+  get_url: >
+    url={{ build.fastbit.url }}/libfastbit-{{ ansible_distribution }}-{{ ansible_distribution_major_version }}.tar.gz
+    dest=/tmp/{{ build.fastbit.archive }}
+  when: not (build_fastbit_compile | bool)
+
+- name: Install FastBit library
+  command: "{{ item }} chdir=/tmp/ creates=/tmp/libfastbit.installed"
+  with_items:
+    - "tar -xzpf {{ build.fastbit.archive }} -C /"
+    # move pkgconfig file to path common to all supported distributions
+    - "mv /usr/local/lib/pkgconfig/fastbit.pc /usr/share/pkgconfig/fastbit.pc"
+    - "ldconfig"
+    - "touch /tmp/libfastbit.installed"
+  when: not (build_fastbit_compile | bool)
+
+# Install from sources (https://github.com/CESNET/libfastbit)
+- name: Clone libfastbit repository
+  git: repo={{ build.fastbit.git }} dest={{ build.fastbit.dir }}
+  when: build_fastbit_compile | bool
+  ignore_errors: yes
+
+- name: Build libfastbit
+  command: >
+    {{ item }}
+    chdir={{ build.fastbit.dir }}
+    creates=/tmp/libfastbit.installed
+  with_items:
+    - "autoreconf -i"
+    - "./configure --disable-static"
+    - "make"
+    - "make install"
+    - "mv /usr/local/lib/pkgconfig/fastbit.pc /usr/share/pkgconfig/fastbit.pc"
+    - "ldconfig"
+    - "touch /tmp/libfastbit.installed"
+  when: build_fastbit_compile | bool

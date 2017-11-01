@@ -28,11 +28,12 @@
  Counts number of flows, packets, and bytes for TCP, UDP, and other flows received from Kafka every 10 seconds.
 
  Usage:
-    protocols_statistics.py -iz <input-zookeeper-hostname>:<input-zookeeper-port> -it <input-topic> -oh <output-hostname>:<output-port>
+    protocols_statistics.py -iz <input-zookeeper-hostname>:<input-zookeeper-port> -it <input-topic> -oz
+    <output-zookeeper-hostname>:<output-zookeeper-port> -ot <output-topic>
 
  To run this on the Stream4Flow, you need to receive flows by IPFIXCol and make them available via Kafka topic. Then
  you can run the example
-    $ ./run-application.sh ./examples/protocols_statistics.py -iz producer:2181 -it ipfix.entry -oh consumer:20101
+    $ ./run-application.sh ./examples/protocols_statistics.py -iz producer:2181 -it ipfix.entry -oz producer:9092 -ot results.output
 """
 
 
@@ -40,7 +41,6 @@ import sys  # Common system functions
 import os  # Common operating system functions
 import argparse  # Arguments parser
 import ujson as json  # Fast JSON parser
-import socket  # Socket interface
 
 from termcolor import cprint  # Colors in the console output
 
@@ -48,32 +48,21 @@ from pyspark import SparkContext  # Spark API
 from pyspark.streaming import StreamingContext  # Spark streaming API
 from pyspark.streaming.kafka import KafkaUtils  # Spark streaming Kafka receiver
 
+from kafka import KafkaProducer  # Kafka Python client
 
-def send_data(data, output_host):
+
+def send_to_kafka(data, producer, topic):
     """
-    Send given data to the specified host using standard socket interface.
+    Send given data to the specified kafka topic.
 
     :param data: data to send
-    :param output_host: data receiver in the "hostname:port" format
+    :param producer: producer that sends the data
+    :param topic: name of the receiving kafka topic
     """
-
-    # Split outputHost hostname and port
-    host = output_host.split(':')
-
-    # Prepare a TCP socket.
-    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-
-    # Connect to the outputHost and send given data
-    try:
-        sock.connect((host[0], int(host[1])))
-        sock.send(data)
-    except socket.error:
-        cprint("[warning] Unable to connect to host " + output_host, "blue")
-    finally:
-        sock.close()
+    producer.send(topic, str(data))
 
 
-def process_results(results, output_host):
+def process_results(results, producer, topic):
     """
     Transform given computation results into the JSON format and send them to the specified host.
 
@@ -81,7 +70,8 @@ def process_results(results, output_host):
         {"@type": "protocols_statistics", "protocol" : <protocol>, "flows": <#flows>, "packets": <#packets>, "bytes": <#bytes>}
 
     :param results: map of UDP, TCP, and other statistics ("protocol", (#flows, #packets, #bytes))
-    :param output_host: results receiver in the "hostname:port" format
+    :param producer: producer that sends the data
+    :param topic: name of the receiving kafka topic
     """
 
     # Transform given results into the JSON
@@ -94,8 +84,8 @@ def process_results(results, output_host):
         # Print results to standard output
         cprint(output_json)
 
-        # Send results to the specified host
-        send_data(output_json, output_host)
+        # Send results to the specified kafka topic
+        send_to_kafka(output_json, producer, topic)
 
 
 def get_protocol_name(protocol_identifier):
@@ -155,7 +145,8 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("-iz", "--input_zookeeper", help="input zookeeper hostname:port", type=str, required=True)
     parser.add_argument("-it", "--input_topic", help="input kafka topic", type=str, required=True)
-    parser.add_argument("-oh", "--output_host", help="output hostname:port", type=str, required=True)
+    parser.add_argument("-oz", "--output_zookeeper", help="output zookeeper hostname:port", type=str, required=True)
+    parser.add_argument("-ot", "--output_topic", help="output kafka topic", type=str, required=True)
 
     # Parse obtained arguments
     args = parser.parse_args()
@@ -179,8 +170,15 @@ if __name__ == "__main__":
     # Count statistics of the UDP, TCP, and other protocols
     statistics = count_protocols_statistics(flows_json, window_duration, window_slide)
 
+    # Initialize kafka producer
+    kafka_producer = KafkaProducer(bootstrap_servers=args.output_zookeeper,
+                                   client_id="spark-producer-" + application_name)
+
     # Process computed statistics and send them to the specified host
-    statistics.foreachRDD(lambda rdd: process_results(rdd.collectAsMap(), args.output_host))
+    statistics.foreachRDD(lambda rdd: process_results(rdd.collectAsMap(), kafka_producer, args.output_topic))
+
+    # Send any remaining buffered records
+    kafka_producer.flush()
 
     # Start Spark streaming context
     ssc.start()
