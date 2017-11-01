@@ -34,11 +34,11 @@ for each host each window are following:
 
 Usage:
   host_stats.py --iz <input-zookeeper-hostname>:<input-zookeeper-port> -it <input-topic>
-    -oz <output-zookeeper-hostname>:<output-zookeeper-port> -ot <output-topic> -n <CIDR network range> -wd <window duration> -ws <window slide>
+    -oz <output-zookeeper-hostname>:<output-zookeeper-port> -ot <output-topic> -ln <CIDR network range> -w <window duration> -m <microbatch>
 
   To run this on the Stream4Flow, you need to receive flows by IPFIXCol and make them available via Kafka topic. Then
   you can run the example
-    $ ./run-application.sh ./statistics/hosts_statistics/spark/host_stats.py -iz producer:2181 -it ipfix.entry -oz producer:9092 -ot results.output -n "10.0.0.0/24 -wd 10 -ws 10"
+    $ ./run-application.sh ./statistics/hosts_statistics/spark/host_stats.py -iz producer:2181 -it ipfix.entry -oz producer:9092 -ot results.output -ln "10.0.0.0/24 -w 10 -m 10"
 
 """
 
@@ -144,48 +144,62 @@ def process_input(input_data,window_duration, window_slide, network_filter):
     :return: processed data
     """
     # Filter flows with relevant keys
-    flow_with_keys = input_data.filter(lambda json_rdd: ("ipfix.sourceIPv4Address" in json_rdd.keys()) and
-                                                        ("ipfix.destinationTransportPort" in json_rdd.keys()) and
-                                                        ("ipfix.protocolIdentifier" in json_rdd.keys()) and
-                                                        (IPAddress(
-                                                            json_rdd["ipfix.sourceIPv4Address"]) in IPNetwork(network_filter))
-                                       )
+    flow_with_keys = input_data\
+        .filter(lambda json_rdd: ("ipfix.sourceIPv4Address" in json_rdd.keys()) and
+                                 ("ipfix.destinationTransportPort" in json_rdd.keys()) and
+                                 ("ipfix.protocolIdentifier" in json_rdd.keys()) and
+                                 (IPAddress(json_rdd["ipfix.sourceIPv4Address"]) in IPNetwork(network_filter))
+               )
 
     # Set window and slide duration for flows analysis
     flow_with_keys_windowed = flow_with_keys.window(window_duration, window_slide)
 
     # Compute basic hosts statistics - number of flows, packets, bytes sent by a host
-    flow_ip_total_stats_no_window = flow_with_keys.map(lambda json_rdd: (json_rdd["ipfix.sourceIPv4Address"], ("total_stats", 1, json_rdd["ipfix.packetDeltaCount"], json_rdd["ipfix.octetDeltaCount"]))) \
-                                                  .reduceByKey(lambda actual, update: (
-                                                        actual[total_stats_position["type"]],
-                                                        actual[total_stats_position["total_flows"]] + update[total_stats_position["total_flows"]],
-                                                        actual[total_stats_position["total_packets"]] + update[total_stats_position["total_packets"]],
-                                                        actual[total_stats_position["total_bytes"]] + update[total_stats_position["total_bytes"]]
-                                                  ))
+    flow_ip_total_stats_no_window = flow_with_keys\
+        .map(lambda json_rdd: (
+            json_rdd["ipfix.sourceIPv4Address"],
+            ("total_stats", 1, json_rdd["ipfix.packetDeltaCount"], json_rdd["ipfix.octetDeltaCount"]))
+        )\
+        .reduceByKey(lambda actual, update: (
+            actual[total_stats_position["type"]],
+            actual[total_stats_position["total_flows"]] + update[total_stats_position["total_flows"]],
+            actual[total_stats_position["total_packets"]] + update[total_stats_position["total_packets"]],
+            actual[total_stats_position["total_bytes"]] + update[total_stats_position["total_bytes"]]
+        ))
     #TODO in map transfer value to dict {"total_stats":( 1, json_rdd["ipfix.packetDeltaCount"], json_rdd["ipfix.octetDeltaCount")}
 
-    flow_ip_total_stats = flow_ip_total_stats_no_window.window(window_duration, window_slide) \
-                                                       .reduceByKey(lambda actual, update: (
-                                                            actual[total_stats_position["type"]],
-                                                            actual[total_stats_position["total_flows"]] + update[total_stats_position["total_flows"]],
-                                                            actual[total_stats_position["total_packets"]] + update[total_stats_position["total_packets"]],
-                                                            actual[total_stats_position["total_bytes"]] + update[total_stats_position["total_bytes"]]
-                                                       ))
+    flow_ip_total_stats = flow_ip_total_stats_no_window\
+        .window(window_duration, window_slide) \
+        .reduceByKey(lambda actual, update: (
+            actual[total_stats_position["type"]],
+            actual[total_stats_position["total_flows"]] + update[total_stats_position["total_flows"]],
+            actual[total_stats_position["total_packets"]] + update[total_stats_position["total_packets"]],
+            actual[total_stats_position["total_bytes"]] + update[total_stats_position["total_bytes"]]
+        ))
 
     # Compute a number of distinct communication peers with a host
-    flow_communicating_pairs_no_window = flow_with_keys.map(lambda json_rdd: ((json_rdd["ipfix.sourceIPv4Address"],json_rdd["ipfix.sourceIPv4Address"] + "-" + json_rdd["ipfix.destinationIPv4Address"]), 1)) \
-                                                       .reduceByKey(lambda actual, update: actual)
+    flow_communicating_pairs_no_window = flow_with_keys\
+        .map(lambda json_rdd: (
+                (json_rdd["ipfix.sourceIPv4Address"],
+                 json_rdd["ipfix.sourceIPv4Address"] + "-" + json_rdd["ipfix.destinationIPv4Address"]), 1)
+            ) \
+        .reduceByKey(lambda actual, update: actual)
 
-    flow_communicating_pairs = flow_communicating_pairs_no_window.window(window_duration, window_slide) \
-                                                                 .reduceByKey(lambda actual, update: actual + update) \
-                                                                 .map(lambda json_rdd: (json_rdd[0][0], ("peer_number", 1))) \
-                                                                 .reduceByKey(lambda actual, update: (
-                                                                    actual[0],
-                                                                    actual[1] + update[1]))
+    flow_communicating_pairs = flow_communicating_pairs_no_window\
+        .window(window_duration, window_slide) \
+        .reduceByKey(lambda actual, update: actual + update) \
+        .map(lambda json_rdd: (json_rdd[0][0], ("peer_number", 1))) \
+        .reduceByKey(lambda actual, update: (
+            actual[0],
+            actual[1] + update[1]))
 
     # Compute a number of distinct destination ports for each host
-    flow_dst_port_count_no_window = flow_with_keys_windowed.map(lambda json_rdd: ((json_rdd["ipfix.sourceIPv4Address"], json_rdd["ipfix.sourceIPv4Address"] + "-" + str(json_rdd["ipfix.destinationTransportPort"])),1)) \
-                                                           .reduceByKey(lambda actual, update: actual)
+    flow_dst_port_count_no_window = flow_with_keys_windowed\
+        .map(lambda json_rdd: (
+            (json_rdd["ipfix.sourceIPv4Address"],
+             json_rdd["ipfix.sourceIPv4Address"] + "-" + str(json_rdd["ipfix.destinationTransportPort"])), 1)
+             ) \
+        .reduceByKey(lambda actual, update: actual)
 
     flow_dst_port_count = flow_dst_port_count_no_window.window(window_duration, window_slide) \
                                                        .reduceByKey(lambda actual, update: actual) \
@@ -195,21 +209,32 @@ def process_input(input_data,window_duration, window_slide, network_filter):
                                                             actual[1] + update[1]))
 
     # Compute an average duration of a flow in seconds for each host
-    flow_average_duration = flow_with_keys_windowed.map(lambda json_rdd: (json_rdd["ipfix.sourceIPv4Address"], (1, (json_rdd["ipfix.flowEndMilliseconds"] - json_rdd["ipfix.flowStartMilliseconds"])))) \
-                                                   .reduceByKey(lambda actual, update: (
-                                                        actual[0] + update[0],  # number of flow
-                                                        actual[1] + update[1]  # sum of flow duration
-                                                   )) \
-                                                   .map(lambda json_rdd: (json_rdd[0],("avg_flow_duration", (json_rdd[1][1] / float(1000)) / float(json_rdd[1][0]))))  # compute the average
+    flow_average_duration = flow_with_keys_windowed\
+        .map(lambda json_rdd: (
+            json_rdd["ipfix.sourceIPv4Address"],
+            (1, (json_rdd["ipfix.flowEndMilliseconds"] - json_rdd["ipfix.flowStartMilliseconds"]))
+            )
+        ) \
+        .reduceByKey(lambda actual, update: (
+            actual[0] + update[0],  # number of flow
+            actual[1] + update[1]  # sum of flow duration
+            )
+        ) \
+        .map(lambda json_rdd: (
+            json_rdd[0],("avg_flow_duration", (json_rdd[1][1] / float(1000)) / float(json_rdd[1][0])))
+        )  # compute the average
 
     # Compute TCP Flags
     # Filter out TCP traffic
     flow_tcp = flow_with_keys.filter(lambda json_rdd: (json_rdd["ipfix.protocolIdentifier"] == 6))
     # Compute flags statistics
-    flow_tcp_flags_no_window = flow_tcp.map(lambda json_rdd: (json_rdd["ipfix.sourceIPv4Address"], ("tcp_flags",  map(int, list('{0:08b}'.format(json_rdd["ipfix.tcpControlBits"])))))) \
-                                       .reduceByKey(lambda actual, update: (
-                                                         actual[0], [x + y for x, y in zip(actual[1], update[1])]
-                                       ))
+    flow_tcp_flags_no_window = flow_tcp\
+        .map(lambda json_rdd: (
+            json_rdd["ipfix.sourceIPv4Address"],
+            ("tcp_flags",  map(int, list('{0:08b}'.format(json_rdd["ipfix.tcpControlBits"]))))
+            )
+        ) \
+        .reduceByKey(lambda actual, update: (actual[0], [x + y for x, y in zip(actual[1], update[1])]))
 
     flow_tcp_flags = flow_tcp_flags_no_window.window(window_duration, window_slide) \
                                              .reduceByKey(lambda actual, update: (
@@ -245,9 +270,10 @@ if __name__ == "__main__":
     parser.add_argument("-it", "--input_topic", help="input kafka topic", type=str, required=True)
     parser.add_argument("-oz", "--output_zookeeper", help="output zookeeper hostname:port", type=str, required=True)
     parser.add_argument("-ot", "--output_topic", help="output kafka topic", type=str, required=True)
-    parser.add_argument("-n", "--network_range", help="network range to watch", type=str, required=True)
-    parser.add_argument("-wd", "--window_duration", help="analysis window duration in seconds", type=str, required=True)
-    parser.add_argument("-ws", "--window_slide", help="analysis window slide in seconds", type=str, required=True)
+    parser.add_argument("-ln", "--local_network", help="network range to watch", type=str, required=True)
+    parser.add_argument("-w", "--window", help="analysis window duration (in seconds)", type=int, required=False, default=10)
+    parser.add_argument("-m", "--microbatch", help="microbatch (in seconds)", type=int, required=False, default=10)
+
 
 
     # You can add your own arguments here
@@ -273,15 +299,12 @@ if __name__ == "__main__":
     tcp_flags_position = {"type": 0, "tcp_flags_array": 1}
     # TODO: EGH :( Transform it to the function.
 
-    # Set microbatch duration to window slide
-    microbatch_duration = int(args.window_slide)
-
     # Initialize input stream and parse it into JSON
     ssc, parsed_input_stream = kafkaIO.initialize_and_parse_input_stream(args.input_zookeeper, args.input_topic,
-                                                                         microbatch_duration)
+                                                                         args.microbatch)
 
     # Process input in the desired way
-    processed_input = process_input(parsed_input_stream, int(args.window_duration), int(args.window_slide), args.network_range)
+    processed_input = process_input(parsed_input_stream, args.window, args.window, args.local_network)
 
     # Initialize kafka producer
     kafka_producer = kafkaIO.initialize_kafka_producer(args.output_zookeeper)
