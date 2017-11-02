@@ -130,12 +130,8 @@ def process_results(data_to_process, producer, output_topic):
             stats_dict["tcp_flags"] = map_tcp_flags(
                 data[statistics_position["tcp_flags"]][tcp_flags_position["tcp_flags_array"]])
 
-        # send the processed data in json format to the given kafka producer under given topic
-        send_to_kafka(json.dumps(result_dict) + "\n", producer, topic)
-
     # test print
     # print(results)
-
 
     # Send desired output to the output_topic
     kafkaIO.send_data_to_kafka(results, producer, output_topic)
@@ -230,7 +226,9 @@ def process_input(input_data,window_duration, window_slide, network_filter):
 
     # Compute TCP Flags
     # Filter out TCP traffic
-    flow_tcp = flow_with_keys.filter(lambda json_rdd: (json_rdd["ipfix.protocolIdentifier"] == 6))
+    flow_tcp = flow_with_keys.filter(lambda json_rdd: (json_rdd["ipfix.protocolIdentifier"] == 6) and
+                                                      ("ipfix.tcpControlBits" in json_rdd.keys())
+                                     )
     # Compute flags statistics
     flow_tcp_flags_no_window = flow_tcp\
         .map(lambda json_rdd: (
