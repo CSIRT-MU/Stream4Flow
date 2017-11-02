@@ -130,6 +130,7 @@ def process_results(data_to_process, producer, output_topic):
             stats_dict["tcp_flags"] = map_tcp_flags(
                 data[statistics_position["tcp_flags"]][tcp_flags_position["tcp_flags_array"]])
 
+        results += json.dumps(result_dict) + "\n"
     # test print
     # print(results)
 
