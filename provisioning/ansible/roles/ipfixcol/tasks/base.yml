@@ -1,6 +1,6 @@
 # IPFIXcol build
 - name: Clone IPFIXcol git
-  git: repo={{ build.git }} dest={{ build.dir }} version={{ build.branch }}
+  git: repo={{ build.git }} dest={{ build.dir }} version={{ build.branch }} force=yes
 
 - name: Build IPFIXcol base
   command: >
