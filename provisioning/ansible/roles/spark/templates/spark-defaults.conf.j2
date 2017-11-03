@@ -19,6 +19,15 @@
 # This is useful for setting default environmental settings.
 
 
- spark.master                     {{ spark_masterurl }}
- spark.eventLog.enabled           false
- spark.jars                       {{ dir_spark }}/spark-bin/jars/spark-streaming-kafka-assembly.jar
+spark.master                                         {{ spark_masterurl }}
+spark.eventLog.enabled                               false
+spark.jars                                           {{ dir_spark }}/spark-bin/jars/spark-streaming-kafka-assembly.jar
+
+# Dynamic executors allocation
+spark.streaming.dynamicAllocation.enabled            true
+spark.streaming.dynamicAllocation.minExecutors       2
+spark.streaming.dynamicAllocation.maxExecutors       {{ groups['sparkSlave'] | length }}
+spark.streaming.dynamicAllocation.initialExecutors   {{ groups['sparkSlave'] | length }}
+spark.streaming.dynamicAllocation.reserveRate        0.1
+spark.cores.max                                      {{ groups['sparkSlave'] | length }}
+spark.executor.memory                                2G
