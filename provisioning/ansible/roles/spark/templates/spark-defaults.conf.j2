@@ -26,7 +26,7 @@ spark.jars                                           {{ dir_spark }}/spark-bin/j
 # Dynamic executors allocation
 spark.streaming.dynamicAllocation.enabled            true
 spark.streaming.dynamicAllocation.minExecutors       2
-spark.streaming.dynamicAllocation.maxExecutors       {{ groups['sparkSlave'] | length }}
+spark.streaming.dynamicAllocation.maxExecutors       {{ groups['sparkSlave'] | length if (groups['sparkSlave'] | length) >= 2 else 2}}
 spark.streaming.dynamicAllocation.initialExecutors   {{ groups['sparkSlave'] | length }}
 spark.streaming.dynamicAllocation.reserveRate        0.1
 spark.cores.max                                      {{ groups['sparkSlave'] | length }}
