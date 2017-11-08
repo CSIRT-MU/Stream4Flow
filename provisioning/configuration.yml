@@ -1,0 +1,23 @@
+---
+
+common:
+    box: ubuntu/xenial64
+    box_url: ubuntu/xenial64
+    provision_on_guest: true
+producer:
+    ip: 10.10.0.2
+    memory: 4096
+    cpu: 2
+sparkMaster:
+    ip: 10.10.0.100
+    memory: 4096
+    cpu: 2
+sparkSlave:
+    ip_prefix: 10.10.0.
+    memory: 2048
+    cpu: 2
+    count: 1
+consumer:
+    ip: 10.10.0.3
+    memory: 4096
+    cpu: 2

@@ -1,6 +1,86 @@
 # -*- mode: ruby -*-
 # vi: set ft=ruby :
 
+require 'yaml'
+
+
+class AnsibleProvisioning
+	def initialize(configuration)
+		upper_ip_limit = 101 + configuration["sparkSlave"]["count"] - 1  # Defines spark slaves range
+		slaves_list = Array.new  # Initialize list of spark slaves for ansible
+		
+		@on_guest = configuration["common"]["provision_on_guest"]
+	
+		@host_vars = {
+			"producer" => {
+				"ansible_host" => configuration["producer"]["ip"],
+				"ansible_port" => "22",
+				"ansible_ssh_pass" => "vagrant"
+			},
+			"consumer" => {
+				"ansible_host" => configuration["consumer"]["ip"],
+				"ansible_port" => "22",
+				"ansible_ssh_pass" => "vagrant"
+			},
+			"sparkMaster" => {
+				"ansible_host" => configuration["sparkMaster"]["ip"],
+				"ansible_port" => "22",
+				"ansible_ssh_pass" => "vagrant"
+			}
+		}		
+		(101..upper_ip_limit).each do |i|
+			slave_hostname = "sparkSlave#{i}"
+			slave_ip =  "#{configuration["sparkSlave"]["ip_prefix"]}#{i}"
+			slave_ansible_properties = {
+				"ansible_host" => slave_ip,
+				"ansible_port" => "22",
+				"ansible_ssh_pass" => "vagrant"
+			}
+			slaves_list.push(slave_hostname)
+			@host_vars[:"#{slave_hostname}"]  = slave_ansible_properties
+		end
+		
+		@groups = {
+				"producer" => ["producer"],
+				"sparkMaster" => ["sparkMaster"],
+				"sparkSlave" => slaves_list,
+				"consumer" => ["consumer"]
+		}
+	end
+	
+	def install_python(virtual_machine)
+		virtual_machine.vm.provision "shell" do |s|
+				s.inline = "apt-get install -y python"
+		end
+	end
+	
+	def run_ansible(virtual_machine, playbook)
+		provisioner = @on_guest ? :ansible_local : :ansible
+	
+		virtual_machine.vm.provision provisioner do |ansible|
+			ansible.playbook = playbook
+			ansible.groups = @groups
+			ansible.host_vars = @host_vars
+			if not @on_guest
+				ansible.limit = 'all'
+			end
+		end
+	end
+	
+	def provision(virtual_machine)
+		if @on_guest
+			install_python(virtual_machine)
+			run_ansible(virtual_machine, "ansible/all.yml")
+			machine_playbook = "ansible/" + virtual_machine.vm.hostname + ".yml"
+			run_ansible(virtual_machine, machine_playbook)
+		else
+			if virtual_machine.vm.hostname == "consumer"
+				run_ansible(virtual_machine, "ansible/site.yml")
+			end
+		end
+	end
+end
+
 # All Vagrant configuration is done below. The "2" in Vagrant.configure
 # configures the configuration version (we support older styles for
 # backwards compatibility). Please don't change it unless you know what
@@ -13,82 +93,54 @@ Vagrant.configure("2") do |config|
 	# Every Vagrant development environment requires a box. You can search for
 	# boxes at https://atlas.hashicorp.com/search.
 	# config.vm.box = "ubuntu/xenial64"
+	
+	# Load configuration
+	provision_config = YAML.load_file("configuration.yml")
+	
+	# VM BOX CONFIGURATION
+	config.vm.box = provision_config["common"]["box"]
+	config.vm.box_url = provision_config["common"]["box_url"]
 
-	# GENERAL CONFIG:
-		# VM BOX CONFIGURATION
-		config.vm.box = "ubuntu/xenial64"
-		config.vm.box_url = "ubuntu/xenial64"
-
-		# IP CONFIGURATION
-		producer_ip = "192.168.0.2"
-		consumer_ip = "192.168.0.3"
-		sparkMaster_ip = "192.168.0.100"
-		sparkSlave_prefix = "192.168.0."
-
-		# NUMBER OF SLAVES
-		# Spark Slave IP address starts at sparkSlave_prefix.101 and increments by one.
-		number_of_slaves = 1
-
-		# VM PROPERTIES CONFIGURATION
-		# Producer
-		producer_mem_mb = 4096
-		producer_cpu_num = 4
-		# Consumer
-		consumer_mem_mb = 4096
-		consumer_cpu_num = 2
-		# SparkMaster
-		sparkMaster_mem_mb = 4096
-		sparkMaster_cpu_num = 2
-		# SparkSlave
-		sparkSlave_mem_mb = 4096
-		sparkSlave_cpu_num = 4
-
+	# Set provisioning
+	ansible_provisioning = AnsibleProvisioning.new(provision_config)
+		
 	# PRODUCER STARTUP:
 	config.vm.define "producer" do |producer|
 		producer.vm.hostname = "producer"
 
-		producer.vm.network :private_network, ip: producer_ip
+		producer.vm.network :private_network, ip: provision_config["producer"]["ip"]
 
 		producer.vm.provider :virtualbox do |v|
-			v.customize ["modifyvm", :id, "--memory", producer_mem_mb]
-			v.customize ["modifyvm", :id, "--cpus", producer_cpu_num]
+			v.customize ["modifyvm", :id, "--memory", provision_config["producer"]["memory"]]
+			v.customize ["modifyvm", :id, "--cpus", provision_config["producer"]["cpu"]]
 			v.customize ["modifyvm", :id, "--name", "producer"]
 		end
 
-        # Install python2 for ansible
-        producer.vm.provision "shell" do |s|
-            s.inline = "apt-get install -y python"
-        end
+    ansible_provisioning.provision(producer)
 	end
 
 	# SPARK-MASTER STARTUP:
 	config.vm.define "sparkMaster" do |sparkMaster|
 		sparkMaster.vm.hostname = "sparkMaster"
 
-		sparkMaster.vm.network :private_network, ip: sparkMaster_ip
+		sparkMaster.vm.network :private_network, ip: provision_config["sparkMaster"]["ip"]
 
 		sparkMaster.vm.provider :virtualbox do |v|
-			v.customize ["modifyvm", :id, "--memory", sparkMaster_mem_mb]
-			v.customize ["modifyvm", :id, "--cpus", sparkMaster_cpu_num]
+			v.customize ["modifyvm", :id, "--memory", provision_config["sparkMaster"]["memory"]]
+			v.customize ["modifyvm", :id, "--cpus", provision_config["sparkMaster"]["cpu"]]
 			v.customize ["modifyvm", :id, "--name", "sparkMaster"]
 		end
 
-        # Install python2 for ansible
-        sparkMaster.vm.provision "shell" do |s|
-            s.inline = "apt-get install -y python"
-        end
-
+    ansible_provisioning.provision(sparkMaster)
 	end
 
 	# SPARK-SLAVES STARTUP:
-	upper_ip_limit = 101 + number_of_slaves - 1  # Defines spark slaves range
-	sparkSlaves_list = Array.new  # Initialize list of spark slaves for ansible
+	upper_ip_limit = 101 + provision_config["sparkSlave"]["count"] - 1  # Defines spark slaves range
 
 	# Iterate over spark slaves
 	(101..upper_ip_limit).each do |i|
 		sparkSlave_hostname = "sparkSlave#{i}"
-		sparkSlave_ip =  "#{sparkSlave_prefix}#{i}"
-		sparkSlaves_list.push(sparkSlave_hostname)
+		sparkSlave_ip =  "#{provision_config["sparkSlave"]["ip_prefix"]}#{i}"
 
 		# Defining VM properties
 		config.vm.define "sparkSlave#{i}" do |node|
@@ -96,16 +148,12 @@ Vagrant.configure("2") do |config|
 			node.vm.network :private_network, ip: sparkSlave_ip
 
 			node.vm.provider :virtualbox do |v|
-				v.customize ["modifyvm", :id, "--memory", sparkSlave_mem_mb]
-				v.customize ["modifyvm", :id, "--cpus", sparkSlave_cpu_num]
+				v.customize ["modifyvm", :id, "--memory", provision_config["sparkSlave"]["memory"]]
+				v.customize ["modifyvm", :id, "--cpus", provision_config["sparkSlave"]["cpu"]]
 				v.customize ["modifyvm", :id, "--name", "sparkSlave#{i}"]
 			end
 
-            # Install python2 for ansible
-            node.vm.provision "shell" do |s|
-                s.inline = "apt-get install -y python"
-            end
-
+      ansible_provisioning.provision(node)
 		end
 	end
 
@@ -113,114 +161,14 @@ Vagrant.configure("2") do |config|
 	config.vm.define "consumer" do |consumer|
 		consumer.vm.hostname = "consumer"
 
-		consumer.vm.network :private_network, ip: consumer_ip
-		consumer.vm.network "forwarded_port", guest: 443, host: 8443
+		consumer.vm.network :private_network, ip: provision_config["consumer"]["ip"]
 
 		consumer.vm.provider :virtualbox do |v|
-			v.customize ["modifyvm", :id, "--memory", consumer_mem_mb]
-			v.customize ["modifyvm", :id, "--cpus", consumer_cpu_num]
+			v.customize ["modifyvm", :id, "--memory", provision_config["consumer"]["memory"]]
+			v.customize ["modifyvm", :id, "--cpus", provision_config["consumer"]["cpu"]]
 			v.customize ["modifyvm", :id, "--name", "consumer"]
 		end
 
-        # Install python2 for ansible
-        consumer.vm.provision "shell" do |s|
-                        s.inline = "apt-get install -y python"
-        end
-
-		consumer.vm.provision :ansible do |ansible|
-			ansible.playbook = "ansible/site.yml"
-			ansible.groups = {
-				"producer" => ["producer"],
-				"sparkMaster" => ["sparkMaster"],
-				"sparkSlave" => sparkSlaves_list,
-				"consumer" => ["consumer"]
-			}
-			ansible.host_vars = {
-				"producer" => {
-					"ansible_host" => producer_ip,
-					"ansible_port" => "22",
-					"ansible_ssh_pass" => "vagrant"
-				},
-				"consumer" => {
-					"ansible_host" => consumer_ip,
-					"ansible_port" => "22",
-					"ansible_ssh_pass" => "vagrant"
-				},
-				"sparkMaster" => {
-					"ansible_host" => sparkMaster_ip,
-					"ansible_port" => "22",
-					"ansible_ssh_pass" => "vagrant"
-				}
-			}
-			(101..upper_ip_limit).each do |i|
-				sparkSlave_hostname = "sparkSlave#{i}"
-				sparkSlave_ip =  "#{sparkSlave_prefix}#{i}"
-				sparkSlave_ansible_properties = {
-					"ansible_host" => sparkSlave_ip,
-					"ansible_port" => "22",
-					"ansible_ssh_pass" => "vagrant"
-				}
-				ansible.host_vars[:"#{sparkSlave_hostname}"]  = sparkSlave_ansible_properties
-			end
-
-			ansible.limit = 'all'
-
-		end
+    ansible_provisioning.provision(consumer)
 	end
-
-
-	# Disable automatic box update checking. If you disable this, then
-	# boxes will only be checked for updates when the user runs
-	# `vagrant box outdated`. This is not recommended.
-	# config.vm.box_check_update = false
-
-	# Create a forwarded port mapping which allows access to a specific port
-	# within the machine from a port on the host machine. In the example below,
-	# accessing "localhost:8080" will access port 80 on the guest machine.
-	# config.vm.network "forwarded_port", guest: 80, host: 8080
-
-	# Create a private network, which allows host-only access to the machine
-	# using a specific IP.
-	# config.vm.network "private_network", ip: "192.168.33.10"
-
-	# Create a public network, which generally matched to bridged network.
-	# Bridged networks make the machine appear as another physical device on
-	# your network.
-	# config.vm.network "public_network"
-
-	# Share an additional folder to the guest VM. The first argument is
-	# the path on the host to the actual folder. The second argument is
-	# the path on the guest to mount the folder. And the optional third
-	# argument is a set of non-required options.
-	# config.vm.synced_folder "../data", "/vagrant_data"
-
-	# Provider-specific configuration so you can fine-tune various
-	# backing providers for Vagrant. These expose provider-specific options.
-	# Example for VirtualBox:
-	#
-	# config.vm.provider "virtualbox" do |vb|
-	#   # Display the VirtualBox GUI when booting the machine
-	#   vb.gui = true
-	#
-	#   # Customize the amount of memory on the VM:
-	#   vb.memory = "1024"
-	# end
-	#
-	# View the documentation for the provider you are using for more
-	# information on available options.
-
-	# Define a Vagrant Push strategy for pushing to Atlas. Other push strategies
-	# such as FTP and Heroku are also available. See the documentation at
-	# https://docs.vagrantup.com/v2/push/atlas.html for more information.
-	# config.push.define "atlas" do |push|
-	#   push.app = "YOUR_ATLAS_USERNAME/YOUR_APPLICATION_NAME"
-	# end
-
-	# Enable provisioning with a shell script. Additional provisioners such as
-	# Puppet, Chef, Ansible, Salt, and Docker are also available. Please see the
-	# documentation for more information about their specific syntax and use.
-	# config.vm.provision "shell", inline: <<-SHELL
-	#   apt-get update
-	#   apt-get install -y apache2
-	# SHELL
 end
