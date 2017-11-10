@@ -1,6 +1,7 @@
 ---
 - hosts: producer
   roles:
+    - get-vars
     - ubuntu-systemd-normalizer
     - kafka
     - ipfixcol

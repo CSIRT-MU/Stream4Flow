@@ -1,5 +1,6 @@
 ---
 - hosts: sparkMaster
   roles: 
+    - get-vars
     - spark
     - applications
