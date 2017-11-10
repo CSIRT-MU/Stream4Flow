@@ -7,11 +7,8 @@
 - name: Edit sshd_conf (2/2)
   lineinfile: "dest=/etc/ssh/sshd_config state=present regexp='PasswordAuthentication.*' line='PasswordAuthentication  no'"
 
-- name: Generate Certificate Signing Request (CSR)
-  shell: openssl req -nodes -newkey rsa:2048 -keyout /etc/ssl/private/private.key -out /tmp/server.csr -subj "{{ cert_subj }}" creates=/etc/ssl/private/private.key
-
 - name: Generate a self-signed SSL certificate
-  shell: openssl x509 -req -days 365 -in /tmp/server.csr -signkey /etc/ssl/private/private.key -out /etc/ssl/certs/server.crt creates=/etc/ssl/certs/server.crt
+  shell: bash -c "openssl req -newkey rsa:2048 -x509 -nodes -keyout /etc/ssl/private/private.key -new -out /etc/ssl/certs/server.crt -subj "{{ cert_subj }}" -reqexts SAN -extensions SAN -config <(cat $(openssl version -d | cut -d \" -f2)/openssl.cnf <(printf '[SAN]\nsubjectAltName=IP:{{ ansible_host }}')) -sha512 -days 365"
 
 - name: Change access rights to private key
   file: path=/etc/ssl/private/private.key mode=0640
