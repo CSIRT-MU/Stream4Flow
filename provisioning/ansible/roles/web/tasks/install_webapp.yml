@@ -6,17 +6,26 @@
      version: master
 
 - name: Copy routes.py to /var/www/web2py
-  copy: remote_src=True src={{ repository_tmp }}/web-interface/routes.py dest=/var/www/web2py/routes.py owner=www-data group=www-data
+  copy:
+    src: "{{ repository_tmp }}/web-interface/routes.py"
+    dest: /var/www/web2py/routes.py
+    owner: www-data
+    group: www-data
 
 - name: Copy Stream4Flow web2py application
-  command: mv {{ repository_tmp }}/web-interface/Stream4Flow /var/www/web2py/applications/
-
-- name: Set application attributes
+  copy:
+    src: "{{ repository_tmp }}/web-interface/Stream4Flow"
+    dest: /var/www/web2py/applications/
+    directory_mode: yes
+    owner: www-data
+    group: www-data
+    mode: 0644
+    
+- name: Set correct perissions of directories
   file:
-     path: /var/www/web2py/applications/Stream4Flow
-     owner: www-data
-     group: www-data
-     recurse: yes
+    path: /var/www/web2py/applications/
+    mode: u=rwX,g=rX,o=rX
+    recurse: yes
 
 - name: Set hostname in appconfig.ini
   lineinfile:
