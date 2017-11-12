@@ -1,16 +1,76 @@
 # -*- mode: ruby -*-
 # vi: set ft=ruby :
 
-require 'yaml'
+#
+# MIT License
+#
+# Copyright (c) 2016 Institute of Computer Science, Masaryk University
+#
+# Permission is hereby granted, free of charge, to any person obtaining a copy
+# of this software and associated documentation files (the "Software"), to deal
+# in the Software without restriction, including without limitation the rights
+# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+# copies of the Software, and to permit persons to whom the Software is
+# furnished to do so, subject to the following conditions:
+#
+# The above copyright notice and this permission notice shall be included in all
+# copies or substantial portions of the Software.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+# SOFTWARE.
+#
+
+# """
+# This script serves as an input for Vagrant provisioner to deploy whole
+# Stream4Flow framework.
+#
+# All configuration should be set in "./configuration.yml" file. Please don't
+# change the code below unless you know what you're doing.
+#
+# Provisioning may take a long time, do not stop it or suspend it earlier, it
+# can cause unexpected behavior.
+#
+#
+# Usage:
+#  * vagrant up              -- deploy and provision the framework
+#  * vagrant up <node name>  -- deploy and provision specified node
+#  * vagrant halt            -- stop the running framework
+#  * vagrant destroy         -- destroy the deployed framework
+#  * vagrant -h              -- show common vagrant commands
+# """
+
+
+require 'yaml'  # YAML configuration parser
 
 
 class AnsibleProvisioning
+	# """
+	# Class for Ansible provisioning of Stream4Flow to provision based on
+	# configuration file.
+	# """
+	
 	def initialize(configuration)
-		upper_ip_limit = 101 + configuration["sparkSlave"]["count"] - 1  # Defines spark slaves range
-		slaves_list = Array.new  # Initialize list of spark slaves for ansible
+		# """
+		# Initialize class based on the given configuration. Also sets ansible
+		# host_vars and groups.
+		#
+		# :param configuration: Parsed configuration in dictionary format
+		# """		
+		# IP address range dDefinition of Spark slave nodes
+		upper_ip_limit = 101 + configuration["sparkSlave"]["count"] - 1
+		# Initialization of list of Spark slaves
+		slaves_list = Array.new
 		
+		# Determine if provisioning should be on guest using ansible_local or from
+		# host using ansible provisioner
 		@on_guest = configuration["common"]["provision_on_guest"]
 	
+		# Set Ansible host_vars
 		@host_vars = {
 			"producer" => {
 				"ansible_host" => configuration["producer"]["ip"],
@@ -27,7 +87,8 @@ class AnsibleProvisioning
 				"ansible_port" => "22",
 				"ansible_ssh_pass" => "vagrant"
 			}
-		}		
+		}
+		# Iterate over spark slaves nodes
 		(101..upper_ip_limit).each do |i|
 			slave_hostname = "sparkSlave#{i}"
 			slave_ip =  "#{configuration["sparkSlave"]["ip_prefix"]}#{i}"
@@ -36,10 +97,12 @@ class AnsibleProvisioning
 				"ansible_port" => "22",
 				"ansible_ssh_pass" => "vagrant"
 			}
+			# Append slave cofiguration to Ansible vars
 			slaves_list.push(slave_hostname)
 			@host_vars[:"#{slave_hostname}"]  = slave_ansible_properties
 		end
 		
+		# Set Ansible groups
 		@groups = {
 				"producer" => ["producer"],
 				"sparkMaster" => ["sparkMaster"],
@@ -48,63 +111,91 @@ class AnsibleProvisioning
 		}
 	end
 	
-	def install_python(virtual_machine)
-		virtual_machine.vm.provision "shell" do |s|
+	
+	def install_python(virtual_node)
+		# """
+		# Install python on given node using standard shell provisioning.
+		#
+		# :param virtual_node: Initialized Vagrant node
+		# """
+		virtual_node.vm.provision "shell" do |s|
 				s.inline = "apt-get install -y python"
 		end
 	end
 	
-	def run_ansible(virtual_machine, playbook)
+	
+	def run_ansible(virtual_node, playbook)
+		# """
+		# Run ansible on given node.
+		#
+		# :param virtual_node: Initialized Vagrant node
+		# :param playbook: Asnible playbook
+		# """
+		# If profision on guest, than use ansible_local, otherwise use ansible
+		# provisioner
 		provisioner = @on_guest ? :ansible_local : :ansible
 	
-		virtual_machine.vm.provision provisioner do |ansible|
+	  # Run Ansible provisioning
+		virtual_node.vm.provision provisioner do |ansible|
 			ansible.playbook = playbook
 			ansible.groups = @groups
 			ansible.host_vars = @host_vars
+			# Run provisioning in paralel if on_guest is set to false
 			if not @on_guest
 				ansible.limit = 'all'
 			end
 		end
 	end
 	
-	def provision(virtual_machine)
+	
+	def provision(virtual_node)
+		# """
+		# Run provisioning on given node. If node is "consumer" and
+		# provision_on_guest=false than run provision on paralel.
+		#
+		# :param virtual_node: Initialized Vagrant node
+		# """
 		if @on_guest
-			install_python(virtual_machine)
-			run_ansible(virtual_machine, "ansible/all.yml")
-			machine_playbook = "ansible/" + virtual_machine.vm.hostname + ".yml"
-			run_ansible(virtual_machine, machine_playbook)
+			# Install python to node (necessary to run ansible_local)
+			install_python(virtual_node)
+			# Provison settings similar to all nodes
+			run_ansible(virtual_node, "ansible/all.yml")
+			# Provision settings specific for given node
+			node_playbook = "ansible/" + virtual_node.vm.hostname + ".yml"
+			run_ansible(virtual_node, node_playbook)
 		else
+			# Run provisioning after the last node (consumer) is initialized
 			if virtual_machine.vm.hostname == "consumer"
-				run_ansible(virtual_machine, "ansible/site.yml")
+				# Provison settings for all nodes at once
+				run_ansible(virtual_node, "ansible/site.yml")
 			end
 		end
 	end
 end
 
-# All Vagrant configuration is done below. The "2" in Vagrant.configure
-# configures the configuration version (we support older styles for
-# backwards compatibility). Please don't change it unless you know what
-# you're doing.
-Vagrant.configure("2") do |config|
-	# The most common configuration options are documented and commented below.
-	# For a complete reference, please see the online documentation at
-	# https://docs.vagrantup.com.
 
-	# Every Vagrant development environment requires a box. You can search for
-	# boxes at https://atlas.hashicorp.com/search.
-	# config.vm.box = "ubuntu/xenial64"
+# """
+# All Vagrant configuration is done below.
+#
+# The "2" in Vagrant.configure configures the configuration version (Vagrant
+# support older styles for backwards compatibility). Please don't change it
+# unless you know what you're doing.
+# """
+Vagrant.configure("2") do |config|
+	# For a complete reference of configuration, please see the online
+	# documentation at https://docs.vagrantup.com.
 	
-	# Load configuration
+	# Load Vagrant configuration
 	provision_config = YAML.load_file("configuration.yml")
 	
-	# VM BOX CONFIGURATION
+	# Selection of used Vagrant virtual boxes
 	config.vm.box = provision_config["common"]["box"]
 	config.vm.box_url = provision_config["common"]["box_url"]
 
-	# Set provisioning
+	# Create Ansible provisioning object
 	ansible_provisioning = AnsibleProvisioning.new(provision_config)
 		
-	# PRODUCER STARTUP:
+	# Deployment of "producer" node
 	config.vm.define "producer" do |producer|
 		producer.vm.hostname = "producer"
 
@@ -116,10 +207,11 @@ Vagrant.configure("2") do |config|
 			v.customize ["modifyvm", :id, "--name", "producer"]
 		end
 
+		# Run ansible provisioning (if provision_on_guest=false this step is skipped)
     ansible_provisioning.provision(producer)
 	end
 
-	# SPARK-MASTER STARTUP:
+	# Deployment of "sparkMaster" node
 	config.vm.define "sparkMaster" do |sparkMaster|
 		sparkMaster.vm.hostname = "sparkMaster"
 
@@ -131,18 +223,20 @@ Vagrant.configure("2") do |config|
 			v.customize ["modifyvm", :id, "--name", "sparkMaster"]
 		end
 
+		# Run ansible provisioning (if provision_on_guest=false this step is skipped)
     ansible_provisioning.provision(sparkMaster)
 	end
 
-	# SPARK-SLAVES STARTUP:
-	upper_ip_limit = 101 + provision_config["sparkSlave"]["count"] - 1  # Defines spark slaves range
+	# IP address range dDefinition of Spark slave nodes
+	upper_ip_limit = 101 + provision_config["sparkSlave"]["count"] - 1
 
-	# Iterate over spark slaves
+	# Iterate over spark slaves nodes
 	(101..upper_ip_limit).each do |i|
+		# Generate node name and IP address
 		sparkSlave_hostname = "sparkSlave#{i}"
 		sparkSlave_ip =  "#{provision_config["sparkSlave"]["ip_prefix"]}#{i}"
 
-		# Defining VM properties
+		# Deployment of "sparkSlaveXXX" node
 		config.vm.define "sparkSlave#{i}" do |node|
 			node.vm.hostname = sparkSlave_hostname
 			node.vm.network :private_network, ip: sparkSlave_ip
@@ -153,11 +247,12 @@ Vagrant.configure("2") do |config|
 				v.customize ["modifyvm", :id, "--name", "sparkSlave#{i}"]
 			end
 
+			# Run ansible provisioning (if provision_on_guest=false this step is skipped)
       ansible_provisioning.provision(node)
 		end
 	end
 
-	# CONSUMER STARTUP:
+	# Deployment of "consumer" node
 	config.vm.define "consumer" do |consumer|
 		consumer.vm.hostname = "consumer"
 
@@ -169,6 +264,8 @@ Vagrant.configure("2") do |config|
 			v.customize ["modifyvm", :id, "--name", "consumer"]
 		end
 
+		# Run ansible provisioning (if provision_on_guest=false ansible is run in
+		# paralel for all nodes)
     ansible_provisioning.provision(consumer)
 	end
 end
