@@ -140,6 +140,7 @@ class AnsibleProvisioning
 			ansible.playbook = playbook
 			ansible.groups = @groups
 			ansible.host_vars = @host_vars
+			ansible.config_file = "ansible/ansible.cfg"
 			# Run provisioning in paralel if on_guest is set to false
 			if not @on_guest
 				ansible.limit = 'all'
@@ -161,7 +162,8 @@ class AnsibleProvisioning
 			# Provison settings similar to all nodes
 			run_ansible(virtual_node, "ansible/all.yml")
 			# Provision settings specific for given node
-			node_playbook = "ansible/" + virtual_node.vm.hostname + ".yml"
+			node_name = (virtual_node.vm.hostname).start_with?("sparkSlave") ? "sparkSlave" : virtual_node.vm.hostname
+			node_playbook = "ansible/" + node_name  + ".yml"
 			run_ansible(virtual_node, node_playbook)
 		else
 			# Run provisioning after the last node (consumer) is initialized
