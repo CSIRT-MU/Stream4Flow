@@ -1,8 +1,54 @@
 //------------------- Common Functions --------------------------
-function setFocus(element_id) {
-    $('html, body').animate({
-        scrollTop: $(element_id).offset().top
-    }, 1000);
+// Hack necessary for ZingChart (it is unable to work with ID containing numbers)
+function replaceNumbers(string) {
+    return string.replace(/1/g, 'a').replace(/2/g, 'b').replace(/3/g, 'c').replace(/4/g, 'd').replace(/5/g, 'e').replace(/6/g, 'f').replace(/7/g, 'g').replace(/8/g, 'h').replace(/9/g, 'i')
+};
+
+var loaded_hosts = []
+function isHostLoaded(host_ip) {
+    return ((jQuery.inArray(host_ip, loaded_hosts) >= 0) ? true : false);
+};
+function addLoadedHost(host_ip) {
+    loaded_hosts.push(host_ip);
+};
+function removeLoadedHost(host_ip) {
+   loaded_hosts.splice($.inArray(host_ip, loaded_hosts), 1);
+};
+
+function setCookie(cname, cvalue, exdays) {
+    var d = new Date();
+    d.setTime(d.getTime() + (exdays * 24 * 60 * 60 * 1000));
+    var expires = "expires="+d.toUTCString();
+    document.cookie = cname + "=" + cvalue + ";" + expires + ";path=/";
+};
+
+function getCookie(cname) {
+    var name = cname + "=";
+    var ca = document.cookie.split(';');
+    for(var i = 0; i < ca.length; i++) {
+        var c = ca[i];
+        while (c.charAt(0) == ' ') {
+            c = c.substring(1);
+        }
+        if (c.indexOf(name) == 0) {
+            return c.substring(name.length, c.length);
+        }
+    }
+    return "";
+};
+
+function closePanel(host_ip) {
+    // Replace dots in host_ip to dashes to allow its easy use in element ID
+    var host_id = replaceNumbers(host_ip.replace(/\./g, '-'));
+
+    // Get id of element to remove
+    var element_id = '#' + host_id + '-charts-panel';
+
+    // Remove specified panel
+    $(element_id).remove();
+
+    // Remove host IP from loaded IPs
+    removeLoadedHost(host_ip);
 };
 
 
@@ -14,8 +60,8 @@ function generateHeatmap(data) {
     var chartIdStatus = chartId + '-status';
 
     // Get network prefix
-    var filter = $('#filter').val().split('.');
-    var network_prefix = filter[0] + '.' + filter[1] + '.';
+    var network = $('#network').val().split('.');
+    var network_prefix = network[0] + '.' + network[1] + '.';
 
     $('#' + chartId).highcharts({
         data: {
@@ -115,6 +161,32 @@ function loadHeatmapChart() {
     // Show status element
     $(chartIdStatus).show();
 
+    // Clear loaded hosts
+    $('#detailed-charts').empty();
+    loaded_hosts = [];
+
+    // Check if network is set
+    if ($('#network').val()) {
+        // Save network to the cookie
+        setCookie("host_statistics-network", $('#network').val(), 365)
+    } else {
+        // Check if network is stored in cookie
+        var network = getCookie("host_statistics-network");
+        if (network != "") {
+            // Set network stored in cookie and continue
+            $('#network').val(network);
+        } else {
+            // If network is not set and not stored in cookie then show warning message
+            $(chartIdStatus).html(
+                '<i class="fa fa-exclamation-circle fa-2x"></i>\
+                 <span>Network is not set!</span>'
+            )
+
+            // Do not generate the heatmap
+            return;
+        }
+    }
+
     // Set loading status
     $(chartIdStatus).html(
         '<i class="fa fa-refresh fa-spin fa-2x fa-fw"></i>\
@@ -125,11 +197,11 @@ function loadHeatmapChart() {
     var beginning = new Date( $('#datetime-beginning').val()).toISOString();
     var end = new Date( $('#datetime-end').val()).toISOString();
 
-    // Get filter value (if empty then set "none")
-    var filter = $('#filter').val() ? $('#filter').val() : 'none';
+    // Get network value (if empty then set "none")
+    var network = $('#network').val() ? $('#network').val() : 'none';
 
     // Set data request
-    var data_request = encodeURI( './get_heatmap_statistics' + '?beginning=' + beginning + '&end=' + end + '&filter=' + filter);
+    var data_request = encodeURI( './get_heatmap_statistics' + '?beginning=' + beginning + '&end=' + end + '&network=' + network);
     // Get Elasticsearch data
     $.ajax({
         async: true,
@@ -154,9 +226,12 @@ function loadHeatmapChart() {
 
 //------------------- Host Network Traffic Chart --------------------------
 // Generate a chart and set it to the given div
-function generateHostFlowsChart(data, host) {
+function generateHostFlowsChart(data, host_ip) {
+    // Replace dots in host_ip to dashes to allow its easy use in element ID
+    var host_id = replaceNumbers(host_ip.replace(/\./g, '-'));
+
     // Elements ID
-    var chartId = 'chart-host-flows';
+    var chartId = host_id + '-flows';
     var chartIdStatus = chartId + '-status';
 
     // Hide status element
@@ -169,7 +244,7 @@ function generateHostFlowsChart(data, host) {
         type: 'line',
         backgroundColor:'#fff',
         title:{
-            text: 'Traffic Statistics of the Host ' + host,
+            text: 'Traffic Statistics of the Host ' + host_ip,
             adjustLayout: true,
             fontColor:"#444444"
         },
@@ -279,13 +354,13 @@ function generateHostFlowsChart(data, host) {
 
 // Obtain flow data for a host and generate the chart
 function loadHostFlowsChart(host_ip) {
-    // Elements ID
-    var chartId = '#chart-host-flows';
-    var chartIdStatus = chartId + '-status';
-    var chartIdPanel = chartId + '-panel';
+    // Replace dots in host_ip to dashes to allow its easy use in element ID
+    var host_id = replaceNumbers(host_ip.replace(/\./g, '-'));
 
-    // Show chart panel
-    $(chartIdPanel).show();
+    // Elements ID
+    var chartId = '#' + host_id + '-flows';
+    var chartIdStatus = chartId + '-status';
+
     // Hide chart element
     $(chartId).hide();
     // Show status element
@@ -296,9 +371,6 @@ function loadHostFlowsChart(host_ip) {
         '<i class="fa fa-refresh fa-spin fa-2x fa-fw"></i>\
          <span>Loading...</span>'
     )
-
-    // Scroll to this element ID
-    setFocus(chartIdPanel);
 
     // Convert times to UTC in ISO format
     var beginning = new Date( $('#datetime-beginning').val()).toISOString();
@@ -329,9 +401,12 @@ function loadHostFlowsChart(host_ip) {
 
 //------------------- Host Tcp Chart --------------------------
 // Generate a chart and set it to the given div
-function generateHostTcp(data, host) {
+function generateHostTcp(data, host_ip) {
+    // Replace dots in host_ip to dashes to allow its easy use in element ID
+    var host_id = replaceNumbers(host_ip.replace(/\./g, '-'));
+
     // Elements ID
-    var chartId = 'chart-host-flags';
+    var chartId = host_id + '-tcp-flags';
     var chartIdStatus = chartId + '-status';
 
     // Hide status element
@@ -344,7 +419,7 @@ function generateHostTcp(data, host) {
         type: 'line',
         backgroundColor:'#fff',
         title:{
-            text: 'TCP Flags of the Host ' + host,
+            text: 'TCP Flags of the Host ' + host_ip,
             adjustLayout: true,
             fontColor:"#444444"
         },
@@ -454,17 +529,17 @@ function generateHostTcp(data, host) {
 
 // Obtain flow data for a host and generate the chart
 function loadHostTcpChart(host_ip) {
+    // Replace dots in host_ip to dashes to allow its easy use in element ID
+    var host_id = replaceNumbers(host_ip.replace(/\./g, '-'));
+
     // Elements ID
-    var chartId = '#chart-host-flags';
+    var chartId = '#' + host_id + '-tcp-flags';
     var chartIdStatus = chartId + '-status';
-    var chartIdPanel = chartId + '-panel';
 
     // Hide chart element
     $(chartId).hide();
     // Show status element
     $(chartIdStatus).show();
-    // Show chart panel
-    $(chartIdPanel).show();
 
     // Set loading status
     $(chartIdStatus).html(
@@ -501,9 +576,12 @@ function loadHostTcpChart(host_ip) {
 
 //------------------- Host Count of Distinct Dst Ports Chart --------------------------
 // Generate a chart and set it to the given div
-function generateHostDistinctPorts(data, host) {
+function generateHostDistinctPorts(data, host_ip) {
+    // Replace dots in host_ip to dashes to allow its easy use in element ID
+    var host_id = replaceNumbers(host_ip.replace(/\./g, '-'));
+
     // Elements ID
-    var chartId = 'chart-host-distinct-ports';
+    var chartId = host_id + '-distinct-ports';
     var chartIdStatus = chartId + '-status';
 
     // Hide status element
@@ -516,7 +594,7 @@ function generateHostDistinctPorts(data, host) {
         type: 'mixed',
         backgroundColor:'#fff',
         title:{
-            text: 'Distinct Destination Ports for the Host ' + host,
+            text: 'Distinct Destination Ports for the Host ' + host_ip,
             adjustLayout: true,
             fontColor:"#444444"
         },
@@ -652,17 +730,17 @@ function generateHostDistinctPorts(data, host) {
 
 // Obtain flow data for a host and generate the chart
 function loadHostDistinctPorts(host_ip) {
+    // Replace dots in host_ip to dashes to allow its easy use in element ID
+    var host_id = replaceNumbers(host_ip.replace(/\./g, '-'));
+
     // Elements ID
-    var chartId = '#chart-host-distinct-ports';
+    var chartId = '#' + host_id + '-distinct-ports';
     var chartIdStatus = chartId + '-status';
-    var chartIdPanel = chartId + '-panel';
 
     // Hide chart element
     $(chartId).hide();
     // Show status element
     $(chartIdStatus).show();
-    // Show chart panel
-    $(chartIdPanel).show();
 
     // Set loading status
     $(chartIdStatus).html(
@@ -699,9 +777,12 @@ function loadHostDistinctPorts(host_ip) {
 
 //------------------- Host Count of Distinct Peers Chart --------------------------
 // Generate a chart and set it to the given div
-function generateHostDistinctPeers(data, host) {
+function generateHostDistinctPeers(data, host_ip) {
+    // Replace dots in host_ip to dashes to allow its easy use in element ID
+    var host_id = replaceNumbers(host_ip.replace(/\./g, '-'));
+
     // Elements ID
-    var chartId = 'chart-host-distinct-peers';
+    var chartId = host_id + '-distinct-peers';
     var chartIdStatus = chartId + '-status';
 
     // Hide status element
@@ -715,7 +796,7 @@ function generateHostDistinctPeers(data, host) {
         type: 'mixed',
         backgroundColor:'#fff',
         title:{
-            text: 'Distinct Peers for the Host ' + host,
+            text: 'Distinct Peers for the Host ' + host_ip,
             adjustLayout: true,
             fontColor:"#444444"
         },
@@ -851,17 +932,17 @@ function generateHostDistinctPeers(data, host) {
 
 // Obtain flow data for a host and generate the chart
 function loadHostDistinctPeers(host_ip) {
+    // Replace dots in host_ip to dashes to allow its easy use in element ID
+    var host_id = replaceNumbers(host_ip.replace(/\./g, '-'));
+
     // Elements ID
-    var chartId = '#chart-host-distinct-peers';
+    var chartId = '#' + host_id + '-distinct-peers';
     var chartIdStatus = chartId + '-status';
-    var chartIdPanel = chartId + '-panel';
 
     // Hide chart element
     $(chartId).hide();
     // Show status element
     $(chartIdStatus).show();
-    // Show chart panel
-    $(chartIdPanel).show();
 
     // Set loading status
     $(chartIdStatus).html(
@@ -898,12 +979,96 @@ function loadHostDistinctPeers(host_ip) {
 
 //------------------- Loading functions --------------------------
 
+// Get chart panel template
+function getPanelTemplate(host_ip) {
+    // Replace dots in host_ip to dashes to allow its easy use in element ID
+    var id = replaceNumbers(host_ip.replace(/\./g, '-'));
+
+    // Define charts panel template
+    var panel_template = ' \
+        <div id="' + id +'-charts-panel" class="panel-info widget-shadow general charts-detailed"> \
+            <!-- Title --> \
+            <h4 class="title2"> \
+                Detailed statistics for ' + host_ip + ' \
+                <a class="close-detailed-panel" onclick="closePanel(\'' + host_ip + '\');false;"> \
+                    <i class="fa fa-times-circle" aria-hidden="true"></i> Close \
+                </a> \
+            </h4> \
+            <!-- Statistics selection --> \
+            <ul class="chart-type-selector nav nav-tabs" role="tablist"> \
+                <li role="presentation" class="active"> \
+                    <a href="#' + id +'-flows-panel" id="' + id +'-flows-tab" role="tab" data-toggle="tab" aria-controls="' + id +'-flows-panel" aria-expanded="true">Flows</a> \
+                </li> \
+                <li role="presentation" class=""> \
+                    <a href="#' + id +'-tcp-flags-panel" id="' + id +'-tcp-flags-tab" role="tab" data-toggle="tab" aria-controls="' + id +'-tcp-flags-panel" aria-expanded="false">TCP Flags</a> \
+                </li> \
+                <li role="presentation" class=""> \
+                    <a href="#' + id +'-distinct-ports-panel" id="' + id +'-distinct-ports-tab" role="tab" data-toggle="tab" aria-controls="' + id +'-distinct-ports-panel" aria-expanded="false">Distinct Ports</a> \
+                </li> \
+                <li role="presentation" class=""> \
+                    <a href="#' + id +'-distinct-peers-panel" id="' + id +'-distinct-peers-tab" role="tab" data-toggle="tab" aria-controls="' + id +'-distinct-peers-panel" aria-expanded="false">Distinct Peers</a> \
+                </li> \
+            </ul> \
+            <!-- Charts --> \
+            <div class="tab-content scrollbar1"> \
+                <!-- Flows --> \
+                <div id="' + id +'-flows-panel" class="tab-pane fade active in" role="tabpanel" aria-labelledby="' + id +'-flows-tab"> \
+                    <!-- Status --> \
+                    <div id="' + id +'-flows-status" class="chart-status"></div> \
+                    <!-- Main Chart --> \
+                    <div id="' + id +'-flows" class="zingchart"></div> \
+                </div> \
+                <!-- TCP Flags --> \
+                <div id="' + id +'-tcp-flags-panel" class="tab-pane fade" role="tabpanel" aria-labelledby="' + id +'-tcp-flags-tab"> \
+                    <!-- Status --> \
+                    <div id="' + id +'-tcp-flags-status" class="chart-status"></div> \
+                    <!-- Main Chart --> \
+                    <div id="' + id +'-tcp-flags" class="zingchart"></div> \
+                </div> \
+                <!-- Distinct Ports --> \
+                <div id="' + id +'-distinct-ports-panel" class="tab-pane fade" role="tabpanel" aria-labelledby="' + id +'-distinct-ports-tab"> \
+                    <!-- Status --> \
+                    <div id="' + id +'-distinct-ports-status" class="chart-status"></div> \
+                    <!-- Main Chart --> \
+                    <div id="' + id +'-distinct-ports" class="zingchart"></div> \
+                </div> \
+                <!-- Distinct Peers --> \
+                <div id="' + id +'-distinct-peers-panel" class="tab-pane fade" role="tabpanel" aria-labelledby="' + id +'-distinct-peers-tab"> \
+                    <!-- Status --> \
+                    <div id="' + id +'-distinct-peers-status" class="chart-status"></div> \
+                    <!-- Main Chart --> \
+                    <div id="' + id +'-distinct-peers" class="zingchart"></div> \
+                </div> \
+            </div> \
+        </div> \
+    '
+
+    // Return generated template
+    return panel_template
+}
+
 // Load defined host charts
 function loadHostCharts(host_ip) {
-    loadHostFlowsChart(host_ip);
-    loadHostTcpChart(host_ip);
-    loadHostDistinctPorts(host_ip);
-    loadHostDistinctPeers(host_ip);
+    // Check if host is already loaded
+    if (!isHostLoaded(host_ip)) {
+        // Get a new panel template
+        var panel_template = $.parseHTML(getPanelTemplate(host_ip));
+
+        // Append panel to the current list
+        $('#detailed-charts').append(panel_template);
+
+        // Load flows chart
+        loadHostFlowsChart(host_ip);
+        // Load TCP Flags charts
+        loadHostTcpChart(host_ip);
+        // Load distinct communicating ports chart
+        loadHostDistinctPorts(host_ip);
+        // Load distinct communicating peers chart
+        loadHostDistinctPeers(host_ip);
+
+        // Add host to loaded hosts
+        addLoadedHost(host_ip);
+    }
 };
 
 
