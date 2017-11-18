@@ -69,7 +69,7 @@ def get_heatmap_statistics():
         return json_response
 
     # Check mandatory inputs
-    if not (request.get_vars.beginning and request.get_vars.end and request.get_vars.filter):
+    if not (request.get_vars.beginning and request.get_vars.end and request.get_vars.network):
         json_response = '{"status": "Error", "data": "Some mandatory argument is missing!"}'
         return json_response
 
@@ -77,12 +77,12 @@ def get_heatmap_statistics():
     # Parse inputs and set correct format
     beginning = escape(request.get_vars.beginning)
     end = escape(request.get_vars.end)
-    filter = escape(request.get_vars.filter)
+    network = escape(request.get_vars.network)
 
 
 
     # Get the first and last IP from given CIDR
-    cidr = IPNetwork(filter)
+    cidr = IPNetwork(network)
     cidr_first = cidr[0]
     cidr_last = cidr[-1]
 
@@ -93,7 +93,7 @@ def get_heatmap_statistics():
             [{'host': myconf.get('consumer.hostname'), 'port': myconf.get('consumer.port')}])
         elastic_bool = []
         elastic_bool.append({'range': {'@timestamp': {'gte': beginning, 'lte': end}}})
-        elastic_bool.append({'term': {'src_ip': filter}})
+        elastic_bool.append({'term': {'src_ip': network}})
 
         qx = Q({'bool': {'must': elastic_bool}})
         s = Search(using=client, index='_all').query(qx)
