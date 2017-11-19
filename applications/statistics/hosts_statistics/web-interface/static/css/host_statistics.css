@@ -4,8 +4,8 @@
 }
 .close-detailed-panel {
     float: right;
-    margin: 0.1em 1.8em 1em 0;
-    font-size: 0.9em;
+    margin: 0.9em 1.8em 1em 0;
+    font-size: 0.8em;
     cursor: pointer;
 }
 .chart-type-selector {
@@ -18,4 +18,9 @@
 }
 .zingchart {
     display: none;
+}
+/* Hack to see the whole zingchart watermark */
+div[id$="-license-text"] {
+    padding-top: 9px !important;
+    margin-left: -20px !important;
 }

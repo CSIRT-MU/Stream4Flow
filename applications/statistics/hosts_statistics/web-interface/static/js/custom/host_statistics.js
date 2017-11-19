@@ -1,20 +1,25 @@
 //------------------- Common Functions --------------------------
-// Hack necessary for ZingChart (it is unable to work with ID containing numbers)
+// Replay all numbers to alphabet chars in given string (hack necessary for ZingChart elements id)
 function replaceNumbers(string) {
-    return string.replace(/1/g, 'a').replace(/2/g, 'b').replace(/3/g, 'c').replace(/4/g, 'd').replace(/5/g, 'e').replace(/6/g, 'f').replace(/7/g, 'g').replace(/8/g, 'h').replace(/9/g, 'i')
+    return string.replace(/0/g, 'z').replace(/1/g, 'a').replace(/2/g, 'b').replace(/3/g, 'c').replace(/4/g, 'd').replace(/5/g, 'e').replace(/6/g, 'f').replace(/7/g, 'g').replace(/8/g, 'h').replace(/9/g, 'i')
 };
 
+// List of all loaded host IP addresses used to not load already loaded charts
 var loaded_hosts = []
+// Check if given host IP address is already loaded (stored in loaded list)
 function isHostLoaded(host_ip) {
     return ((jQuery.inArray(host_ip, loaded_hosts) >= 0) ? true : false);
 };
+// Add given host IP address to already loaded host IPs list
 function addLoadedHost(host_ip) {
     loaded_hosts.push(host_ip);
 };
+// Remove given host IP address from already loaded host IPs
 function removeLoadedHost(host_ip) {
    loaded_hosts.splice($.inArray(host_ip, loaded_hosts), 1);
 };
 
+// Common function to store value of given name to cookie
 function setCookie(cname, cvalue, exdays) {
     var d = new Date();
     d.setTime(d.getTime() + (exdays * 24 * 60 * 60 * 1000));
@@ -22,6 +27,7 @@ function setCookie(cname, cvalue, exdays) {
     document.cookie = cname + "=" + cvalue + ";" + expires + ";path=/";
 };
 
+// Common function to get value of given name from stored cookie
 function getCookie(cname) {
     var name = cname + "=";
     var ca = document.cookie.split(';');
@@ -37,10 +43,12 @@ function getCookie(cname) {
     return "";
 };
 
-function closePanel(host_ip) {
-    // Replace dots in host_ip to dashes to allow its easy use in element ID
-    var host_id = replaceNumbers(host_ip.replace(/\./g, '-'));
 
+//------------------- Page Control Functions -------------------
+// Close chart panel for given host IP address
+function closePanel(host_ip) {
+    // Replace dots in host_ip to dashes and swap number to chars (necessary for zingchart)
+    var host_id = replaceNumbers(host_ip.replace(/\./g, '-'));
     // Get id of element to remove
     var element_id = '#' + host_id + '-charts-panel';
 
@@ -161,16 +169,16 @@ function loadHeatmapChart() {
     // Show status element
     $(chartIdStatus).show();
 
-    // Clear loaded hosts
+    // Clear loaded hosts list
     $('#detailed-charts').empty();
     loaded_hosts = [];
 
-    // Check if network is set
+    // Check if network is set in value or in cookie
     if ($('#network').val()) {
         // Save network to the cookie
         setCookie("host_statistics-network", $('#network').val(), 365)
     } else {
-        // Check if network is stored in cookie
+        // Check if network is stored in a cookie
         var network = getCookie("host_statistics-network");
         if (network != "") {
             // Set network stored in cookie and continue
@@ -181,8 +189,7 @@ function loadHeatmapChart() {
                 '<i class="fa fa-exclamation-circle fa-2x"></i>\
                  <span>Network is not set!</span>'
             )
-
-            // Do not generate the heatmap
+            // Do not generate the heatmap if network is not set
             return;
         }
     }
@@ -227,7 +234,7 @@ function loadHeatmapChart() {
 //------------------- Host Network Traffic Chart --------------------------
 // Generate a chart and set it to the given div
 function generateHostFlowsChart(data, host_ip) {
-    // Replace dots in host_ip to dashes to allow its easy use in element ID
+    // Replace dots in host_ip to dashes and swap number to chars (necessary for zingchart)
     var host_id = replaceNumbers(host_ip.replace(/\./g, '-'));
 
     // Elements ID
@@ -348,13 +355,14 @@ function generateHostFlowsChart(data, host_ip) {
     zingchart.render({
 	    id: chartId,
 	    data: myConfig,
-	    height: $('#' + chartId).height()
+	    height: $('#' + host_id + '-panels').height(),
+	    width: $('#' + host_id + '-panels').width()
     });
 };
 
 // Obtain flow data for a host and generate the chart
 function loadHostFlowsChart(host_ip) {
-    // Replace dots in host_ip to dashes to allow its easy use in element ID
+    // Replace dots in host_ip to dashes and swap number to chars (necessary for zingchart)
     var host_id = replaceNumbers(host_ip.replace(/\./g, '-'));
 
     // Elements ID
@@ -402,7 +410,7 @@ function loadHostFlowsChart(host_ip) {
 //------------------- Host Tcp Chart --------------------------
 // Generate a chart and set it to the given div
 function generateHostTcp(data, host_ip) {
-    // Replace dots in host_ip to dashes to allow its easy use in element ID
+    // Replace dots in host_ip to dashes and swap number to chars (necessary for zingchart)
     var host_id = replaceNumbers(host_ip.replace(/\./g, '-'));
 
     // Elements ID
@@ -523,13 +531,14 @@ function generateHostTcp(data, host_ip) {
     zingchart.render({
 	    id: chartId,
 	    data: myConfig,
-	    height: $('#' + chartId).height()
+	    height: $('#' + host_id + '-panels').height(),
+	    width: $('#' + host_id + '-panels').width()
     });
 };
 
 // Obtain flow data for a host and generate the chart
 function loadHostTcpChart(host_ip) {
-    // Replace dots in host_ip to dashes to allow its easy use in element ID
+    // Replace dots in host_ip to dashes and swap number to chars (necessary for zingchart)
     var host_id = replaceNumbers(host_ip.replace(/\./g, '-'));
 
     // Elements ID
@@ -577,7 +586,7 @@ function loadHostTcpChart(host_ip) {
 //------------------- Host Count of Distinct Dst Ports Chart --------------------------
 // Generate a chart and set it to the given div
 function generateHostDistinctPorts(data, host_ip) {
-    // Replace dots in host_ip to dashes to allow its easy use in element ID
+    // Replace dots in host_ip to dashes and swap number to chars (necessary for zingchart)
     var host_id = replaceNumbers(host_ip.replace(/\./g, '-'));
 
     // Elements ID
@@ -724,13 +733,14 @@ function generateHostDistinctPorts(data, host_ip) {
     zingchart.render({
 	    id: chartId,
 	    data: myConfig,
-	    height: $('#' + chartId).height()
+	    height: $('#' + host_id + '-panels').height(),
+	    width: $('#' + host_id + '-panels').width()
     });
 };
 
 // Obtain flow data for a host and generate the chart
 function loadHostDistinctPorts(host_ip) {
-    // Replace dots in host_ip to dashes to allow its easy use in element ID
+    // Replace dots in host_ip to dashes and swap number to chars (necessary for zingchart)
     var host_id = replaceNumbers(host_ip.replace(/\./g, '-'));
 
     // Elements ID
@@ -778,7 +788,7 @@ function loadHostDistinctPorts(host_ip) {
 //------------------- Host Count of Distinct Peers Chart --------------------------
 // Generate a chart and set it to the given div
 function generateHostDistinctPeers(data, host_ip) {
-    // Replace dots in host_ip to dashes to allow its easy use in element ID
+    // Replace dots in host_ip to dashes and swap number to chars (necessary for zingchart)
     var host_id = replaceNumbers(host_ip.replace(/\./g, '-'));
 
     // Elements ID
@@ -789,7 +799,6 @@ function generateHostDistinctPeers(data, host_ip) {
     $('#' + chartIdStatus).hide();
     // Show chart element
     $('#' + chartId).show();
-
 
     // ZingChart configuration
     var myConfig = {
@@ -926,13 +935,14 @@ function generateHostDistinctPeers(data, host_ip) {
     zingchart.render({
 	    id: chartId,
 	    data: myConfig,
-	    height: $('#' + chartId).height()
+	    height: $('#' + host_id + '-panels').height(),
+	    width: $('#' + host_id + '-panels').width()
     });
 };
 
 // Obtain flow data for a host and generate the chart
 function loadHostDistinctPeers(host_ip) {
-    // Replace dots in host_ip to dashes to allow its easy use in element ID
+    // Replace dots in host_ip to dashes and swap number to chars (necessary for zingchart)
     var host_id = replaceNumbers(host_ip.replace(/\./g, '-'));
 
     // Elements ID
@@ -978,7 +988,6 @@ function loadHostDistinctPeers(host_ip) {
 
 
 //------------------- Loading functions --------------------------
-
 // Get chart panel template
 function getPanelTemplate(host_ip) {
     // Replace dots in host_ip to dashes to allow its easy use in element ID
@@ -1010,7 +1019,7 @@ function getPanelTemplate(host_ip) {
                 </li> \
             </ul> \
             <!-- Charts --> \
-            <div class="tab-content scrollbar1"> \
+            <div id="' + id +'-panels" class="tab-content scrollbar1"> \
                 <!-- Flows --> \
                 <div id="' + id +'-flows-panel" class="tab-pane fade active in" role="tabpanel" aria-labelledby="' + id +'-flows-tab"> \
                     <!-- Status --> \
@@ -1057,20 +1066,19 @@ function loadHostCharts(host_ip) {
         // Append panel to the current list
         $('#detailed-charts').append(panel_template);
 
-        // Load flows chart
+        // Load all detailed charts
         loadHostFlowsChart(host_ip);
-        // Load TCP Flags charts
         loadHostTcpChart(host_ip);
-        // Load distinct communicating ports chart
         loadHostDistinctPorts(host_ip);
-        // Load distinct communicating peers chart
         loadHostDistinctPeers(host_ip);
 
-        // Add host to loaded hosts
+        // Add host to loaded hosts to not display it again
         addLoadedHost(host_ip);
+
+        // Scroll to the bottom of the page (to loading chart)
+        window.scrollTo(0, document.body.scrollHeight || document.documentElement.scrollHeight);
     }
 };
 
-
-// Load all charts when page loaded
+// Load heatmap chart when the page is loaded
 $(window).load(loadHeatmapChart());

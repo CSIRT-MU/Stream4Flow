@@ -73,19 +73,15 @@ def get_heatmap_statistics():
         json_response = '{"status": "Error", "data": "Some mandatory argument is missing!"}'
         return json_response
 
-
     # Parse inputs and set correct format
     beginning = escape(request.get_vars.beginning)
     end = escape(request.get_vars.end)
     network = escape(request.get_vars.network)
 
-
-
     # Get the first and last IP from given CIDR
     cidr = IPNetwork(network)
     cidr_first = cidr[0]
     cidr_last = cidr[-1]
-
 
     try:
         # Elastic query
@@ -110,7 +106,6 @@ def get_heatmap_statistics():
             for d_segment in range(int(segment_first[3]), int(segment_last[3]) + 1):  # Do at least once
                 empty_data += str(d_segment) + "," + str(c_segment) + ",0;"
 
-
         data = ""
         for bucket in result.aggregations.by_host.buckets:
             ip = bucket.key.split(".")
@@ -125,6 +120,7 @@ def get_heatmap_statistics():
         json_response = '{"status": "Error", "data": "Elasticsearch query exception: ' + escape(str(e)) + '"}'
         return json_response
 
+
 def get_host_flows():
     """
     Gets flows, packet and bytes time series for a given host
@@ -132,7 +128,6 @@ def get_host_flows():
     Returns: JSON with status "ok" or "error" and requested data.
 
     """
-
     # Check login
     if not session.logged:
         json_response = '{"status": "Error", "data": "You must be logged!"}'
@@ -178,10 +173,10 @@ def get_host_flows():
         json_response = '{"status": "Ok", "data": "' + data + '"}'
         return (json_response)
 
-
     except Exception as e:
         json_response = '{"status": "Error", "data": "Elasticsearch query exception: ' + escape(str(e)) + '"}'
         return json_response
+
 
 def get_host_tcp_flags():
     """
@@ -190,7 +185,6 @@ def get_host_tcp_flags():
     Returns: JSON with status "ok" or "error" and requested data.
 
     """
-
     # Check login
     if not session.logged:
         json_response = '{"status": "Error", "data": "You must be logged!"}'
@@ -245,10 +239,10 @@ def get_host_tcp_flags():
         json_response = '{"status": "Ok", "data": "' + data + '"}'
         return (json_response)
 
-
     except Exception as e:
         json_response = '{"status": "Error", "data": "Elasticsearch query exception: ' + escape(str(e)) + '"}'
         return json_response
+
 
 def get_host_distinct_ports():
     """
@@ -257,7 +251,6 @@ def get_host_distinct_ports():
     Returns: JSON with status "ok" or "error" and requested data.
 
     """
-
     # Check login
     if not session.logged:
         json_response = '{"status": "Error", "data": "You must be logged!"}'
@@ -304,14 +297,13 @@ def get_host_distinct_ports():
             data_max.append(maximum)
             data_min.append(minimum)
 
-
         json_response = {"status": "Ok", "data":{ "data_avg": data_avg, "data_min_max": data_min_max, "data_min": data_min, "data_max": data_max}}
         return (json.dumps(json_response))
-
 
     except Exception as e:
         json_response = '{"status": "Error", "data": "Elasticsearch query exception: ' + escape(str(e)) + '"}'
         return json_response
+
 
 def get_host_distinct_peers():
     """
@@ -320,7 +312,6 @@ def get_host_distinct_peers():
     Returns: JSON with status "ok" or "error" and requested data.
 
     """
-
     # Check login
     if not session.logged:
         json_response = '{"status": "Error", "data": "You must be logged!"}'
@@ -367,10 +358,8 @@ def get_host_distinct_peers():
             data_max.append(maximum)
             data_min.append(minimum)
 
-
         json_response = {"status": "Ok", "data":{ "data_avg": data_avg, "data_min_max": data_min_max, "data_min": data_min, "data_max": data_max}}
         return (json.dumps(json_response))
-
 
     except Exception as e:
         json_response = '{"status": "Error", "data": "Elasticsearch query exception: ' + escape(str(e)) + '"}'
