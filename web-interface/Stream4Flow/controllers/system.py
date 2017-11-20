@@ -6,16 +6,120 @@ import hashlib
 import random
 # Enable to get current datetime
 from datetime import datetime
+# Load URL library
+import urllib
+# Load JSON parsing library
+import json
 # Import global functions
 from global_functions import escape
 from global_functions import check_username
 
 
-#----------------- Common Settings ------------------#
+#----------------- Common Functions -----------------#
+
+def get_human_readable_size(num):
+    """
+    Convert given size in mega bytes to string with size and MB or GB format.
+
+    :param num: Size in MB
+    :return: Size in readable format (e.g. 15.0 GB)
+    """
+    for unit in ['MB','GB']:
+        if abs(num) < 1024.0:
+            return "%3.1f %s" % (num, unit)
+        num /= 1024.0
+    return "%3.1f %s" % (num, 'GB')
 
 
-# Do not save the session for the all applications in the "system" controller
-session.forget(response)
+#----------------- Cluster Control ------------------#
+
+def cluster_control():
+    """
+    Show the main page of cluster control.
+
+    :return: Empty dictionary
+    """
+    # Use cluster control view
+    response.view = request.controller + '/cluster_control.html'
+    return dict()
+
+
+def get_cluster_overview():
+    """
+    GEt basic overview of cluster (master and workers).
+
+    :return: JSON with status "ok" or "error" and requested data
+    """
+    # Check login
+    if not session.logged:
+        json_response = '{"status": "Error", "data": "You must be logged!"}'
+        return json_response
+
+    # Get address of the web interface
+    master_web = "http://" + myconf.get("sparkMaster.hostname") + ":" + str(myconf.get("sparkMaster.web_port"))
+    spark_json = master_web + "/json/"
+
+    # Try to connect to spark master web UI
+    try:
+        # Get data from master interface
+        master_web_response = urllib.urlopen(spark_json)
+        master_data = json.loads(master_web_response.read())
+        # Add master to the reponses
+        response = {"status": "Ok", "data": {"master": {"ui_address": master_web, "state": "ALIVE"}}}
+    except Exception as e:
+        # Cannot connect to master set response without master
+        response = {"status": "Ok", "data": {"master": {"ui_address": master_web, "state": "NOT ALIVE"}}}
+        return json.dumps(response)
+
+    # Parse workers info (get latest state)
+    workers_info = {}
+    for item in master_data["workers"]:
+        # Get worker IP
+        worker_ip = item["host"]
+        # Check if host is not in info
+        if worker_ip not in workers_info:
+            # Create dict
+            workers_info[worker_ip] = {}
+        else:
+            # Check if stored info is latest
+            if workers_info[worker_ip]["lastheartbeat"] > item["lastheartbeat"]:
+                # Skip this item
+                continue
+
+        # Update worker information
+        workers_info[worker_ip] = item
+        # Convert memory size to human readable
+        workers_info[worker_ip]["memory"] = get_human_readable_size(workers_info[worker_ip]["memory"])
+        workers_info[worker_ip]["memoryused"] = get_human_readable_size(workers_info[worker_ip]["memoryused"])
+
+    # Get all workers list from configuration
+    workers_list = myconf.get("clusterControl.workers_ips")
+
+    # Check loaded workers with configuration
+    for ip in workers_list:
+        # Check if IP is not in the workers info
+        if ip not in workers_info:
+            # Append this IP to the info
+            workers_info[ip] = {
+                "id": "",
+                "host": ip,
+                "port": "",
+                "webuiaddress": "",
+                "cores": "",
+                "coresused": "",
+                "coresfree": "",
+                "memory": "",
+                "memoryused": "",
+                "memoryfree": "",
+                "state": "NOT LOADED",
+                "lastheartbeat": None
+            }
+
+    # Append workers info to results
+    response["data"]["workers"] = workers_info
+
+    # Return workers info as JSON
+    return json.dumps(response)
 
 
 #----------------- Users Management -----------------#

@@ -1,0 +1,112 @@
+{{extend 'layout.html'}}
+<script>
+    // Set correct menu view.
+    $('#menu-system').addClass('active');
+    $('#menu-clusterControl').addClass('active');
+    // Include specific CSS
+    $('head').append("<link href=\"{{=URL('static','css/cluster_control.css')}}\" rel=\"stylesheet\">");
+</script>
+
+<h3 class="title1">Cluster Control</h3>
+
+{{if not session.logged:}}
+<div class="alert alert-danger" role="alert">
+   <strong>Error: </strong>You must be logged to view this page!
+</div>
+{{else:}}
+
+{{if ('alert_type' in globals()) and alert_type != "":}}
+<div class="alert alert-{{=alert_type}}" role="alert">
+    <strong>
+        {{if alert_type == "danger":}}Error:
+        {{elif alert_type == "success":}}Success:
+        {{elif alert_type == "info":}}Info:
+        {{elif alert_type == "warning":}}Warning:
+        {{pass}}
+    </strong>{{=alert_message}}
+</div>
+{{pass}}
+
+<!-- Cluster Overview -->
+<div class="panel-info widget-shadow general">
+    <h4 class="title2">Cluster Overview</h4>
+    <!-- Status -->
+    <div id="cluster-overview-table-status" class="table-status"></div>
+    <!-- Main Table -->
+    <div id="cluster-overview-table">
+        <table id="master-overview" data-toggle="table">
+            <thead>
+                <tr>
+                    <th class="col-md-10" data-field="uiAddress">Master UI address</th>
+                    <th class="col-md-2" data-field="state">State</th>
+                </tr>
+            </thead>
+        </table>
+
+        <table id="workers-overview" data-toggle="table" data-striped="true" data-pagination="true" data-page-size="10" data-page-list="[10, 20, 40]" data-search-text="">
+            <thead>
+                <tr>
+                    <th class="col-md-4" data-sortable="true" data-field="workerId">Worker ID</th>
+                    <th class="col-md-2" data-sortable="true" data-field="uiAddress">UI address</th>
+                    <th class="col-md-2" data-sortable="true" data-field="cores">Cores</th>
+                    <th class="col-md-2" data-sortable="true" data-field="memory">Memory</th>
+                    <th class="col-md-2" data-sortable="true" data-field="state">State</th>
+                </tr>
+            </thead>
+        </table>
+    </div>
+    <!-- Refresh table -->
+    <a type="button" class="btn btn-default" onclick="loadClusterOverview();false;">Refresh Cluster Overview</a>
+</div>
+<!-- //Cluster Overview -->
+
+<!--
+<div class="grid_3 widget-shadow">
+    <div class="panel-grids">
+        <div class="panel panel-primary">
+            <button type="button" class="btn btn-primary" onclick="location.href='{{=URL('clusterStart')}}'">Start
+                cluster
+            </button>
+            <button type="button" class="btn btn-primary" onclick="location.href='{{=URL('clusterKill')}}'">Stop
+                cluster
+            </button>
+        </div>
+    </div>
+</div>
+
+<div class="progress1">
+    {{if 'listHosts' in globals():}}
+    {{for i,(server,status) in enumerate(listHosts.iteritems(),1):}}
+    {{if i == 1:}}
+    {{if status == "OK":}}
+    <div class="circle1 done">
+        {{else:}}
+        <div class="circle1">
+            {{pass}}
+            <span class="label1">{{=i}}</span>
+            <span class="title1">{{=server}}</span>
+        </div>
+        {{else:}}
+        <span class="bar done"></span>
+        {{if status == "OK":}}
+        <div class="circle1 done">
+            {{else:}}
+            <div class="circle1">
+                {{pass}}
+                <span class="label1">{{=i}}</span>
+                <span class="title1">{{=server}}</span>
+            </div>
+            {{pass}}
+            {{pass}}
+            {{pass}}
+
+        </div>
+    </div>
+</div>
+-->
+
+<!-- Custom Scripts -->
+<script src="{{=URL('static','js/custom/cluster_control.js')}}"></script>
+<!-- //Custom Scripts -->
+
+{{pass}}
