@@ -119,7 +119,7 @@ class AnsibleProvisioning
 		# :param virtual_node: Initialized Vagrant node
 		# """
 		virtual_node.vm.provision "shell" do |s|
-				s.inline = "apt-get install -y python"
+				s.inline = "apt-get update && apt-get install -y python"
 		end
 	end
 	
@@ -166,6 +166,8 @@ class AnsibleProvisioning
 			node_playbook = "ansible/" + node_name  + ".yml"
 			run_ansible(virtual_node, node_playbook)
 		else
+		    # Install python to node (necessary to run ansible_local)
+			install_python(virtual_node)
 			# Run provisioning after the last node (consumer) is initialized
 			if virtual_node.vm.hostname == "consumer"
 				# Provison settings for all nodes at once
