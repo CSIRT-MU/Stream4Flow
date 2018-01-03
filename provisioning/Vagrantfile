@@ -167,7 +167,7 @@ class AnsibleProvisioning
 			run_ansible(virtual_node, node_playbook)
 		else
 			# Run provisioning after the last node (consumer) is initialized
-			if virtual_machine.vm.hostname == "consumer"
+			if virtual_node.vm.hostname == "consumer"
 				# Provison settings for all nodes at once
 				run_ansible(virtual_node, "ansible/site.yml")
 			end
