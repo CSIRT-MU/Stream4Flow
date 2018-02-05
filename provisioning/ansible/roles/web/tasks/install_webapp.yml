@@ -13,13 +13,15 @@
     group: www-data
 
 - name: Copy Stream4Flow web2py application
-  copy:
-    src: "{{ repository_tmp }}/web-interface/Stream4Flow"
+  command: cp -r "{{ repository_tmp }}/web-interface/Stream4Flow" /var/www/web2py/applications/
+  
+- name: Set correct owner and permissions of files
+  file:
     dest: /var/www/web2py/applications/
-    directory_mode: yes
     owner: www-data
     group: www-data
     mode: 0644
+    recurse: yes
     
 - name: Set correct perissions of directories
   file:
