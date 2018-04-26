@@ -1,7 +1,7 @@
 build:
   dir: /tmp/ipfixcol
   git: https://github.com/CESNET/ipfixcol.git
-  branch: devel
+  branch: master
   cmds: [
     autoreconf -i,
     ./configure,
