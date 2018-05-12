@@ -6,18 +6,14 @@
      version: master
 
 - name: Copy routes.py to /var/www/web2py
-  copy:
-    src: "{{ repository_tmp }}/web-interface/routes.py"
-    dest: /var/www/web2py/routes.py
-    owner: www-data
-    group: www-data
+  command: cp "{{ repository_tmp }}/web-interface/routes.py" /var/www/web2py/
 
 - name: Copy Stream4Flow web2py application
   command: cp -r "{{ repository_tmp }}/web-interface/Stream4Flow" /var/www/web2py/applications/
   
 - name: Set correct owner and permissions of files
   file:
-    dest: /var/www/web2py/applications/
+    dest: /var/www/web2py/
     owner: www-data
     group: www-data
     mode: 0644
