@@ -2,7 +2,7 @@
 #Kafka home directory
 kafka_dir: /opt/kafka
 #Download location of Kafka
-kafka_download_url: http://apache.miloslavbrada.cz/kafka/0.10.0.0/kafka_2.11-0.10.0.0.tgz
+kafka_download_url: https://archive.apache.org/dist/kafka/0.10.0.0/kafka_2.11-0.10.0.0.tgz
 #Name of Kafka directory when unarchived
 kafka_filename: kafka_2.11-0.10.0.0
 #Retention setting for the Kafka topic
