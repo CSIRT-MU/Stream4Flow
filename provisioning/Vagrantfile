@@ -209,6 +209,7 @@ Vagrant.configure("2") do |config|
 			v.customize ["modifyvm", :id, "--memory", provision_config["producer"]["memory"]]
 			v.customize ["modifyvm", :id, "--cpus", provision_config["producer"]["cpu"]]
 			v.customize ["modifyvm", :id, "--name", "producer"]
+			v.customize ["modifyvm", :id, "--uartmode1", "disconnected"]
 		end
 
 		# Run ansible provisioning (if provision_on_guest=false this step is skipped)
@@ -225,6 +226,7 @@ Vagrant.configure("2") do |config|
 			v.customize ["modifyvm", :id, "--memory", provision_config["sparkMaster"]["memory"]]
 			v.customize ["modifyvm", :id, "--cpus", provision_config["sparkMaster"]["cpu"]]
 			v.customize ["modifyvm", :id, "--name", "sparkMaster"]
+			v.customize ["modifyvm", :id, "--uartmode1", "disconnected"]
 		end
 
 		# Run ansible provisioning (if provision_on_guest=false this step is skipped)
@@ -249,6 +251,7 @@ Vagrant.configure("2") do |config|
 				v.customize ["modifyvm", :id, "--memory", provision_config["sparkSlave"]["memory"]]
 				v.customize ["modifyvm", :id, "--cpus", provision_config["sparkSlave"]["cpu"]]
 				v.customize ["modifyvm", :id, "--name", "sparkSlave#{i}"]
+				v.customize ["modifyvm", :id, "--uartmode1", "disconnected"]
 			end
 
 			# Run ansible provisioning (if provision_on_guest=false this step is skipped)
@@ -266,6 +269,7 @@ Vagrant.configure("2") do |config|
 			v.customize ["modifyvm", :id, "--memory", provision_config["consumer"]["memory"]]
 			v.customize ["modifyvm", :id, "--cpus", provision_config["consumer"]["cpu"]]
 			v.customize ["modifyvm", :id, "--name", "consumer"]
+			v.customize ["modifyvm", :id, "--uartmode1", "disconnected"]
 		end
 
 		# Run ansible provisioning (if provision_on_guest=false ansible is run in
