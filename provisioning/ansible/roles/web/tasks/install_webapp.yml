@@ -13,7 +13,7 @@
   
 - name: Set correct owner and permissions of files
   file:
-    dest: /var/www/web2py/
+    dest: /var/www/web2py/applications/
     owner: www-data
     group: www-data
     mode: 0644
