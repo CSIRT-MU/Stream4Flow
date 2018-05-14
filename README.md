@@ -87,7 +87,7 @@ _Note:  machines in cluster must run Debian OS with systemd_
 2. go to application directory
 `cd /home/spark/applications/`
 3. run example application
-`/run-application.sh ./statistics/protocols_statistics/spark/protocols_statistics.py   -iz producer:2181 -it ipfix.entry -oz producer:9092 -ot results.output`
+`./run-application.sh ./statistics/protocols_statistics/spark/protocols_statistics.py -iz producer:2181 -it ipfix.entry -oz producer:9092 -ot results.output`
  
 
 #### Send data to Stream4Flow
