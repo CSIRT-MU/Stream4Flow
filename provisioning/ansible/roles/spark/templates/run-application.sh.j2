@@ -25,4 +25,4 @@ echo -e "${GREEN}[info] Running application $APPLICATION...${NC}"
 export SPARK_MASTER_HOST={{ masterIP }}
 export SPARK_LOCAL_HOST={{ masterIP }}
 
-{{ dir_spark }}/spark-bin/bin/spark-submit --total-executor-cores {{ groups['sparkSlave'] | length if (groups['sparkSlave'] | length) >= 2 else 2}} --executor-memory 2G $PYFILES $APPLICATION
+{{ dir_spark }}/spark-bin/bin/spark-submit --total-executor-cores {{ groups['sparkSlave'] | length if (groups['sparkSlave'] | length) >= 2 else 2}} --executor-memory {{ spark_worker_memory | string + 'M' if spark_worker_memory < 2048 else '2G' }} $PYFILES $APPLICATION
