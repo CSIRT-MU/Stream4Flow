@@ -34,7 +34,7 @@ producer:
 # Spark Master node  
 sparkMaster:
     ip: 192.168.0.100
-    memory: 4096
+    memory: 2048
     cpu: 2
 
 # Spark slaves (workers)     
