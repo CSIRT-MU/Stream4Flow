@@ -38,5 +38,5 @@ Available guest names: *producer*, *sparkMaster*, *sparkSlave101* ... *sparkSlav
 
 ## Ansible Provisioning
 
-Stream4Flow framework confogiration and variables are available in [ansible/roles/globas_vars/*](./ansible/roles/globas_vars/).
+Stream4Flow framework confogiration and variables are available in [ansible/group_vars/*](./ansible/group_vars/).
 - Templates of configuration files are stored in *ansible/roles/<name_of_role>/templates/**
