@@ -16,7 +16,7 @@ common:
     
     # Set provision_on_guest to "true" if you want to use ansible provisioning
     # on guests (this option will rapidly slow down provisioning time but
-    # allows provision on Windows and provision of a separate guest.
+    # allows provision on Windows and provision of a separate guest).
     provision_on_guest: true
     
 
