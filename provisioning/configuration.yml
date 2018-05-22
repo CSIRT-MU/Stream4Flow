@@ -1,0 +1,53 @@
+# """
+# This configuration allows to set system properties of Stream4Flow virtual
+# guests provisioned by Vagrant.
+#
+# (Values below represents minimal requirements to run Stream4Flow properly.)
+# """
+
+# """
+# Common settings for all virtual guest.
+# """
+common:
+    # Select Vagrant guest virtual machine box. You can search for boxes at
+    # https://atlas.hashicorp.com/search.
+    box: ubuntu/xenial64
+    box_url: ubuntu/xenial64
+    
+    # Set provision_on_guest to "true" if you want to use ansible provisioning
+    # on guests (this option will rapidly slow down provisioning time but
+    # allows provision on Windows and provision of a separate guest).
+    provision_on_guest: true
+    
+
+# """    
+# Individual system settings for each of quests. Selected IP addresses should
+# not exists in your current network. Size of main memory is in MB.
+# """
+
+# Producer node with IPFIXcol and Kafka
+producer:
+    ip: 192.168.0.2  
+    memory: 4096    
+    cpu: 2
+
+# Spark Master node  
+sparkMaster:
+    ip: 192.168.0.100
+    memory: 2048
+    cpu: 2
+
+# Spark slaves (workers)     
+sparkSlave: 
+    # Number of slaves that will be provisioned
+    count: 1
+    # Prefix of slaves IP addresses (suffix starts at 101)
+    ip_prefix: 192.168.0.
+    memory: 2048
+    cpu: 2
+
+# Consumer node with ElasticStack and web interface    
+consumer:
+    ip: 192.168.0.3    
+    memory: 4096
+    cpu: 2

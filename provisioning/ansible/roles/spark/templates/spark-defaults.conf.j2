@@ -30,4 +30,4 @@ spark.streaming.dynamicAllocation.maxExecutors       {{ groups['sparkSlave'] | l
 spark.streaming.dynamicAllocation.initialExecutors   {{ groups['sparkSlave'] | length }}
 spark.streaming.dynamicAllocation.reserveRate        0.1
 spark.cores.max                                      {{ groups['sparkSlave'] | length if (groups['sparkSlave'] | length) >= 2 else 2}}
-spark.executor.memory                                2G
+spark.executor.memory                                {{ spark_worker_memory | string + 'M' if spark_worker_memory < 2048 else '2G' }}

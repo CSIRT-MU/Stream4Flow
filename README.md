@@ -4,21 +4,21 @@ A framework for the real-time IP flow data analysis built on Apache Spark Stream
 
 ## About Stream4Flow
 
-The basis of the Stream4Flow framework is formed by the IPFIXCol collector, Kafka messaging system, Apache Spark, and Elastic Stack. IPFIXCol is able to receive IP flows from majority of network Netflow/IPFIX probes (e.g. Flowmon Probe, softflowd, etc.). IPFIXCol enables incoming IP flow records to be transformed into the JSON format provided to the Kafka messaging system. The selection of Kafka was based on its scalability and partitioning possibilities, which provide sufficient data throughput. Apache Spark was selected as the data stream processing framework for its quick IP flow data throughput, available programming languages (Scala, Java, or Python) and MapReduce programming model. The analysis results are stored in Elastic Stack containing Logstash, Elasticsearch, and Kibana, which enable storage, querying, and visualizing the results. The Stream4Flow framework also contains the additional web interface in order to make administration easier and visualize complex results of the analysis.
+The basis of the Stream4Flow framework is formed by the IPFIXCol collector, Kafka messaging system, Apache Spark, and Elastic Stack. IPFIXCol is able to receive IP flows from a majority of network Netflow/IPFIX probes (e.g., Flowmon Probe, softflowd, etc.). IPFIXCol enables incoming IP flow records to be transformed into the JSON format provided to the Kafka messaging system. The selection of Kafka was based on its scalability and partitioning possibilities, which provide sufficient data throughput. Apache Spark was selected as the data stream processing framework for its quick IP flow data throughput, available programming languages (Scala, Java, or Python) and MapReduce programming model. The analysis results are stored in Elastic Stack containing Logstash, Elasticsearch, and Kibana, which enable storage, querying, and visualizing the results. The Stream4Flow framework also contains the additional web interface to make administration easier and visualize complex results of the analysis.
 
 ![architecture](https://stream4flow.ics.muni.cz/images/architecture.png?)
 
 
 
 ### Framework Features
-- **Full Stack Solution**: The framework provides full stack solution for IP flow analysis prototyping. It is possible to connect to majority of IP flow network probes. The framework integrates tools for data collection, data processing, manipulation, storage, and presentation. It is compatible with common network probes for IP flow monitoring and export.
-- **Easy Deployment**: The deployment of the framework is fully automated for cloud deployment using cutting edge technologies for software orchestration. The deployment comes with example prototype applications and initial tests to further ease the prototype development.
+- **Full Stack Solution**: The framework provides full stack solution for IP flow analysis prototyping. It is possible to connect to the majority of IP flow network probes. The framework integrates tools for data collection, data processing, manipulation, storage, and presentation. It is compatible with common network probes for IP flow monitoring and export.
+- **Easy Deployment**: The deployment of the framework is fully automated for cloud deployment using cutting-edge technologies for software orchestration. The deployment comes with example prototype applications and initial tests to further ease the prototype development.
 - **High Performance**: Thanks to the scalability of the framework, it is fitted for processing network traffic in a wide range of networks from small company network to large-scale, high-speed networks of ISPs. Its distributed nature enables computationally intensive analyses.
 - **Real-time Analysis**: The stream-based approach provides results of IP flow analysis prototype with only a few seconds delay. The results can be explored in various ways in a user interface in real time. IP analysis prototype can be immediately improved according to provided results.
 
 ### Use-cases
 - **Stream-Based Network Monitoring**: The framework enables to run analyses in data streams. It is suitable for various data pre-processing, continuous queries.
-- **Real-time Attack Detection**: The stream-based approach enables to detect attacks with only a few seconds delay. An instant attack detection provides time to set up a defense and lowers harms caused by an attack. A sample detections are provided, and you can easily create custom detection method.
+- **Real-time Attack Detection**: The stream-based approach enables to detect attacks with only a few seconds delay. An instant attack detection provides time to set up a defense and lowers harms caused by an attack. Sample detections are provided, and you can easily create custom detection method.
 - **Host Profiling**: Apart from monitoring of the whole network, the monitoring can be focused on individual hosts. No host agents are needed, and the monitoring is transparent. You can get a long-term profile for each host connected to your network and explore its behavior.
 - **Situational Awareness**: Data from network monitoring, attack detection, and host profiling can be gathered together to provide complex situational awareness over your network. The advanced analysis of the collected data can reveal information important both from security and business perspective.
 
@@ -44,27 +44,31 @@ We have it all prepared for you. Everything is preconfigured. You have to only c
 
 #### Requirements
 - [Vagrant](https://www.vagrantup.com/) >= 1.9.7
-- [ansible](https://www.ansible.com/) >= 2.1.0
+- [Ansible](https://www.ansible.com/) >= 2.1.0
 - python 2.7
 - Internet connection
 
 ### We support two types of deployment:
 - **Standalone deployment:** Stream4Flow will be deployed into virtual machines on your physical machine using [Vagrant](https://www.vagrantup.com/)
-- **Cluster deployment:** you can deploy Stream4Flow on your own cluster using [ansible](https://www.ansible.com/)
+- **Cluster deployment:** you can deploy Stream4Flow on your cluster using [Ansible](https://www.ansible.com/)
     - requirement: Debian-based OS
 
 ### Standalone deployment
 
-_Note: The minimum hardware requirement is 16GB of RAM_
+_Note: The minimum hardware requirement is 12GB of RAM_
 
 1. download repository
 2. go to folder **provisioning/**
-3. run vagrant provisioning: `vagrant up`
+3. (optional) update guests configuration in **configuration.yml**
+3. run vagrant provisioning: `vagrant up` or start guests separately `vagrant up <guest-name>`
+4. upload your SSH key to guests or allow password based SSH login (use `vagrant ssh <guest-name>`)
+
+See [provision/README.md](./provisioning/README.md) for additional information about provisioning and Vagrant usage.
 
 
 ### Cluster deployment
 
-_Note:  machines in cluster must run Debian OS with systemd_
+_Note:  machines in the cluster must run Debian OS with systemd_
 
 1. download repository
 2. go to folder **provisioning/ansible**
@@ -82,8 +86,7 @@ _Note:  machines in cluster must run Debian OS with systemd_
 
 #### Run an example application protocols_statistics
 
-1. login to Spark Master machine via ssh
-`ssh spark@192.168.0.100`
+1. login to Spark Master machine via ssh `ssh spark@192.168.0.100`
 2. go to application directory
 `cd /home/spark/applications/`
 3. run example application
@@ -111,16 +114,16 @@ Stream4Flow is compatible with any Netflow v5/9 or IPFIX network probe. To measu
 
 ````bibtex
 @ARTICLE{jirsik-2017-toward, 
-author={T. Jirsik and M. Cermak and D. Tovarnak and P. Celeda}, 
-journal={IEEE Communications Magazine}, 
-title={Toward Stream-Based IP Flow Analysis}, 
-year={2017}, 
-volume={55}, 
-number={7}, 
-pages={70-76}, 
-doi={10.1109/MCOM.2017.1600972}, 
-ISSN={0163-6804}, 
-month={},}
+  author={Jirsik, Tomas and Cermak, Milan and Tovarnak, Daniel and Celeda, Pavel}, 
+  journal={IEEE Communications Magazine}, 
+  title={Toward Stream-Based IP Flow Analysis}, 
+  year={2017}, 
+  volume={55}, 
+  number={7}, 
+  pages={70-76}, 
+  doi={10.1109/MCOM.2017.1600972}, 
+  ISSN={0163-6804},
+}
 ````
 
 **Plain text**
@@ -129,9 +132,11 @@ T. Jirsik, M. Cermak, D. Tovarnak and P. Celeda, "Toward Stream-Based IP Flow An
 doi: 10.1109/MCOM.2017.1600972
 ```
 
-**Related Publication**
+**Related Publications**
 
-[Toward Stream-Based IP Flow Analysis](https://doi.org/10.1109/MCOM.2017.1600972)
+- [Toward Stream-Based IP Flow Analysis](https://doi.org/10.1109/MCOM.2017.1600972)
+- [A Performance Benchmark for NetFlow Data Analysis on Distributed Stream Processing Systems](https://doi.org/10.1109/NOMS.2016.7502926)
+- [Real-time analysis of NetFlow data for generating network traffic statistics using Apache Spark](https://doi.org/10.1109/NOMS.2016.7502952)
 
 # Acknowledgement
    

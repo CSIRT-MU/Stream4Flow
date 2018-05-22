@@ -2,22 +2,41 @@
 
 ## Vagrant Provisioning
 
-Configuration of vagrant provisioning is in Vagrantfile.
+All configuration of guest deployed by vagrant provisioning is in [configuration.yml](./configuration.yml).
 
-Configurable options:
-- IP CONFIGURATION: This section configures IP addresses of virtual machines
-- NUMBER OF SLAVES: You can choose number of slaves to built (max. 155), Spark Slave IP address starts at sparkSlave_prefix.101 and increments by one.
-- VM PROPERTIES CONFIGURATION: Options for virtual machines (can be set memory in MB a number of CPUs.)
+**Configurable options:**
+- *common* – Settings common for all guests
+    - *box, box_url* – used Vagrant boxes (using different boxes can cause malfunction of the provisioning)
+    - *provision_on_guest* – true value allows to provision guest separately, false will provision all at once but faster
+- *producer* – Producer guest settings
+    - *ip* – used address of the guest
+    - *memory* – reserved memory (decrease can cause malfunction of the framework)
+    - *cpu* – a number of virtual CPUs (decrease can cause malfunction of the framework)
+- *sparkMaster* – Spark master guest settings
+    - *ip* – used address of the guest
+    - *memory* – reserved memory (decrease can cause malfunction of the framework)
+    - *cpu* – a number of virtual CPUs (decrease can cause malfunction of the framework)
+- *sparkSlave* – Slave guests settings (each slave will have the same configuration)
+    - *count* – a number of slaves that will be provisioned (max. 155)
+    - *ip_prefix* – IP address prefix of slave guests (suffix starts at 101)
+    - *memory* – reserved memory (decrease can cause malfunction of the framework)
+    - *cpu* – a number of virtual CPUs (decrease can cause malfunction of the framework)
+- *consumer* – Consumer guest settings
+    - *ip* – used address of the guest
+    - *memory* – reserved memory (decrease can cause malfunction of the framework)
+    - *cpu* – a number of virtual CPUs (decrease can cause malfunction of the framework)
 
 ### Vagrant commands:
-- vagrant up [<VM_name>]  : Brings up virtual machine(s)
-- vagrant halt [<VM_name>]: Shutdown virtual machine(s)
-- vagrant destroy [<VM_name>]: Completely delete virtual machine(s) and their associated resources (virtual hard drives, ...)
+- `vagrant up` – Brings up the whole framework
+- `vagrant up <guest_name>` – Brings up the guest
+- `vagrant halt <guest_name>` – Shutdown the guest
+- `vagrant destroy <guest_name>`– Completely delete given guest and its associated resources (virtual hard drives, ...)
+- `vagrant provision <guest_name>` – Run Ansible provisioning on the guest
+- `vagrant ssh <guest_name>` – Connect to the guest via SSH
+
+Available guest names: *producer*, *sparkMaster*, *sparkSlave101* ... *sparkSlave156*, *consumer*.
 
 ## Ansible Provisioning
 
-
-All configurable variables are stored in ansible/roles/globas_vars/*
-Templates of configuration files are stored in ansible/roles/<name_of_role>/templates/*
-
-
+Stream4Flow framework confogiration and variables are available in [ansible/group_vars/*](./ansible/group_vars/).
+- Templates of configuration files are stored in *ansible/roles/<name_of_role>/templates/**

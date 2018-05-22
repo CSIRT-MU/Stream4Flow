@@ -1,57 +1,24 @@
 ---
-
-- name: Create directory protocol statistics
-  file: path={{ dir_applications }}/protocols-statistics state=directory mode=0755 group=spark owner=spark
-
-- name: Create directory host statistics
-  file: path={{ dir_applications }}/host-statistics state=directory  mode=0755 group=spark owner=spark
-
-- name: Create directory ddos detection
-  file: path={{ dir_applications }}/detection-ddos state=directory mode=0755 group=spark owner=spark
-
-- name: Create directory protocol statistics
-  file: path={{ dir_applications }}/reflect-ddos state=directory mode=0755 group=spark owner=spark
-
-
-
-- name: Clone git repository
+- name: Clone Stream4Flow git repository
   git:
      repo: "{{ repository_url }}"
      dest: "{{ repository_tmp }}"
      version: master
 
-- name: Copy protocol statistics
-  copy:
-    remote_src: True
-    src: "{{ repository_tmp }}/applications/statistics/protocols_statistics/spark/protocols_statistics.py"
-    dest: "{{ dir_applications }}/protocols-statistics"
-    mode: 0755
+- name: Copy all applications from Stream4Flow git reporsitory
+  command: cp -r "{{ repository_tmp }}/applications/." "{{ dir_applications }}/"
+    
+- name: Set correct owner and permissions of applications
+  file:
+    dest: "{{ dir_applications }}/{{ item }}"
     owner: spark
     group: spark
-
-- name: Copy host statistics
-  copy:
-    remote_src: True
-    src: "{{ repository_tmp }}/applications/statistics/hosts_statistics/spark/host_stats.py"
-    dest: "{{ dir_applications }}/host-statistics"
-    mode: 0755
-    owner: spark
-    group: spark
-
-- name: Copy ddos detection
-  copy:
-    remote_src: True
-    src: "{{ repository_tmp }}/applications/detection/ddos/spark/detection_ddos.py"
-    dest: "{{ dir_applications }}/detection-ddos"
-    mode: 0755
-    owner: spark
-    group: spark
-
-- name: Copy ddos reflection
-  copy:
-    remote_src: True
-    src: "{{ repository_tmp }}/applications/detection/reflect_ddos/spark/reflectdos_main.py"
-    dest: "{{ dir_applications }}/reflect-ddos"
-    mode: 0755
-    owner: spark
-    group: spark
+    mode: 0644
+    recurse: yes
+  with_items: ["detection", "statistics", "application_template"]
+    
+- name: Set correct perissions of applications directories
+  file:
+    path: "{{ dir_applications }}/"
+    mode: u=rwX,g=rX,o=rX
+    recurse: yes

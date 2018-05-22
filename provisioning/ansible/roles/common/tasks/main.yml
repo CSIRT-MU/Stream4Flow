@@ -1,3 +1,4 @@
+---
 - name: Add all hosts to /etc/hosts
   include: hosts.yml
   become: yes

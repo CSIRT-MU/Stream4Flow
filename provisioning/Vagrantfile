@@ -1,226 +1,279 @@
 # -*- mode: ruby -*-
 # vi: set ft=ruby :
 
-# All Vagrant configuration is done below. The "2" in Vagrant.configure
-# configures the configuration version (we support older styles for
-# backwards compatibility). Please don't change it unless you know what
-# you're doing.
+#
+# MIT License
+#
+# Copyright (c) 2016 Institute of Computer Science, Masaryk University
+#
+# Permission is hereby granted, free of charge, to any person obtaining a copy
+# of this software and associated documentation files (the "Software"), to deal
+# in the Software without restriction, including without limitation the rights
+# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+# copies of the Software, and to permit persons to whom the Software is
+# furnished to do so, subject to the following conditions:
+#
+# The above copyright notice and this permission notice shall be included in all
+# copies or substantial portions of the Software.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+# SOFTWARE.
+#
+
+# """
+# This script serves as an input for Vagrant provisioner to deploy whole
+# Stream4Flow framework.
+#
+# All configuration should be set in "./configuration.yml" file. Please don't
+# change the code below unless you know what you're doing.
+#
+# Provisioning may take a long time, do not stop it or suspend it earlier, it
+# can cause unexpected behavior.
+#
+#
+# Usage:
+#  * vagrant up              -- deploy and provision the framework
+#  * vagrant up <node name>  -- deploy and provision specified node
+#  * vagrant halt            -- stop the running framework
+#  * vagrant destroy         -- destroy the deployed framework
+#  * vagrant -h              -- show common vagrant commands
+# """
+
+
+require 'yaml'  # YAML configuration parser
+
+
+class AnsibleProvisioning
+	# """
+	# Class for Ansible provisioning of Stream4Flow to provision based on
+	# configuration file.
+	# """
+	
+	def initialize(configuration)
+		# """
+		# Initialize class based on the given configuration. Also sets ansible
+		# host_vars and groups.
+		#
+		# :param configuration: Parsed configuration in dictionary format
+		# """		
+		# IP address range dDefinition of Spark slave nodes
+		upper_ip_limit = 101 + configuration["sparkSlave"]["count"] - 1
+		# Initialization of list of Spark slaves
+		slaves_list = Array.new
+		
+		# Determine if provisioning should be on guest using ansible_local or from
+		# host using ansible provisioner
+		@on_guest = configuration["common"]["provision_on_guest"]
+	
+		# Set Ansible host_vars
+		@host_vars = {
+			"producer" => {
+				"ansible_host" => configuration["producer"]["ip"],
+				"ansible_port" => "22",
+				"ansible_ssh_pass" => "vagrant"
+			},
+			"consumer" => {
+				"ansible_host" => configuration["consumer"]["ip"],
+				"ansible_port" => "22",
+				"ansible_ssh_pass" => "vagrant"
+			},
+			"sparkMaster" => {
+				"ansible_host" => configuration["sparkMaster"]["ip"],
+				"ansible_port" => "22",
+				"ansible_ssh_pass" => "vagrant"
+			}
+		}
+		# Iterate over spark slaves nodes
+		(101..upper_ip_limit).each do |i|
+			slave_hostname = "sparkSlave#{i}"
+			slave_ip =  "#{configuration["sparkSlave"]["ip_prefix"]}#{i}"
+			slave_ansible_properties = {
+				"ansible_host" => slave_ip,
+				"ansible_port" => "22",
+				"ansible_ssh_pass" => "vagrant"
+			}
+			# Append slave cofiguration to Ansible vars
+			slaves_list.push(slave_hostname)
+			@host_vars[:"#{slave_hostname}"]  = slave_ansible_properties
+		end
+		
+		# Set Ansible groups
+		@groups = {
+				"producer" => ["producer"],
+				"sparkMaster" => ["sparkMaster"],
+				"sparkSlave" => slaves_list,
+				"consumer" => ["consumer"]
+		}
+	end
+	
+	
+	def install_python(virtual_node)
+		# """
+		# Install python on given node using standard shell provisioning.
+		#
+		# :param virtual_node: Initialized Vagrant node
+		# """
+		virtual_node.vm.provision "shell" do |s|
+				s.inline = "apt-get update && apt-get install -y python"
+		end
+	end
+	
+	
+	def run_ansible(virtual_node, playbook)
+		# """
+		# Run ansible on given node.
+		#
+		# :param virtual_node: Initialized Vagrant node
+		# :param playbook: Asnible playbook
+		# """
+		# If profision on guest, than use ansible_local, otherwise use ansible
+		# provisioner
+		provisioner = @on_guest ? :ansible_local : :ansible
+	
+	  # Run Ansible provisioning
+		virtual_node.vm.provision provisioner do |ansible|
+			ansible.playbook = playbook
+			ansible.groups = @groups
+			ansible.host_vars = @host_vars
+			ansible.config_file = "ansible/ansible.cfg"
+			# Run provisioning in paralel if on_guest is set to false
+			if not @on_guest
+				ansible.limit = 'all'
+			end
+		end
+	end
+	
+	
+	def provision(virtual_node)
+		# """
+		# Run provisioning on given node. If node is "consumer" and
+		# provision_on_guest=false than run provision on paralel.
+		#
+		# :param virtual_node: Initialized Vagrant node
+		# """
+		if @on_guest
+			# Install python to node (necessary to run ansible_local)
+			install_python(virtual_node)
+			# Provison settings similar to all nodes
+			run_ansible(virtual_node, "ansible/all.yml")
+			# Provision settings specific for given node
+			node_name = (virtual_node.vm.hostname).start_with?("sparkSlave") ? "sparkSlave" : virtual_node.vm.hostname
+			node_playbook = "ansible/" + node_name  + ".yml"
+			run_ansible(virtual_node, node_playbook)
+		else
+		    # Install python to node (necessary to run ansible_local)
+			install_python(virtual_node)
+			# Run provisioning after the last node (consumer) is initialized
+			if virtual_node.vm.hostname == "consumer"
+				# Provison settings for all nodes at once
+				run_ansible(virtual_node, "ansible/site.yml")
+			end
+		end
+	end
+end
+
+
+# """
+# All Vagrant configuration is done below.
+#
+# The "2" in Vagrant.configure configures the configuration version (Vagrant
+# support older styles for backwards compatibility). Please don't change it
+# unless you know what you're doing.
+# """
 Vagrant.configure("2") do |config|
-	# The most common configuration options are documented and commented below.
-	# For a complete reference, please see the online documentation at
-	# https://docs.vagrantup.com.
+	# For a complete reference of configuration, please see the online
+	# documentation at https://docs.vagrantup.com.
+	
+	# Load Vagrant configuration
+	provision_config = YAML.load_file("configuration.yml")
+	
+	# Selection of used Vagrant virtual boxes
+	config.vm.box = provision_config["common"]["box"]
+	config.vm.box_url = provision_config["common"]["box_url"]
 
-	# Every Vagrant development environment requires a box. You can search for
-	# boxes at https://atlas.hashicorp.com/search.
-	# config.vm.box = "ubuntu/xenial64"
-
-	# GENERAL CONFIG:
-		# VM BOX CONFIGURATION
-		config.vm.box = "ubuntu/xenial64"
-		config.vm.box_url = "ubuntu/xenial64"
-
-		# IP CONFIGURATION
-		producer_ip = "192.168.0.2"
-		consumer_ip = "192.168.0.3"
-		sparkMaster_ip = "192.168.0.100"
-		sparkSlave_prefix = "192.168.0."
-
-		# NUMBER OF SLAVES
-		# Spark Slave IP address starts at sparkSlave_prefix.101 and increments by one.
-		number_of_slaves = 1
-
-		# VM PROPERTIES CONFIGURATION
-		# Producer
-		producer_mem_mb = 4096
-		producer_cpu_num = 4
-		# Consumer
-		consumer_mem_mb = 4096
-		consumer_cpu_num = 2
-		# SparkMaster
-		sparkMaster_mem_mb = 4096
-		sparkMaster_cpu_num = 2
-		# SparkSlave
-		sparkSlave_mem_mb = 4096
-		sparkSlave_cpu_num = 4
-
-	# PRODUCER STARTUP:
+	# Create Ansible provisioning object
+	ansible_provisioning = AnsibleProvisioning.new(provision_config)
+		
+	# Deployment of "producer" node
 	config.vm.define "producer" do |producer|
 		producer.vm.hostname = "producer"
 
-		producer.vm.network :private_network, ip: producer_ip
+		producer.vm.network :private_network, ip: provision_config["producer"]["ip"]
 
 		producer.vm.provider :virtualbox do |v|
-			v.customize ["modifyvm", :id, "--memory", producer_mem_mb]
-			v.customize ["modifyvm", :id, "--cpus", producer_cpu_num]
+			v.customize ["modifyvm", :id, "--memory", provision_config["producer"]["memory"]]
+			v.customize ["modifyvm", :id, "--cpus", provision_config["producer"]["cpu"]]
 			v.customize ["modifyvm", :id, "--name", "producer"]
+			v.customize ["modifyvm", :id, "--uartmode1", "disconnected"]
 		end
 
-        # Install python2 for ansible
-        producer.vm.provision "shell" do |s|
-            s.inline = "apt-get install -y python"
-        end
+		# Run ansible provisioning (if provision_on_guest=false this step is skipped)
+    ansible_provisioning.provision(producer)
 	end
 
-	# SPARK-MASTER STARTUP:
+	# Deployment of "sparkMaster" node
 	config.vm.define "sparkMaster" do |sparkMaster|
 		sparkMaster.vm.hostname = "sparkMaster"
 
-		sparkMaster.vm.network :private_network, ip: sparkMaster_ip
+		sparkMaster.vm.network :private_network, ip: provision_config["sparkMaster"]["ip"]
 
 		sparkMaster.vm.provider :virtualbox do |v|
-			v.customize ["modifyvm", :id, "--memory", sparkMaster_mem_mb]
-			v.customize ["modifyvm", :id, "--cpus", sparkMaster_cpu_num]
+			v.customize ["modifyvm", :id, "--memory", provision_config["sparkMaster"]["memory"]]
+			v.customize ["modifyvm", :id, "--cpus", provision_config["sparkMaster"]["cpu"]]
 			v.customize ["modifyvm", :id, "--name", "sparkMaster"]
+			v.customize ["modifyvm", :id, "--uartmode1", "disconnected"]
 		end
 
-        # Install python2 for ansible
-        sparkMaster.vm.provision "shell" do |s|
-            s.inline = "apt-get install -y python"
-        end
-
+		# Run ansible provisioning (if provision_on_guest=false this step is skipped)
+    ansible_provisioning.provision(sparkMaster)
 	end
 
-	# SPARK-SLAVES STARTUP:
-	upper_ip_limit = 101 + number_of_slaves - 1  # Defines spark slaves range
-	sparkSlaves_list = Array.new  # Initialize list of spark slaves for ansible
+	# IP address range dDefinition of Spark slave nodes
+	upper_ip_limit = 101 + provision_config["sparkSlave"]["count"] - 1
 
-	# Iterate over spark slaves
+	# Iterate over spark slaves nodes
 	(101..upper_ip_limit).each do |i|
+		# Generate node name and IP address
 		sparkSlave_hostname = "sparkSlave#{i}"
-		sparkSlave_ip =  "#{sparkSlave_prefix}#{i}"
-		sparkSlaves_list.push(sparkSlave_hostname)
+		sparkSlave_ip =  "#{provision_config["sparkSlave"]["ip_prefix"]}#{i}"
 
-		# Defining VM properties
+		# Deployment of "sparkSlaveXXX" node
 		config.vm.define "sparkSlave#{i}" do |node|
 			node.vm.hostname = sparkSlave_hostname
 			node.vm.network :private_network, ip: sparkSlave_ip
 
 			node.vm.provider :virtualbox do |v|
-				v.customize ["modifyvm", :id, "--memory", sparkSlave_mem_mb]
-				v.customize ["modifyvm", :id, "--cpus", sparkSlave_cpu_num]
+				v.customize ["modifyvm", :id, "--memory", provision_config["sparkSlave"]["memory"]]
+				v.customize ["modifyvm", :id, "--cpus", provision_config["sparkSlave"]["cpu"]]
 				v.customize ["modifyvm", :id, "--name", "sparkSlave#{i}"]
+				v.customize ["modifyvm", :id, "--uartmode1", "disconnected"]
 			end
 
-            # Install python2 for ansible
-            node.vm.provision "shell" do |s|
-                s.inline = "apt-get install -y python"
-            end
-
+			# Run ansible provisioning (if provision_on_guest=false this step is skipped)
+      ansible_provisioning.provision(node)
 		end
 	end
 
-	# CONSUMER STARTUP:
+	# Deployment of "consumer" node
 	config.vm.define "consumer" do |consumer|
 		consumer.vm.hostname = "consumer"
 
-		consumer.vm.network :private_network, ip: consumer_ip
-		consumer.vm.network "forwarded_port", guest: 443, host: 8443
+		consumer.vm.network :private_network, ip: provision_config["consumer"]["ip"]
 
 		consumer.vm.provider :virtualbox do |v|
-			v.customize ["modifyvm", :id, "--memory", consumer_mem_mb]
-			v.customize ["modifyvm", :id, "--cpus", consumer_cpu_num]
+			v.customize ["modifyvm", :id, "--memory", provision_config["consumer"]["memory"]]
+			v.customize ["modifyvm", :id, "--cpus", provision_config["consumer"]["cpu"]]
 			v.customize ["modifyvm", :id, "--name", "consumer"]
+			v.customize ["modifyvm", :id, "--uartmode1", "disconnected"]
 		end
 
-        # Install python2 for ansible
-        consumer.vm.provision "shell" do |s|
-                        s.inline = "apt-get install -y python"
-        end
-
-		consumer.vm.provision :ansible do |ansible|
-			ansible.playbook = "ansible/site.yml"
-			ansible.groups = {
-				"producer" => ["producer"],
-				"sparkMaster" => ["sparkMaster"],
-				"sparkSlave" => sparkSlaves_list,
-				"consumer" => ["consumer"]
-			}
-			ansible.host_vars = {
-				"producer" => {
-					"ansible_host" => producer_ip,
-					"ansible_port" => "22",
-					"ansible_ssh_pass" => "vagrant"
-				},
-				"consumer" => {
-					"ansible_host" => consumer_ip,
-					"ansible_port" => "22",
-					"ansible_ssh_pass" => "vagrant"
-				},
-				"sparkMaster" => {
-					"ansible_host" => sparkMaster_ip,
-					"ansible_port" => "22",
-					"ansible_ssh_pass" => "vagrant"
-				}
-			}
-			(101..upper_ip_limit).each do |i|
-				sparkSlave_hostname = "sparkSlave#{i}"
-				sparkSlave_ip =  "#{sparkSlave_prefix}#{i}"
-				sparkSlave_ansible_properties = {
-					"ansible_host" => sparkSlave_ip,
-					"ansible_port" => "22",
-					"ansible_ssh_pass" => "vagrant"
-				}
-				ansible.host_vars[:"#{sparkSlave_hostname}"]  = sparkSlave_ansible_properties
-			end
-
-			ansible.limit = 'all'
-
-		end
+		# Run ansible provisioning (if provision_on_guest=false ansible is run in
+		# paralel for all nodes)
+    ansible_provisioning.provision(consumer)
 	end
-
-
-	# Disable automatic box update checking. If you disable this, then
-	# boxes will only be checked for updates when the user runs
-	# `vagrant box outdated`. This is not recommended.
-	# config.vm.box_check_update = false
-
-	# Create a forwarded port mapping which allows access to a specific port
-	# within the machine from a port on the host machine. In the example below,
-	# accessing "localhost:8080" will access port 80 on the guest machine.
-	# config.vm.network "forwarded_port", guest: 80, host: 8080
-
-	# Create a private network, which allows host-only access to the machine
-	# using a specific IP.
-	# config.vm.network "private_network", ip: "192.168.33.10"
-
-	# Create a public network, which generally matched to bridged network.
-	# Bridged networks make the machine appear as another physical device on
-	# your network.
-	# config.vm.network "public_network"
-
-	# Share an additional folder to the guest VM. The first argument is
-	# the path on the host to the actual folder. The second argument is
-	# the path on the guest to mount the folder. And the optional third
-	# argument is a set of non-required options.
-	# config.vm.synced_folder "../data", "/vagrant_data"
-
-	# Provider-specific configuration so you can fine-tune various
-	# backing providers for Vagrant. These expose provider-specific options.
-	# Example for VirtualBox:
-	#
-	# config.vm.provider "virtualbox" do |vb|
-	#   # Display the VirtualBox GUI when booting the machine
-	#   vb.gui = true
-	#
-	#   # Customize the amount of memory on the VM:
-	#   vb.memory = "1024"
-	# end
-	#
-	# View the documentation for the provider you are using for more
-	# information on available options.
-
-	# Define a Vagrant Push strategy for pushing to Atlas. Other push strategies
-	# such as FTP and Heroku are also available. See the documentation at
-	# https://docs.vagrantup.com/v2/push/atlas.html for more information.
-	# config.push.define "atlas" do |push|
-	#   push.app = "YOUR_ATLAS_USERNAME/YOUR_APPLICATION_NAME"
-	# end
-
-	# Enable provisioning with a shell script. Additional provisioners such as
-	# Puppet, Chef, Ansible, Salt, and Docker are also available. Please see the
-	# documentation for more information about their specific syntax and use.
-	# config.vm.provision "shell", inline: <<-SHELL
-	#   apt-get update
-	#   apt-get install -y apache2
-	# SHELL
 end
