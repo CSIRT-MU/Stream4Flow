@@ -27,6 +27,7 @@
 import ujson as json  # Fast JSON parser
 import sys  # Common system functions
 import os  # Common operating system functions
+import time  # Time operations
 
 from termcolor import cprint  # Colors in the console output
 
@@ -53,7 +54,7 @@ def initialize_and_parse_input_stream(input_zookeeper, input_topic, microbatch_d
     ssc = StreamingContext(sc, microbatch_duration)
 
     # Initialize input DStream of flows from specified Zookeeper server and Kafka topic
-    input_stream = KafkaUtils.createStream(ssc, input_zookeeper, "spark-consumer-" + application_name,
+    input_stream = KafkaUtils.createStream(ssc, input_zookeeper, 'spark-consumer-' + application_name + str(time.time()),
                                            {input_topic: 1})
 
     # Parse input stream in the json format
@@ -72,9 +73,9 @@ def initialize_kafka_producer(output_zookeeper):
     # Application name used as identifier
     try:
         application_name = os.path.basename(sys.argv[0])
-        return KafkaProducer(bootstrap_servers=output_zookeeper, client_id="spark-producer-" + application_name)
+        return KafkaProducer(bootstrap_servers=output_zookeeper, client_id='spark-producer-' + application_name + str(time.time()))
     except Exception as e:
-        cprint("[warning] Unable to initialize kafka producer " + output_zookeeper + '.', "blue")
+        cprint('[warning] Unable to initialize kafka producer ' + output_zookeeper + '.', 'blue')
 
 
 def process_data_and_send_result(processed_input, kafka_producer, output_topic, processing_function):
@@ -93,22 +94,22 @@ def process_data_and_send_result(processed_input, kafka_producer, output_topic, 
     try:
         kafka_producer.flush()
     except Exception as e:
-        cprint("[warning] Unable to access producer.", "blue")
+        cprint('[warning] Unable to access producer.', 'blue')
 
 
 def send_data_to_kafka(data, producer, topic):
     """
     Send given data to the specified kafka topic.
 
-    :param data: data to send
+    :param data: string data to send
     :param producer: producer that sends the data
     :param topic: name of the receiving kafka topic
     """
     try:
         if data:  # Check if there are some data to send
-            producer.send(topic, str(data))
+            producer.send(topic, data)
     except Exception as e:
-        cprint("[warning] Unable to send data through topic " + topic + '.', "blue")
+        cprint('[warning] Unable to send data through topic ' + topic + '.', 'blue')
 
 
 def spark_start(ssc):
