@@ -16,4 +16,4 @@ A highly flexible, easily extensible and modular application, capable of analyzi
 
 ### Additional Data
 
-You can find additional materials for detection of authentication attacks on SSH service in [additional_data](./additional_data/SSH_authentication attack_detection) directory.
+You can find additional materials for detection of authentication attacks on SSH service in [additional_data](additional_data/SSH_authentication_attack_detection) directory.
