@@ -1,0 +1,179 @@
+#
+# MIT License
+#
+# Copyright (c) 2018 Milan Cermak <cermak@ics.muni.cz>, Institute of Computer Science, Masaryk University
+#
+# Permission is hereby granted, free of charge, to any person obtaining a copy
+# of this software and associated documentation files (the "Software"), to deal
+# in the Software without restriction, including without limitation the rights
+# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+# copies of the Software, and to permit persons to whom the Software is
+# furnished to do so, subject to the following conditions:
+#
+# The above copyright notice and this permission notice shall be included in all
+# copies or substantial portions of the Software.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+# SOFTWARE.
+#
+
+
+# -------------------------------------- Common Application Settings -------------------------------------- #
+configuration:
+    # Analysis name exported with detection results
+    name: Anomaly Detection
+    # Computation window size in seconds (see https://spark.apache.org/docs/latest/streaming-programming-guide.html)
+    window: 300
+    # Slice/microbatch interval in seconds (see https://spark.apache.org/docs/latest/streaming-programming-guide.html)
+    slice: 5
+
+
+# -------------------------------------- Input Data Filter  ----------------------------------------------- #
+##
+## Individual filter items must be evaluated as a True to process input data (operation AND). Item values
+## are evaluated using operation OR. If no filter is set than all input data are processed.
+##
+## Available filter types: ip, exists, int, ge, nin, lt, le, eq, ne, ge, gt
+##
+filter:
+    # Filter of IPFIX element keys (each element must exist in input data)
+    - element_names:
+          - ipfix.sourceIPv4Address
+          - ipfix.destinationIPv4Address
+      type: exists
+
+    # Filter of communication protocol (see https://www.iana.org/assignments/protocol-numbers/protocol-numbers.xhtml)
+    - element_names:
+          - ipfix.protocolIdentifier
+      type: int
+      values:
+          - 6
+
+    # TCP/UDP ports filter (at least one of elements must contain specified value)
+    - element_names:
+          - ipfix.sourceTransportPort
+          - ipfix.destinationTransportPort
+      type: int
+      values:
+          - 22
+
+    # IP address filter (at least one of elements must contain specified value)
+    - element_names:
+          - ipfix.sourceIPv4Address
+          - ipfix.destinationIPv4Address
+      type: ip
+      values:
+          - 172.16.0.0/16
+
+    # Filter out specified values (input data with these values are evaluated as False)
+    - element_names:
+          - ipfix.DNSCrrName
+      type: nin
+      values:
+          - "google.com"
+          - "wikipedia.com"
+
+    # Select only input data with greater or equal number of packets
+    - element_names:
+          - ipfix.packetDeltaCount
+      type: ge
+      value:
+          - 2
+
+
+# -------------------------------------- Vector Definition ------------------------------------------------ #
+##
+## Specification of vectors that will be compared by defined distance functions. The vector must contain all
+## features required by the distance function module. The application allows to create a simple vector for
+## each input flow record or create biflow vectors containing features from both request and response. Only
+## one type of vector can be specified.
+##
+## Available vector value types: direct (value independent of the record), element (value of the given
+##   element), operation (math operations based on https://docs.python.org/2/library/operator.html),
+##   module (module function defined in vector_definition directory)
+##
+vectors:
+    key:
+      # Biflow key definition (element names for required fields needs to be specified)
+      type: biflow
+          elements:
+              src_ip: ipfix.sourceIPv4Address
+              dst_ip: ipfix.destinationIPv4Address
+              src_port: ipfix.sourceTransportPort
+              dst_port: ipfix.destinationTransportPort
+              flow_start: ipfix.flowStartMilliseconds
+              time_difference: 500  # Milliseconds between two corresponding flows
+
+#      # Simple vector key definition (vector is created from each input flow record)
+#      type: simple
+#          elements:
+#              - ipfix.sourceIPv4Address
+#              - ipfix.sourceTransportPort
+
+    # Vector value elements ordered by their position in this configuration
+    values:
+        - type: element
+          element: ipfix.packetDeltaCount
+        - type: element
+          element: ipfix.octetDeltaCount
+        - type: operation
+          operator: sub
+          elements:
+              - ipfix.flowEndMilliseconds
+              - ipfix.flowStartMilliseconds
+        - type: module
+          name: entropy
+          function: entropy
+          elements:
+              - ipfix.DNSCrrName
+
+
+# -------------------------------------- Additional Output Fields ----------------------------------------- #
+##
+## Additional information from the processed record appended to output results.
+##
+## Output types: simple (if simple vector is used), request (if biflow vector is used), response (if biflow
+##   vector is used)
+##
+output:
+    - name: src_ip
+      element: ipfix.sourceIPv4Address
+      type: request
+    - name: dst_ip
+      element: ipfix.destinationIPv4Address
+      type: request
+
+
+# -------------------------------------- Distance Function and Pattern Definition ------------------------- #
+##
+## Definition of used distance function (need to be available in the distance_functions directory), patterns
+## of desired network traffic in the format required by the distance function, and distribution arrays.
+## Intervals range values are set as greater then (eg. [< 2, < 3, < 4, <5, others]). The limit is specified
+## as greater or equal to the specified value.
+##
+distance:
+    # Name of the used distance function module
+    distance_module: biflow_quadratic_form
+
+    # Patterns specification
+    patterns:
+        - name: anomaly-1
+          request: [23, 8983, 9098, 3.8]
+          response: [24, 1125, 9101, 5.9]
+        - name: anomaly-2
+          request: [58, 12560, 7650, 9.2]
+          response: [60, 15963, 9875. 1.8]
+
+    # Distribution and weights specification (can be specified for each of patterns)
+    distribution:
+        anomaly-1:
+            intervals: [0, 3, 4, 5, 6, 7]
+        default:
+            intervals: [0, 2, 3, 4, 5, 7]
+            weights: [3, 2, 1, 1, 2, 3]
+            limit: 7
