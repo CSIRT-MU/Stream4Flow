@@ -99,21 +99,21 @@ filter:
 ##
 vectors:
     key:
-      # Biflow key definition (element names for required fields needs to be specified)
-      type: biflow
-          elements:
-              src_ip: ipfix.sourceIPv4Address
-              dst_ip: ipfix.destinationIPv4Address
-              src_port: ipfix.sourceTransportPort
-              dst_port: ipfix.destinationTransportPort
-              flow_start: ipfix.flowStartMilliseconds
-              time_difference: 500  # Milliseconds between two corresponding flows
+        # Biflow key definition (element names for required fields needs to be specified)
+        type: biflow
+        elements:
+            src_ip: ipfix.sourceIPv4Address
+            dst_ip: ipfix.destinationIPv4Address
+            src_port: ipfix.sourceTransportPort
+            dst_port: ipfix.destinationTransportPort
+            flow_start: ipfix.flowStartMilliseconds
+        time_difference: 500  # Milliseconds between two corresponding flows
 
-#      # Simple vector key definition (vector is created from each input flow record)
-#      type: simple
-#          elements:
-#              - ipfix.sourceIPv4Address
-#              - ipfix.sourceTransportPort
+#        # Simple vector key definition (vector is created from each input flow record)
+#        type: simple
+#        elements:
+#            - ipfix.sourceIPv4Address
+#            - ipfix.sourceTransportPort
 
     # Vector value elements ordered by their position in this configuration
     values:
@@ -127,8 +127,8 @@ vectors:
               - ipfix.flowEndMilliseconds
               - ipfix.flowStartMilliseconds
         - type: module
-          name: entropy
-          function: entropy
+          name: element_entropy
+          function: element_entropy
           elements:
               - ipfix.DNSCrrName
 
