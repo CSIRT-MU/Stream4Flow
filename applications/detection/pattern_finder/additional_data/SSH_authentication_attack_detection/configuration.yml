@@ -1,0 +1,106 @@
+#
+# MIT License
+#
+# Copyright (c) 2018 Milan Cermak <cermak@ics.muni.cz>, Institute of Computer Science, Masaryk University
+#
+# Permission is hereby granted, free of charge, to any person obtaining a copy
+# of this software and associated documentation files (the "Software"), to deal
+# in the Software without restriction, including without limitation the rights
+# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+# copies of the Software, and to permit persons to whom the Software is
+# furnished to do so, subject to the following conditions:
+#
+# The above copyright notice and this permission notice shall be included in all
+# copies or substantial portions of the Software.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+# SOFTWARE.
+#
+
+
+# -------------------------------------- Common Application Settings -------------------------------------- #
+configuration:
+    name: SSH Brute-force Attack Detection
+    window: 300
+    slice: 5
+
+
+# -------------------------------------- Input Data Filter  ----------------------------------------------- #
+filter:
+    - element_names:
+          - ipfix.sourceIPv4Address
+          - ipfix.destinationIPv4Address
+      type: exists
+    - element_names:
+          - ipfix.sourceTransportPort
+          - ipfix.destinationTransportPort
+      type: int
+      values:
+          - 22
+    - element_names:
+          - ipfix.protocolIdentifier
+      type: int
+      values:
+          - 6
+
+# -------------------------------------- Vector Definition ------------------------------------------------ #
+vectors:
+    key:
+        type: biflow
+        elements:
+            src_ip: ipfix.sourceIPv4Address
+            dst_ip: ipfix.destinationIPv4Address
+            src_port: ipfix.sourceTransportPort
+            dst_port: ipfix.destinationTransportPort
+            flow_start: ipfix.flowStartMilliseconds
+        time_difference: 500
+    values:
+        - type: element
+          element: ipfix.packetDeltaCount
+        - type: element
+          element: ipfix.octetDeltaCount
+        - type: direct
+          value: 1
+        - type: operation
+          operator: sub
+          elements:
+              - ipfix.flowEndMilliseconds
+              - ipfix.flowStartMilliseconds
+
+
+# -------------------------------------- Additional Output Fields ----------------------------------------- #
+output:
+    - name: src_ip
+      element: ipfix.sourceIPv4Address
+      type: request
+    - name: dst_ip
+      element: ipfix.destinationIPv4Address
+      type: request
+
+
+# -------------------------------------- Distance Function and Pattern Definition ------------------------- #
+distance:
+    distance_module: biflow_quadratic_form
+    patterns:          
+        - name: hydra
+          request: [16, 1973, 11959.5]
+          response: [25, 3171, 11959.5]
+        - name: medusa
+          request: [18, 2528, 6079]
+          response: [25, 3715, 6079]
+        - name: ncrack-1
+          request: [13, 2860, 2549.5]
+          response: [14, 2103, 2548.5]
+        - name: ncrack-2
+          request: [16, 3340, 10050]
+          response: [21, 2675, 10048]
+    distribution:
+        default:
+            intervals: [0, 2, 3, 4, 5, 7]
+            weights: [3, 2, 1, 1, 2, 3]
+            limit: 7

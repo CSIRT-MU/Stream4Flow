@@ -1,0 +1,24 @@
+/* Pattern Finder */
+#filter {
+    width: 120px;
+}
+.chart-pattern-finder-top .chart-status, .chart-pattern-finder-top .zingchart {
+    height: 300px;
+}
+#table-pattern-finder{
+    margin-top: -40px;
+    padding-left: 15px;
+    padding-right: 15px;
+}
+.table-status {
+    text-align: center;
+    color: #777777;
+    width: 100%;
+}
+.table-status span {
+    position: relative;
+    top: -4px;
+    font-size: 20px;
+    font-weight: 600;
+    margin-left: 0.5em;
+}
