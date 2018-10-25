@@ -29,8 +29,11 @@
 - name: Copy Kafka configuration files (2/2)
   template: src=templates/kafka-broker.service.j2 dest=/etc/systemd/system/kafka-broker.service mode=0644 owner=kafka group=kafka
 
-- name: Copy modified Kafka server start script
-  template: src=templates/kafka-server-start.sh.j2 dest=/opt/kafka/bin/kafka-server-start.sh mode=0755 owner=kafka group=kafka
+- name: Copy Kafka configuration files (2/2)
+  template: src=templates/kafka-broker.service.j2 dest=/etc/systemd/system/kafka-broker.service mode=0644 owner=kafka group=kafka
+
+- name: Copy modified Kafka server.properties configuration
+  template: src=templates/kafka-server.properties.j2 dest={{ kafka_dir}}/config/server.properties mode=0755 owner=kafka group=kafka
 
 - name: Reload systemd daemon
   shell: systemctl daemon-reload
