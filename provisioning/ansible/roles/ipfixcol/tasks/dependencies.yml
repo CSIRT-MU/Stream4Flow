@@ -35,20 +35,11 @@
    - fbitmerge
    - fbitdump
 
-- name: udp_cpg dependencies
-  action: "{{ ansible_pkg_mgr }} name={{ item }} state=latest"
-  with_items: "{{ packages.udp_cpg }}"
-  tags: udp_cpg
 
 - name: postgres dependencies
   action: "{{ ansible_pkg_mgr }} name={{ item }} state=latest"
   with_items: "{{ packages.postgres }}"
   tags: postgres
-
-- name: GeoIP dependencies
-  action: "{{ ansible_pkg_mgr }} name={{ item }} state=latest"
-  with_items: "{{ packages.geoip }}"
-  tags: geoip
 
 - name: stats dependencies
   action: "{{ ansible_pkg_mgr }} name={{ item }} state=latest"
@@ -57,18 +48,8 @@
     - profile_stats
     - stats
 
-- name: uid dependencies
-  action: "{{ ansible_pkg_mgr }} name={{ item }} state=latest"
-  with_items: "{{ packages.uid }}"
-  tags: uid
 
-- name: dhcp dependencies
-  action: "{{ ansible_pkg_mgr }} name={{ item }} state=latest"
-  with_items: "{{ packages.dhcp }}"
-  tags: dhcp
 
-- name: RPM package dependencies
-  action: "{{ ansible_pkg_mgr }} name={{ item }} state=latest"
-  with_items: "{{ packages.build_rpms }}"
-  when: build_rpms | bool
-  tags: always
+
+
+-
