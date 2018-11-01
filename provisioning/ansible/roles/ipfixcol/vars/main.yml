@@ -16,6 +16,7 @@ build:
 
 # this can be easily changed from command line
 build_fastbit_compile: false
+build_rpms: false
 
 # Set the configuration file path for ipfixcol to load here:
 script_path: /usr/local/etc/ipfixcol/
