@@ -11,9 +11,12 @@
   tags: always
 
 - name: Include dependency package variables
-  include_vars: "packages.{{ pkg_type }}.yml"
+  include_vars: "{{ item }}"
+  with_first_found:
+   - "packages.{{ ansible_distribution }}-{{ ansible_distribution_major_version }}.yml"
+   - "packages.{{ pkg_type }}.yml"
   tags: always
-  
+
 - name: Install dnf support for Fedora
   command: dnf -y install python2-dnf
   when: ansible_pkg_mgr == 'dnf'
@@ -24,21 +27,48 @@
   with_items: "{{ packages.base }}"
   tags: dependencies
 
-- name: Download FastBit compiled library (1/2)
+- name: Download FastBit compiled library
   include: libfastbit.yml
-  tags:
+  tags: 
    - fastbit_lib
    - fastbit
    - fbitmerge
    - fbitdump
+
+- name: udp_cpg dependencies
+  action: "{{ ansible_pkg_mgr }} name={{ item }} state=latest"
+  with_items: "{{ packages.udp_cpg }}"
+  tags: udp_cpg
 
 - name: postgres dependencies
   action: "{{ ansible_pkg_mgr }} name={{ item }} state=latest"
   with_items: "{{ packages.postgres }}"
   tags: postgres
 
+- name: GeoIP dependencies
+  action: "{{ ansible_pkg_mgr }} name={{ item }} state=latest"
+  with_items: "{{ packages.geoip }}"
+  tags: geoip
+
 - name: stats dependencies
   action: "{{ ansible_pkg_mgr }} name={{ item }} state=latest"
   with_items: "{{ packages.stats }}"
   tags:
+    - profile_stats
     - stats
+
+- name: uid dependencies
+  action: "{{ ansible_pkg_mgr }} name={{ item }} state=latest"
+  with_items: "{{ packages.uid }}"
+  tags: uid
+
+- name: dhcp dependencies
+  action: "{{ ansible_pkg_mgr }} name={{ item }} state=latest"
+  with_items: "{{ packages.dhcp }}"
+  tags: dhcp
+
+- name: RPM package dependencies
+  action: "{{ ansible_pkg_mgr }} name={{ item }} state=latest"
+  with_items: "{{ packages.build_rpms }}"
+  when: build_rpms | bool
+  tags: always
