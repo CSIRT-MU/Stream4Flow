@@ -15,6 +15,10 @@
   include: tools.yml
   become: yes
 
+- name: Additional IPFIX elements
+  include: ipfix-elements.yml
+  become: yes
+
 - name: Start IPFIXcol
   include: start.yml
   become: yes
