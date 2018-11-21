@@ -1,0 +1,116 @@
+---
+# IPFIX Elements
+
+# Flowmon DNS
+- name: Add Flowmon IPFIX DNS elements to the ipfix-elements.xml
+  blockinfile:
+    path: "{{ script_path }}/ipfix-elements.xml"
+    marker: "<!-- {mark} Flowmon IPFIX DNS -->"
+    insertbefore: "</ipfix-elements>"
+    block: |
+        <element>
+                <enterprise>39499</enterprise>
+                <id>110</id>
+                <name>DNSTransactionID</name>
+                <dataType>unsigned16</dataType>
+                <semantic></semantic>
+        </element>
+        <element>
+                <enterprise>39499</enterprise>
+                <id>111</id>
+                <name>DNSFlagsCodes</name>
+                <dataType>unsigned16</dataType>
+                <semantic></semantic>
+        </element>
+        <element>
+                <enterprise>39499</enterprise>
+                <id>112</id>
+                <name>DNSQuestionCount</name>
+                <dataType>unsigned16</dataType>
+                <semantic></semantic>
+        </element>
+        <element>
+                <enterprise>39499</enterprise>
+                <id>113</id>
+                <name>DNSAnswers</name>
+                <dataType>unsigned16</dataType>
+                <semantic></semantic>
+        </element>
+        <element>
+                <enterprise>39499</enterprise>
+                <id>114</id>
+                <name>DNSAuthrecCount</name>
+                <dataType>unsigned16</dataType>
+                <semantic></semantic>
+        </element>
+        <element>
+                <enterprise>39499</enterprise>
+                <id>115</id>
+                <name>DNSAddtrecCount</name>
+                <dataType>unsigned16</dataType>
+                <semantic></semantic>
+        </element>
+        <element>
+                <enterprise>39499</enterprise>
+                <id>116</id>
+                <name>DNSCrrName</name>
+                <dataType>string</dataType>
+                <semantic></semantic>
+        </element>
+        <element>
+                <enterprise>39499</enterprise>
+                <id>117</id>
+                <name>DNSCrrType</name>
+                <dataType>unsigned16</dataType>
+                <semantic></semantic>
+        </element>
+        <element>
+                <enterprise>39499</enterprise>
+                <id>118</id>
+                <name>DNSCrrClass</name>
+                <dataType>unsigned16</dataType>
+                <semantic></semantic>
+        </element>
+        <element>
+                <enterprise>39499</enterprise>
+                <id>119</id>
+                <name>DNSRRTTL</name>
+                <dataType>unsigned32</dataType>
+                <semantic></semantic>
+        </element>
+        <element>
+                <enterprise>39499</enterprise>
+                <id>120</id>
+                <name>DNSRData</name>
+                <dataType>octetArray</dataType>
+                <semantic></semantic>
+        </element>
+        <element>
+                <enterprise>39499</enterprise>
+                <id>124</id>
+                <name>DNSRDataLength</name>
+                <dataType>unsigned16</dataType>
+                <semantic></semantic>
+        </element>
+        <element>
+                <enterprise>39499</enterprise>
+                <id>121</id>
+                <name>DNSName</name>
+                <dataType>string</dataType>
+                <semantic></semantic>
+        </element>
+        <element>
+                <enterprise>39499</enterprise>
+                <id>122</id>
+                <name>DNSQType</name>
+                <dataType>unsigned16</dataType>
+                <semantic></semantic>
+        </element>
+        <element>
+                <enterprise>39499</enterprise>
+                <id>123</id>
+                <name>DNSClass</name>
+                <dataType>unsigned16</dataType>
+                <semantic></semantic>
+        </element>
+       
