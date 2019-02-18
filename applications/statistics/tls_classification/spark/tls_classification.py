@@ -66,7 +66,7 @@ def initialize_tls_classificator(dictionary_file_handler, sparkContext):
     :param dictionary_file_handler: File handler with opened dictionary file
     :param sparkContext: Initialized Spark context
     """
-    csv_dictionary = csv.DictReader(dictionary_file_handler)
+    csv_dictionary = csv.DictReader(dictionary_file_handler, delimiter=';')
     classificator = format_classification_dictionary(csv_dictionary)
     # Set global variable and broadcast it using sparkContext
     globals()["tls_classificator"] = sparkContext.broadcast(classificator)
@@ -101,6 +101,37 @@ def process_results(data_to_process, producer, output_topic):
     #kafkaIO.send_data_to_kafka(results_output, producer, output_topic)
 
 
+def format_cipher_suites(suites):
+    """
+    Correct suites formatting to fit the classification dictionary.
+
+    :param suites: TLS cipher suites string produced by IPFIXcol
+    :return: TLS cipher suites list in the "0x...,0x..." format.
+    """
+    cipher_suites = ""
+
+    # Remove "0x" att the beginning of the suites string
+    if suites[:2] == "0x":
+        suites = suites[2:]
+
+    # Swap each two character pairs (fix of the wrong byte order)
+    for i in range(0, len(suites), 4):
+        cipher = "0x" + suites[i+2] + suites[i+3] + suites[i] + suites[i+1] + ","
+        # Append only if the cipher is not empty
+        if cipher != "0x0000,":
+            cipher_suites += cipher
+
+    # Return formatted cipher suites without the last coma
+    return cipher_suites[:-1]
+
+
+def translate_cipher_suite(suite):
+    classificator = get_tls_classificator()
+    if suite in classificator.keys():
+        return [1, suite, classificator[suite]]
+    return [0, suite, None]
+
+
 def process_input(input_data):
     """
     Process raw data and do MapReduce operations.
@@ -114,9 +145,15 @@ def process_input(input_data):
     # Example of the map function that transform all JSONs into the key-value pair with the JSON as value and static key
     modified_input = input_data.map(lambda json_data: (1, json_data))
 
-    with_variable = modified_input.mapValues(lambda json: (get_tls_classificator()["0x0005;0x000a"], json))
+    filtered = input_data.filter(lambda flow_json: "ipfix.TLSClientCipherSuites" in flow_json.keys())\
+                         .map(lambda json_data: (1, format_cipher_suites(json_data["ipfix.TLSClientCipherSuites"])))
+    classify = filtered.mapValues(lambda cipher_suites: translate_cipher_suite(cipher_suites))
+    filter_result = classify.filter(lambda classified: classified[1][0] == 1)
+    filter_result.pprint()
 
-    with_variable.pprint()
+    #with_variable = modified_input.mapValues(lambda json: (get_tls_classificator()["0x0005;0x000a"], json))
+
+    #with_variable.pprint()
 
     return modified_input
 
