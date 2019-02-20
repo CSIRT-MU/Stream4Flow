@@ -38,6 +38,7 @@ from termcolor import cprint  # Colors in the console output
 import csv
 
 from modules import kafkaIO  # IO operations with kafka topics
+import json
 
 
 def format_classification_dictionary(csv_dictionary):
@@ -51,10 +52,10 @@ def format_classification_dictionary(csv_dictionary):
     classificator = {}
     for row in csv_dictionary:
         classificator[row["suites"]] = {
-            "device_type": row["device_type"],
-            "operating_system": row["operating_system"],
-            "application": row["application"],
-            "browser": row["browser"]
+            "device_type": row["device_type"] if row["device_type"] != "" else "unknown",
+            "operating_system": row["operating_system"] if row["operating_system"] != "" else "unknown",
+            "application": row["application"] if row["application"] != "" else "unknown",
+            "browser": row["browser"] if row["browser"] != "" else "unknown"
         }
     return classificator
 
@@ -128,8 +129,23 @@ def format_cipher_suites(suites):
 def translate_cipher_suite(suite):
     classificator = get_tls_classificator()
     if suite in classificator.keys():
-        return [1, suite, classificator[suite]]
-    return [0, suite, None]
+        return classificator[suite]
+    return None
+
+
+def parse_classificated(classificated):
+    browsers = ("browser" + ";" + classificated["classification"]["browser"], classificated["count"])
+    operating_systems = ("os" + ";" + classificated["classification"]["operating_system"], classificated["count"])
+    applications = ("application" + ";" + classificated["classification"]["device_type"] + ":" + classificated["classification"]["application"], classificated["count"])
+    return [browsers, operating_systems, applications]
+
+
+def prepare_unknown(unknown):
+    count = unknown[1][0] - unknown[1][1]
+    browsers = ("browser" + ";" + "unknown", count)
+    operating_systems = ("os" + ";" + "unknown", count)
+    applications = ("application" + ";" + "unknown:unknown", count)
+    return [browsers, operating_systems, applications]
 
 
 def process_input(input_data):
@@ -139,23 +155,32 @@ def process_input(input_data):
     :param input_data: input data in JSON format to process
     :return: processed data
     """
-    # Here you can process input stream with MapReduce operations
-    # <-- INSERT YOUR CODE HERE
+    # Select flow with ipfix.TLSClientCipherSuites key only
+    filtered = input_data.filter(lambda flow_json: "ipfix.TLSClientCipherSuites" in flow_json.keys() and
+                                                   flow_json["ipfix.TLSClientCipherSuites"] != "0x00000000000000000000000000000000")
 
-    # Example of the map function that transform all JSONs into the key-value pair with the JSON as value and static key
-    modified_input = input_data.map(lambda json_data: (1, json_data))
+    # Map and reduce cipher suites to get unique cipher suites and their count
+    cipher_suites = filtered.map(lambda flow_json: (format_cipher_suites(flow_json["ipfix.TLSClientCipherSuites"]), 1))\
+                            .reduceByKey(lambda actual, update: actual + update)
 
-    filtered = input_data.filter(lambda flow_json: "ipfix.TLSClientCipherSuites" in flow_json.keys())\
-                         .map(lambda json_data: (1, format_cipher_suites(json_data["ipfix.TLSClientCipherSuites"])))
-    classify = filtered.mapValues(lambda cipher_suites: translate_cipher_suite(cipher_suites))
-    filter_result = classify.filter(lambda classified: classified[1][0] == 1)
-    filter_result.pprint()
+    # Classify cipher suites
+    classificated = cipher_suites.map(lambda suites_count: {"count": suites_count[1], "classification": translate_cipher_suite(suites_count[0])})
 
-    #with_variable = modified_input.mapValues(lambda json: (get_tls_classificator()["0x0005;0x000a"], json))
+    # Filter out unrecognized cipher suites
+    classificated_filtered = classificated.filter(lambda suites_class: suites_class["classification"] is not None)
 
-    #with_variable.pprint()
 
-    return modified_input
+    # Get number of unclassified flows
+    counted_initial = filtered.count().map(lambda count: ("count", count))
+
+
+    classification_sums = classificated_filtered.flatMap(lambda suites_class: parse_classificated(suites_class))\
+                                                .reduceByKey(lambda actual, update: actual + update)\
+                                                .union(counted_initial)
+    classification_sums.pprint(20)
+
+
+    return classificated_filtered
 
 
 if __name__ == "__main__":
