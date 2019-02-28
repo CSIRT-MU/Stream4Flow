@@ -1,0 +1,10 @@
+/* TLS Classification Statistics */
+.chart-tls-classification-top .chart-status, .chart-tls-classification-top .zingchart {
+    height: 320px;
+}
+.chart-status {
+    height: 300px;
+}
+#chart-tls-classification-top-application {
+    margin-top: -30px;
+}

@@ -113,4 +113,19 @@
                 <dataType>unsigned16</dataType>
                 <semantic></semantic>
         </element>
-       
+
+# Flowmon TLS
+- name: Add Flowmon IPFIX TLS elements to the ipfix-elements.xml
+  blockinfile:
+    path: "{{ script_path }}/ipfix-elements.xml"
+    marker: "<!-- {mark} Flowmon IPFIX TLS -->"
+    insertbefore: "</ipfix-elements>"
+    block: |    
+        <element>
+                <enterprise>39499</enterprise>
+                <id>341</id>
+                <name>TLSClientCipherSuites</name>
+                <dataType>octetArray</dataType>
+                <semantic></semantic>
+        </element>  
+        
