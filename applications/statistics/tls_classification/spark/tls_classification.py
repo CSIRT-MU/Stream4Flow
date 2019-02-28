@@ -28,7 +28,7 @@
 To run this on the Stream4Flow, you need to receive TLS extended flows by IPFIXCol and make them available via Kafka
 topic. Then you can run the example
     $ ./run-application.sh ./tls_classification.py -iz producer:2181 -it ipfix.entry -oz producer:9092
-      -ot app.pattern-finder -d tls_classification_dictionary.csv
+      -ot results.output -d tls_classification_dictionary.csv
 """
 
 
