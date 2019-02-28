@@ -229,7 +229,7 @@ if __name__ == "__main__":
     parser.add_argument("-it", "--input_topic", help="input kafka topic", type=str, required=True)
     parser.add_argument("-oz", "--output_zookeeper", help="output zookeeper hostname:port", type=str, required=True)
     parser.add_argument("-ot", "--output_topic", help="output kafka topic", type=str, required=True)
-    parser.add_argument("-m", "--microbatch", help="microbatch duration", type=int, required=False, default=5)
+    parser.add_argument("-m", "--microbatch", help="microbatch duration", type=int, required=False, default=30)
     parser.add_argument("-d", "--dictionary", help="path to the dictionary file", type=argparse.FileType('r'),
                         required=False, default='tls_classification_dictionary.csv')
 
