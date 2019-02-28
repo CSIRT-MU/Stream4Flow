@@ -91,38 +91,52 @@ def process_results(data_to_process, producer, output_topic):
     :param producer: Kafka producer
     :param output_topic: Kafka topic through which output is send
     """
-
-    # Here you can format your results output and send it to the kafka topic
-    # <-- INSERT YOUR CODE HERE
-
-    # Example of a transformation function that selects values of the dictionary and dumps them as a string
-    results_output = '\n'.join(map(json.dumps, data_to_process.values()))
-
-    result = {
+    result_os = {
         "@type": "tls_classification",
-        "os": {
-            "Windows": 0,
-            "Linux": 0,
-            "Mac OS X": 0,
-            "Android": 0,
-            "iOS": 0,
-            "Unknown": 0
-        },
-        "browser": {},
-        "application": {}
+        "@stat_type": "os",
+        "data_array": []
+    }
+    result_browser = {
+        "@type": "tls_classification",
+        "@stat_type": "browser",
+        "data_array": []
+    }
+    result_application = {
+        "@type": "tls_classification",
+        "@stat_type": "application",
+        "data_array": []
     }
 
+    # Map computed statistics to results map
     for key, value in data_to_process.iteritems():
         type_classified = key.split(";")
-        if type_classified[0] != "count":
-            result[type_classified[0]][type_classified[1]] = value
+        if type_classified[0] == "os":
+            result_os["data_array"].append({"key": type_classified[1], "value": value})
+        elif type_classified[0] == "browser":
+            result_browser["data_array"].append({"key": type_classified[1], "value": value})
+        elif type_classified[0] == "application":
+            result_application["data_array"].append({"key": type_classified[1], "value": value})
 
-    result["os"]["Unknown"] += data_to_process["count"]
+    # Add counts for Unknown keys
+    for result in result_os, result_browser, result_application:
+        unknown_value_present = False
+        for result_data in result["data_array"]:
+            if result_data["key"] == "Unknown" or result_data["key"] == "Unknown:Unknown":
+                unknown_value_present = True
+                result_data["value"] += data_to_process["count"]
+        if not unknown_value_present:
+            if result["@stat_type"] == "application":
+                result["data_array"].append({"key": "Unknown:Unknown", "value": data_to_process["count"]})
+            else:
+                result["data_array"].append({"key": "Unknown", "value": data_to_process["count"]})
 
-    print(json.dumps(result))
+    # Concat all results into the one output
+    output_json = json.dumps(result_os) + "\n" + json.dumps(result_browser) + "\n" + json.dumps(result_application) + "\n"
+
+    print(output_json)
 
     # Send desired output to the output_topic
-    #kafkaIO.send_data_to_kafka(results_output, producer, output_topic)
+    kafkaIO.send_data_to_kafka(output_json, producer, output_topic)
 
 
 def format_cipher_suites(suites):
