@@ -3,24 +3,21 @@
 - name: install add-apt-repository
   apt: name=software-properties-common state=latest
 - name: Add Oracle Java Repository
-  apt_repository: repo='ppa:webupd8team/java'
-- name: Accept Java 8 License debconf
-  debconf: name='oracle-java8-installer' question='shared/accepted-oracle-license-v1-1' value='true' vtype='select'
-- name: Accept Java 8 License apt
+  apt_repository: repo='ppa:linuxuprising/java'
+- name: Accept Java 12 License debconf
+  debconf: name='oracle-java12-installer' question='shared/accepted-oracle-license-v1-2' value='true' vtype='select'
+- name: Accept Java 12 License apt
   apt_key: keyserver=hkp://keyserver.ubuntu.com:80 id=EEA14886
-- name: Install Oracle Java 8
-  apt: name={{item}} state=latest update_cache=yes
-  with_items:
-  - oracle-java8-installer
-  - ca-certificates
-  - oracle-java8-set-default
-- name: Install Maven 3
+- name: Install Oracle Java 12
   apt:
-    name: "{{ item }}"
+    name: [oracle-java12-installer, ca-certificates, oracle-java12-set-default]
     state: latest
     update_cache: yes
-  with_items:
-    - maven
+- name: Install Maven 3
+  apt:
+    name: maven
+    state: latest
+    update_cache: yes
 
 - name: Create .m2 directory
   file: dest=/home/{{ user }}/.m2 state=directory

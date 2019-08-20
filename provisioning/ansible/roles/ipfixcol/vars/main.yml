@@ -10,7 +10,7 @@ build:
   ]
   fastbit:
     archive: libfastbit.tar.gz
-    url: http://liberouter.org/~thorgrin/
+    url: https://dior.ics.muni.cz/~velan/libfastbit/
     git: https://github.com/CESNET/libfastbit.git
     dir: /tmp/libfastbit
 

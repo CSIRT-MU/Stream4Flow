@@ -2,8 +2,8 @@
 # file: roles/kafka/defaults/main.yml
 
 kafka_dir: /opt/kafka
-kafka_download_url: https://archive.apache.org/dist/kafka/0.10.0.0/kafka_2.11-0.10.0.0.tgz
-kafka_filename: kafka_2.11-0.10.0.0
+kafka_download_url: https://archive.apache.org/dist/kafka/2.3.0/kafka_2.12-2.3.0.tgz  
+kafka_filename: kafka_2.12-2.3.0
 retention: 30000
 kafka_maximum_heap_space: "{{(ansible_memtotal_mb * 0.5)|int}}"
 kafka_minimum_heap_space: "{{(ansible_memtotal_mb * 0.25)|int}}"

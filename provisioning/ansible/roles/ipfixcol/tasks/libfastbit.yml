@@ -5,7 +5,7 @@
 - name: Download FastBit compiled library (2/2)
   get_url: >
     url={{ build.fastbit.url }}/libfastbit-{{ ansible_distribution }}-{{ ansible_distribution_major_version }}.tar.gz
-    dest=/tmp/{{ build.fastbit.archive }}
+    dest=/tmp/{{ build.fastbit.archive }} validate_certs=no
   when: not (build_fastbit_compile | bool)
 
 - name: Install FastBit library

@@ -7,15 +7,6 @@
 - name: Edit sshd_conf (2/2)
   lineinfile: "dest=/etc/ssh/sshd_config state=present regexp='PasswordAuthentication.*' line='PasswordAuthentication  no'"
 
-- name: Generate a self-signed SSL certificate
-  shell: bash -c "openssl req -newkey rsa:2048 -x509 -nodes -keyout /etc/ssl/private/private.key -new -out /etc/ssl/certs/server.crt -subj "{{ cert_subj }}" -reqexts SAN -extensions SAN -config <(cat $(openssl version -d | cut -d \" -f2)/openssl.cnf <(printf '[SAN]\nsubjectAltName=IP:{{ ansible_host }}')) -sha512 -days 365"
-
-- name: Change access rights to private key
-  file: path=/etc/ssl/private/private.key mode=0640
-
-- name: Change access rights to cert
-  file: path=/etc/ssl/certs/server.crt mode=0640
-
 - name: Get web2py
   unarchive: src=http://web2py.com/examples/static/web2py_src.zip dest=/var/www copy=no
 

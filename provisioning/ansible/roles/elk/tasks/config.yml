@@ -3,10 +3,10 @@
 
 # Elasticsearch files
 - name: Copy elasticsearch.yml (elasticsearch)
-  template: src=templates/elasticsearch_elasticsearch.yml.j2 dest=/etc/elasticsearch/elasticsearch.yml mode=0750
+  template: src=templates/elasticsearch_elasticsearch.yml.j2 dest=/etc/elasticsearch/elasticsearch.yml mode=0644
 
 - name: Copy logging.yml (elasticsearch)
-  template: src=templates/elasticsearch_logging.yml.j2 dest=/etc/elasticsearch/logging.yml mode=0750
+  template: src=templates/elasticsearch_logging.yml.j2 dest=/etc/elasticsearch/logging.yml mode=0644
 
 - name: Create data directory.
   file: path=/data/elasticsearch state=directory recurse=yes owner=elasticsearch group=elasticsearch mode=0775
