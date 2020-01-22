@@ -4,13 +4,13 @@
   apt: name=software-properties-common state=latest
 - name: Add Oracle Java Repository
   apt_repository: repo='ppa:linuxuprising/java'
-- name: Accept Java 12 License debconf
-  debconf: name='oracle-java12-installer' question='shared/accepted-oracle-license-v1-2' value='true' vtype='select'
-- name: Accept Java 12 License apt
+- name: Accept Java 13 License debconf
+  debconf: name='oracle-java13-installer' question='shared/accepted-oracle-license-v1-2' value='true' vtype='select'
+- name: Accept Java 13 License apt
   apt_key: keyserver=hkp://keyserver.ubuntu.com:80 id=EEA14886
-- name: Install Oracle Java 12
+- name: Install Oracle Java 13
   apt:
-    name: [oracle-java12-installer, ca-certificates, oracle-java12-set-default]
+    name: [oracle-java13-installer, ca-certificates, oracle-java13-set-default]
     state: latest
     update_cache: yes
 - name: Install Maven 3
