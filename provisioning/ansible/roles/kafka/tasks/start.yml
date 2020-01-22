@@ -21,16 +21,16 @@
 
 - name: Add Kafka topic "ipfix.entry"
   shell: /opt/kafka/bin/kafka-topics.sh --zookeeper localhost:2181 --create --topic ipfix.entry --partitions 1 --replication-factor 1
-  when: resultin|failed
+  when: resultin.rc == 1
 
 - name: Set retention on the input topic
   shell: /opt/kafka/bin/kafka-topics.sh --zookeeper localhost:2181 --alter --topic ipfix.entry --config retention.ms={{ retention }}
-  when: resultin|failed
+  when: resultin.rc == 1
 
 - name: Add Kafka topic "results.output"
   shell: /opt/kafka/bin/kafka-topics.sh --zookeeper localhost:2181 --create --topic results.output --partitions 1 --replication-factor 1
-  when: resultout|failed
+  when: resultout.rc == 1
 
 - name: Set retention on the output topic
   shell: /opt/kafka/bin/kafka-topics.sh --zookeeper localhost:2181 --alter --topic results.output --config retention.ms={{ retention }}
-  when: resultout|failed
+  when: resultout.rc == 1

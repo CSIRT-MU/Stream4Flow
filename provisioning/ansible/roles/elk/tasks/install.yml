@@ -8,7 +8,7 @@
   apt_repository: repo='deb https://artifacts.elastic.co/packages/7.x/apt stable main'
 # Install ELK
 - name: install elk and dependencies
-  apt: name={{ item }} state=installed update_cache=yes
+  apt: name={{ item }} state=present update_cache=yes
   with_items:
   - elasticsearch
   - kibana
