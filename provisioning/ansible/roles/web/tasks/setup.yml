@@ -8,7 +8,7 @@
   lineinfile: "dest=/etc/ssh/sshd_config state=present regexp='PasswordAuthentication.*' line='PasswordAuthentication  no'"
 
 - name: Get web2py
-  unarchive: src=http://web2py.com/examples/static/web2py_src.zip dest=/var/www copy=no
+  unarchive: src=https://mdipierro.pythonanywhere.com/examples/static/web2py_src.zip dest=/var/www copy=no
 
 - name: Change ownership on web2py folder
   file: path=/var/www/web2py owner=www-data group=www-data recurse=yes
