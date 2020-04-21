@@ -2,9 +2,9 @@
 #Kafka home directory
 kafka_dir: /opt/kafka
 #Download location of Kafka
-kafka_download_url: https://archive.apache.org/dist/kafka/2.3.0/kafka_2.12-2.3.0.tgz
+kafka_download_url: https://archive.apache.org/dist/kafka/2.5.0/kafka_2.12-2.5.0.tgz
 #Name of Kafka directory when unarchived
-kafka_filename: kafka_2.12-2.3.0
+kafka_filename: kafka_2.12-2.5.0
 #Retention setting for the Kafka topic
 retention: 30000
 #Maximum java heap space for kafka in MB (Default 0.5 of total RAM)
