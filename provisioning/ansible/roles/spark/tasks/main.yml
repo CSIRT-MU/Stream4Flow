@@ -9,7 +9,6 @@
   include: install.yml 
   become: yes
 
-- name: Run Spark master and slaves
-  include: run.yml
+- name: Deploy Spark master and slaves service
+  include: service.yml
   become: yes
-  become_user: "{{ user }}"

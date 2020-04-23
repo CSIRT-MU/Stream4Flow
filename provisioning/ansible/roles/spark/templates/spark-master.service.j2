@@ -1,0 +1,18 @@
+[Unit]
+Description=Spark Master service
+Documentation=https://spark.apache.org/docs/latest/
+Requires=network.target remote-fs.target
+After=network.target remote-fs.target
+
+[Service]
+Type=forking
+User={{ user }}
+Group={{ user }}
+Environment=SPARK_MASTER_HOST={{ masterIP }} SPARK_LOCAL_HOST={{ masterIP }}
+ExecStart={{ dir_spark }}/spark-bin/sbin/start-master.sh
+ExecStop={{ dir_spark }}/spark-bin/sbin/stop-master.sh
+Restart=on-failure
+SyslogIdentifier=spark-master
+
+[Install]
+WantedBy=multi-user.target

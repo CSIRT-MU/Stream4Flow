@@ -1,0 +1,28 @@
+---
+- name: Copy Spark Master service definition
+  template:
+    src: templates/spark-master.service.j2
+    mode: 0644
+    dest: /etc/systemd/system/spark-master.service
+  when: "'sparkMaster' in group_names"
+
+- name: Start Spark Master service
+  systemd:
+    name: spark-master
+    enabled: true
+    state: started
+  when: "'sparkMaster' in group_names"
+
+- name: Copy Spark Slave service definition
+  template:
+    src: templates/spark-slave.service.j2
+    mode: 0644
+    dest: /etc/systemd/system/spark-slave.service
+  when: "'sparkSlave' in group_names"
+
+- name: Start Spark Slave service
+  systemd:
+    name: spark-slave
+    enabled: true
+    state: started
+  when: "'sparkSlave' in group_names"
