@@ -4,7 +4,7 @@ A framework for the real-time IP flow data analysis built on Apache Spark Stream
 
 ### *This project is no longer maintained*
 
-⚠ Project **Stream4Flow** is no longer maintained as the used frameworks are constantly evolving, and it is not in our capacity to continually update the installation scripts. If you're interested in other network data processing tools and research, check out our [CSIRT-MU](https://github.com/CSIRT-MU) repositories.
+⚠ Project **Stream4Flow** is no longer maintained as the used frameworks are constantly evolving, and it is not in our capacity to continually update the installation scripts. If you're interested in other network data processing tools and our current research, check out [CSIRT-MU](https://github.com/CSIRT-MU) repositories.
 
 
 ## About Stream4Flow
