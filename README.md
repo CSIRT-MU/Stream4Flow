@@ -2,6 +2,11 @@
 
 A framework for the real-time IP flow data analysis built on Apache Spark Streaming, a modern distributed stream processing system.
 
+### *This project is no longer maintained*
+
+⚠ Project **Stream4Flow** is no longer maintained as the used frameworks are constantly evolving, and it is not in our capacity to continually update the installation scripts. If you're interested in other network data processing tools and research, check out our [CSIRT-MU](https://github.com/CSIRT-MU) repositories.
+
+
 ## About Stream4Flow
 
 The basis of the Stream4Flow framework is formed by the IPFIXCol collector, Kafka messaging system, Apache Spark, and Elastic Stack. IPFIXCol is able to receive IP flows from a majority of network Netflow/IPFIX probes (e.g., Flowmon Probe, softflowd, etc.). IPFIXCol enables incoming IP flow records to be transformed into the JSON format provided to the Kafka messaging system. The selection of Kafka was based on its scalability and partitioning possibilities, which provide sufficient data throughput. Apache Spark was selected as the data stream processing framework for its quick IP flow data throughput, available programming languages (Scala, Java, or Python) and MapReduce programming model. The analysis results are stored in Elastic Stack containing Logstash, Elasticsearch, and Kibana, which enable storage, querying, and visualizing the results. The Stream4Flow framework also contains the additional web interface to make administration easier and visualize complex results of the analysis.
